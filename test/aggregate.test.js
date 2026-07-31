@@ -5,7 +5,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createPricing } from '../src/pricing.js';
-import { buildSnapshot, rollup, resolveLimit, projectLabels } from '../src/aggregate.js';
+import {
+  buildSnapshot,
+  rollup,
+  rollupBuckets,
+  bucketsFromEntries,
+  resolveLimit,
+  projectLabels,
+} from '../src/aggregate.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pricing = createPricing(
@@ -357,4 +364,190 @@ test('Snapshot spiegelt Konfiguration und Metadaten zurueck', () => {
   assert.deepEqual(snap.countingWeights, { input: 1, output: 1, cacheWrite: 1, cacheRead: 0 });
   assert.equal(snap.scan.files, 13);
   assert.equal(snap.warnings.criticalPercent, 90);
+});
+
+// --- Archiv-Buckets -------------------------------------------------------
+
+test('Buckets fassen Eintraege nach Tag, Projekt, Modell und Geschwindigkeit zusammen', () => {
+  const buckets = bucketsFromEntries(
+    [
+      entry('2026-07-31T09:00:00Z', { output: 100 }),
+      entry('2026-07-31T10:00:00Z', { output: 200, tag: 'b' }),
+      entry('2026-07-31T11:00:00Z', { output: 300, speed: 'fast', tag: 'c' }),
+      entry('2026-07-30T11:00:00Z', { output: 400, tag: 'd' }),
+    ],
+    'Europe/Berlin',
+  );
+  assert.equal(buckets.length, 3);
+  const std = buckets.find((b) => b.day === '2026-07-31' && b.speed === 'standard');
+  assert.equal(std.tokens.output, 300);
+  assert.equal(std.count, 2);
+});
+
+test('Bucket-Kosten werden mit dem Tag als Stichtag gerechnet', () => {
+  // Sonnet 5 hat einen Einfuehrungspreis bis 31.08.2026: 2 statt 3 USD/Mio.
+  // Input. Ein Tag davor und ein Tag danach muessen sich unterscheiden.
+  const mk = (day) => [
+    {
+      day,
+      project: 'p',
+      model: 'claude-sonnet-5',
+      speed: 'standard',
+      tokens: { input: 1_000_000, output: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0 },
+      count: 1,
+    },
+  ];
+  const promo = [...rollupBuckets(mk('2026-08-30'), (b) => b.project, pricing).values()][0];
+  const regulaer = [...rollupBuckets(mk('2026-09-02'), (b) => b.project, pricing).values()][0];
+  assert.ok(Math.abs(promo.cost - 2) < 1e-9, 'im Aktionszeitraum');
+  assert.ok(Math.abs(regulaer.cost - 3) < 1e-9, 'danach zum Listenpreis');
+});
+
+test('uebergebene Buckets liefern Historie, die es in den Eintraegen nicht mehr gibt', () => {
+  // Genau der Fall "Claude Code hat die alten Transkripte aufgeraeumt".
+  const now = iso('2026-07-31T11:00:00Z');
+  const entries = [entry('2026-07-31T09:00:00Z', { output: 1000 })];
+  const buckets = [
+    ...bucketsFromEntries(entries, 'Europe/Berlin'),
+    {
+      day: '2026-07-15',
+      project: 'archiv-projekt',
+      cwd: null,
+      model: 'claude-opus-5',
+      speed: 'standard',
+      tokens: { input: 0, output: 4000, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0 },
+      count: 7,
+      present: false,
+    },
+  ];
+  const snap = buildSnapshot(entries, { config: baseConfig, pricing, now, buckets });
+
+  assert.equal(snap.totals.tokens.output, 5000, 'Archiv zaehlt mit');
+  assert.equal(snap.totals.requests, 8, '1 live + 7 archiviert');
+  assert.equal(snap.totals.liveRequests, 1, 'belegbar sind nur die vorhandenen');
+  assert.equal(snap.byProject.length, 2);
+  assert.ok(snap.daily.find((d) => d.day === '2026-07-15').weighted === 4000);
+  assert.equal(snap.live.fiveHour.weighted, 1000, 'das Fenster sieht nur echte Eintraege');
+});
+
+// --- Gemessenes Limit -----------------------------------------------------
+
+test('ein gemessenes Limit sticht sowohl auto als auch den Planwert aus', () => {
+  const measured = { ok: true, limit: 12345, samples: 9, windows: 4, tokensCv: 0.08 };
+  const r = resolveLimit({ mode: 'auto', planLimit: 88000, history: [1, 2, 3], measured });
+  assert.equal(r.limit, 12345);
+  assert.equal(r.source, 'measured');
+  assert.equal(r.samples, 9);
+  assert.equal(r.spread, 0.08);
+
+  const r2 = resolveLimit({ mode: 'fixed', planLimit: 88000, history: [], measured });
+  assert.equal(r2.source, 'measured');
+});
+
+test('eine unfertige Messung wird ignoriert', () => {
+  const r = resolveLimit({
+    mode: 'auto',
+    planLimit: 88000,
+    history: [100, 900, 400],
+    minSamples: 3,
+    measured: { ok: false, limit: null, samples: 2 },
+  });
+  assert.equal(r.source, 'auto');
+  assert.equal(r.limit, 900);
+});
+
+test('eine Messung mit unbrauchbarem Limit wird nicht uebernommen', () => {
+  const r = resolveLimit({
+    mode: 'auto',
+    planLimit: 88000,
+    history: [],
+    minSamples: 3,
+    measured: { ok: true, limit: 0, samples: 9 },
+  });
+  assert.equal(r.source, 'calibrating');
+});
+
+// --- Blockhistorie --------------------------------------------------------
+
+test('Blockhistorie kommt chronologisch und markiert den laufenden Block', () => {
+  const now = iso('2026-07-31T11:00:00Z');
+  const entries = [
+    entry('2026-07-29T09:00:00Z', { output: 3000 }),
+    entry('2026-07-30T09:00:00Z', { output: 6000, tag: 'b' }),
+    entry('2026-07-31T09:10:00Z', { output: 1000, tag: 'c' }),
+  ];
+  const snap = buildSnapshot(entries, { config: baseConfig, pricing, now });
+
+  assert.equal(snap.blocks.length, 3);
+  assert.ok(snap.blocks[0].start < snap.blocks[2].start, 'aeltester zuerst');
+  assert.equal(snap.blocks.at(-1).active, true);
+  assert.equal(snap.blocks[0].active, false);
+  assert.equal(snap.blocks[1].weighted, 6000);
+  assert.ok(snap.blocks[1].cost > 0);
+});
+
+test('Blockanteile beziehen sich auf das aufgeloeste Limit', () => {
+  const now = iso('2026-07-31T11:00:00Z');
+  const entries = [entry('2026-07-30T09:00:00Z', { output: 44000 })];
+  const snap = buildSnapshot(entries, { config: baseConfig, pricing, now });
+  assert.ok(Math.abs(snap.blocks[0].percent - 50) < 1e-9, '44000 von 88000');
+  assert.equal(snap.blocks[0].level, 'ok');
+});
+
+test('ohne Limit bleiben die Bloecke ohne Prozentwert und ohne Warnstufe', () => {
+  const cfg = { ...baseConfig, limits: { ...baseConfig.limits, mode: 'auto', autoMinSamples: 9 } };
+  const now = iso('2026-07-31T11:00:00Z');
+  const snap = buildSnapshot([entry('2026-07-30T09:00:00Z', { output: 44000 })], {
+    config: cfg,
+    pricing,
+    now,
+  });
+  assert.equal(snap.blocks[0].percent, null);
+  assert.equal(snap.blocks[0].level, 'unknown');
+});
+
+// --- Abo-Gegenwert --------------------------------------------------------
+
+const subConfig = {
+  ...baseConfig,
+  subscription: { billingDay: 1, monthlyPriceUsd: { max5x: 100, pro: 20 } },
+};
+
+test('Abo-Gegenwert summiert nur den laufenden Abrechnungszeitraum', () => {
+  const now = iso('2026-07-31T11:00:00Z');
+  const entries = [
+    entry('2026-06-20T09:00:00Z', { output: 4_000_000 }), // Vormonat
+    entry('2026-07-05T09:00:00Z', { output: 1_000_000, tag: 'a' }),
+    entry('2026-07-31T09:00:00Z', { output: 1_000_000, tag: 'b' }),
+  ];
+  const snap = buildSnapshot(entries, { config: subConfig, pricing, now });
+
+  assert.ok(Math.abs(snap.subscription.cost - 50) < 1e-9, '2 Mio. Opus-Output = 50 USD');
+  assert.equal(snap.subscription.count, 2, 'der Juni zaehlt nicht mit');
+  assert.equal(snap.subscription.priceUsd, 100);
+  assert.ok(Math.abs(snap.subscription.ratio - 0.5) < 1e-9);
+  assert.equal(snap.subscription.start, iso('2026-06-30T22:00:00Z'));
+});
+
+test('Abo-Gegenwert nutzt den Preis des erkannten Tarifs', () => {
+  const snap = buildSnapshot([entry('2026-07-05T09:00:00Z', { output: 1_000_000 })], {
+    config: subConfig,
+    pricing,
+    now: iso('2026-07-31T11:00:00Z'),
+    liveUsage: { ok: false, reason: 'network', subscriptionType: 'pro' },
+  });
+  assert.equal(snap.plan, 'pro');
+  assert.equal(snap.subscription.priceUsd, 20);
+  assert.ok(Math.abs(snap.subscription.ratio - 1.25) < 1e-9, '25 USD bei 20 USD Abo');
+});
+
+test('ohne hinterlegten Preis gibt es keine erfundene Kennzahl', () => {
+  const snap = buildSnapshot([entry('2026-07-05T09:00:00Z', { output: 1_000_000 })], {
+    config: baseConfig,
+    pricing,
+    now: iso('2026-07-31T11:00:00Z'),
+  });
+  assert.equal(snap.subscription.priceUsd, null);
+  assert.equal(snap.subscription.ratio, null);
+  assert.ok(snap.subscription.cost > 0, 'die Kosten selbst stehen trotzdem');
 });

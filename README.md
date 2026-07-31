@@ -16,8 +16,11 @@ ausschließlich an `127.0.0.1`. Null Laufzeit-Abhängigkeiten.
 | Modellspezifische Kontingente | **ja** | – |
 | Kosten-Äquivalent (USD) | – | **ja** |
 | Pro Projekt / Modell / Session | – | **ja** |
-| 30-Tage-Historie, Burn-Rate | – | **ja** |
+| Zeitreihe, Burn-Rate | – | **ja** |
 | Funktioniert offline | – | **ja** |
+
+Beide werden laufend miteinander verglichen. Aus diesen Vergleichen **misst** das Dashboard,
+wie viele Tokens einem Prozent des Limits entsprechen — siehe [Kalibrierung](#kalibrierung).
 
 Die Limit-Anzeigen kommen von Anthropic (`GET /api/oauth/usage`, authentifiziert mit dem
 OAuth-Token, das Claude Code unter `~/.claude/.credentials.json` ablegt) — dieselbe Quelle,
@@ -37,7 +40,7 @@ das Dashboard sichtbar gekennzeichnet auf die lokale Hochrechnung zurück, statt
 ```bash
 npm start        # danach http://localhost:7842 öffnen
 npm run open     # dasselbe, öffnet den Browser gleich mit
-npm test         # 119 Unit-Tests
+npm test         # 201 Unit- und Integrationstests
 ```
 
 Kein Build-Schritt, kein `npm install` — das Projekt hat keine Dependencies. Voraussetzung ist
@@ -85,16 +88,33 @@ unter `~/Library/LaunchAgents/` ein (macOS). Beides braucht keine Admin-Rechte.
 
 ![Dashboard im Dark Mode](docs/dashboard-dark.png)
 
-Oben vier Statuskacheln (5h-Fenster, Woche, Kosten heute, Burn-Rate), darunter der
-30-Tage-Verlauf, der heutige Tagesverlauf, die Token-Zusammensetzung sowie Aufschlüsselungen
-nach Projekt, Modell und Session.
+Oben fünf Statuskacheln (5h-Fenster, Woche, Kosten heute, Burn-Rate, Abo-Gegenwert), darunter
+der 30-Tage-Verlauf, der heutige Tagesverlauf, die Token-Zusammensetzung, die Auslastung je
+abgeschlossenem 5-Stunden-Block sowie Aufschlüsselungen nach Projekt, Modell und Session.
 
-### Schmales Fenster
+Das `LIVE`-Abzeichen an einer Kachel heißt: dieser Wert kommt von Anthropic.
+
+### Schmales Fenster — und der Ausfall-Zustand
 
 ![Dashboard in einem schmalen Fenster](docs/dashboard-narrow.png)
 
 Ab ca. 470 px klappt das Raster auf eine Spalte um; die Charts rechnen sich auf die
 tatsächliche Containerbreite neu (`ResizeObserver`). Funktioniert neben dem Editor.
+
+Dieser Screenshot zeigt zufällig auch den **Ausfall-Zustand**: der Live-Abruf war gedrosselt,
+deshalb steht an den Kacheln `SCHÄTZUNG` statt `LIVE`, in der Kopfzeile der Grund samt Zeit des
+nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen (hier: gemessen aus
+12 Vergleichen, Streuung 1,9 %).
+
+### Warnkanäle
+
+Der Tab-Titel trägt die aktuelle Auslastung (`32 % · Claude Usage`), das Favicon wechselt bei
+70 % auf Gelb und bei 90 % auf Rot. Ein Dashboard im Hintergrund-Tab wird nicht angesehen — der
+Tab selbst ist der einzige Kanal, der ohne Zutun sichtbar bleibt.
+
+Optional zusätzlich ein Desktop-Hinweis beim Überschreiten der Schwellen: Schaltfläche
+**Hinweise** in der Kopfzeile. Bewusst opt-in — ungefragt nach der Berechtigung zu fragen ist
+aufdringlich. Jede Stufe wird pro Fenster höchstens einmal gemeldet.
 
 ## Was die Zahlen bedeuten
 
@@ -104,10 +124,15 @@ Tokenzahl in derselben Kachel ist deshalb **nicht** „37 % von irgendwas", sond
 Summe aus deinen Transkripten für exakt dasselbe Zeitfenster (Reset-Zeit minus Fensterlänge).
 Beide Angaben sind korrekt, messen aber Verschiedenes.
 
-**Nur** wenn die API ausfällt, greift die lokale Schätzung: standardmäßig **selbstkalibrierend**
-(`limits.mode: "auto"`, 100 % = dein bisher höchstes gemessenes Fenster), und solange dafür zu
-wenig Historie da ist, zeigt die Kachel „Kalibrierung läuft" statt einer erfundenen Zahl. Feste
-Planwerte gibt es auch, sie sind aber nur geraten:
+**Nur** wenn die API ausfällt, greift die lokale Rechnung. Sie hat eine klare Rangfolge, und die
+Kachel schreibt immer dazu, welche Stufe gerade gilt:
+
+1. **gemessen** — aus dem laufenden Vergleich mit den echten Werten (siehe unten). Die einzige
+   Zahl, die auf Belegen beruht.
+2. **auto** — dein bisher höchstes beobachtetes Fenster. Eine untere Schranke, mehr nicht.
+3. **Planwert** — nur bei `limits.mode: "fixed"`, und der ist schlicht geraten.
+
+Greift nichts davon, zeigt die Kachel „Kalibrierung läuft" **statt einer erfundenen Zahl**.
 
 ```jsonc
 "limits": { "mode": "fixed", "plans": { "max5x": { "fiveHourTokens": 88000 } } }
@@ -127,7 +152,82 @@ klammert sie aus.
 
 **3. Die Kosten sind das API-Preis-Äquivalent, nicht deine Rechnung.** Mit einem Pro/Max-Abo
 zahlst du eine Pauschale. Der USD-Betrag beantwortet die Frage „was hätte das über die API
-gekostet" — nützlich als Größenordnung und für den Vergleich zwischen Projekten.
+gekostet" — nützlich als Größenordnung und für den Vergleich zwischen Projekten. Genau darauf
+beruht auch die Kachel **Abo-Gegenwert**: Äquivalent des laufenden Abrechnungszeitraums geteilt
+durch den Abo-Preis. Ohne hinterlegten Preis bleibt die Kachel aus.
+
+**4. Oben Account, unten dieses Gerät.** Die Auslastung in den Kacheln gilt für dein gesamtes
+Abo — auch für Arbeit an einem anderen Rechner. Die Aufschlüsselungen darunter kennen nur die
+Transkripte *dieses* Geräts. Das Dashboard schreibt diesen Unterschied in die Fußzeile;
+zusammenführen lässt er sich über [mehrere Geräte](#mehrere-geräte).
+
+## Kalibrierung
+
+Anthropic veröffentlicht die Token-Budgets von Pro/Max nicht. Statt zu raten, misst das
+Dashboard: bei jedem erfolgreichen Abruf notiert es ein Wertepaar aus **echter Auslastung** und
+den **lokal gezählten Tokens im exakt gleichen Fenster**. Aus genügend solchen Paaren ergibt
+sich per Regression durch den Ursprung, wie viele gewichtete Tokens einem Prozent entsprechen.
+
+Das bringt drei Dinge:
+
+- Die Schätzung bei API-Ausfall steht auf gemessenen Zahlen statt auf einem geratenen Planwert.
+- Fällt der undokumentierte Endpunkt irgendwann weg, fällt das Dashboard nicht ins Raten zurück.
+- Es beantwortet eine offene Frage: **ist das Limit überhaupt tokenbasiert?** Dieselbe Rechnung
+  läuft parallel gegen das Kosten-Äquivalent. Welche der beiden Größen die Auslastung enger
+  erklärt, steht in der Fußzeile — gemessen am Variationskoeffizienten der einzelnen
+  Verhältnisse, nicht an R² (das ist bei Modellen ohne Achsenabschnitt fast immer nahe 1 und
+  damit nichtssagend). Ist der Unterschied klein, bleibt die Frage ausdrücklich offen.
+
+Voraussetzung sind standardmäßig 8 Messpunkte aus 3 **verschiedenen** Fenstern — zwanzig
+Messungen aus einer einzigen Sitzung sind keine zwanzig Belege. Pro Fenster wird höchstens alle
+5 Minuten gemessen.
+
+> Die Messung ist eine **untere Schranke**: Arbeit an einem anderen Gerät zählt gegen dasselbe
+> Limit, taucht in den lokalen Transkripten aber nicht auf und drückt den ermittelten Wert nach
+> unten.
+
+## Historie über die Aufräumfrist hinaus
+
+Die Transkripte sind nur geliehen — Claude Code räumt sie nach einer eigenen Frist auf, und
+danach wäre die Zeitreihe ersatzlos weg. Deshalb schreibt das Dashboard **Tagessummen** nach
+`data/history.json` fort: pro Transkript-Datei ein Datensatz mit Tokens je Tag und Modell.
+
+- Gespeichert werden **nur Summen** — keine Prompts, keine Antworten, keine Dateinamen aus
+  deinen Projekten. Die Datei ist lesbares JSON und kann jederzeit gelöscht werden.
+- Geschrieben wird über eine temporäre Datei mit anschließendem Umbenennen; ein Abbruch
+  hinterlässt kein halbes JSON.
+- Das Fortschreiben ist **idempotent**: eine erneut gelesene Datei ersetzt ihren Datensatz,
+  statt aufzuaddieren. Neustarts verdoppeln also nichts.
+- Vollständig archivierte Dateien, die seit `history.detailDays` (Standard 45) nicht mehr
+  angefasst wurden, werden beim Start nicht mehr geöffnet.
+
+Damit das Überspringen nicht doppelt zählen kann, merkt sich das Archiv zusätzlich einen
+64-Bit-Hash je Dedup-Schlüssel. Hintergrund: eine mit `--fork-session` abgespaltene Sitzung
+enthält die Nachrichten der Ursprungssitzung noch einmal. Überlebt die Abspaltung das Aufräumen
+des Originals, würden dessen archivierte Tokens beim nächsten Kaltstart ein zweites Mal
+gezählt — der Hash-Satz der nicht gelesenen Dateien verhindert genau das. In den Testdaten trat
+der Fall bei 1.991 Requests kein einziges Mal auf; abgesichert ist er trotzdem.
+
+### Mehrere Geräte
+
+Ein Account lässt sich **nicht** von einem zweiten Gerät aus live überwachen — dafür müsste man
+`~/.claude/.credentials.json` kopieren, und dieses Token erlaubt Inferenz auf Kosten des Kontos.
+
+Die *Aufschlüsselungen* lassen sich aber zusammenführen, ohne dass irgendetwas die eigenen vier
+Wände verlässt: jedes Gerät legt eine Kopie seines Archivs in einen synchronisierten Ordner und
+zieht die Archive der anderen lesend dazu.
+
+```jsonc
+// Gerät A
+"history": { "mirrorTo": "~/OneDrive/claude-usage/laptop.json",
+             "merge": ["~/OneDrive/claude-usage/desktop.json"] }
+```
+
+Zusammengeführt wird über Projektordner + Dateiname der Session — der ist plattformunabhängig,
+im Gegensatz zum absoluten Pfad. Kennt das eigene Archiv eine Datei bereits, gewinnt der eigene
+Datensatz; derselbe synchronisierte Transkript-Ordner auf beiden Geräten zählt also nicht
+doppelt. Fremde Datensätze werden nie zurückgeschrieben. **Wichtig:** jedes Gerät spiegelt unter
+eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, geht schief.
 
 ## Konfiguration
 
@@ -140,8 +240,17 @@ gekostet" — nützlich als Größenordnung und für den Vergleich zwischen Proj
 | `liveUsage.minIntervalMs` | Drosselung des API-Abrufs (Standard 60 s, unabhängig vom 20-s-Polling) |
 | `timezone` / `locale` | `Europe/Berlin` / `de-DE` für alle Anzeigen |
 | `plan` | Nur **Rückfallwert**. Der Tarif wird aus `rateLimitTier` in den Zugangsdaten gelesen (auch offline) und überstimmt diesen Eintrag. Wird er verwendet, markiert das Dashboard das Badge mit „?" |
-| `limits.mode` | `auto` (selbstkalibrierend) oder `fixed` (Werte aus `plans`) |
+| `limits.mode` | `auto` (höchstes beobachtetes Fenster) oder `fixed` (Werte aus `plans`). Ein **gemessenes** Limit sticht beides |
 | `limits.autoMinSamples` | Ab wie vielen abgeschlossenen Fenstern `auto` greift |
+| `history.enabled` | Tagessummen dauerhaft festhalten. `false` = Historie endet mit der Aufräumfrist von Claude Code |
+| `history.file` | Ablageort des Archivs (Standard `data/history.json`) |
+| `history.detailDays` | Ab welchem Alter vollständig archivierte Dateien beim Start übersprungen werden (Standard 45) |
+| `history.retainDays` | Wie lange Tagessummen aufgehoben werden (Standard 400) |
+| `history.mirrorTo` / `.merge` | Kopie in einen Sync-Ordner / Archive anderer Geräte lesend dazunehmen |
+| `calibration.enabled` | Echte Auslastung mit lokalen Tokens vergleichen und das Limit daraus messen |
+| `calibration.minSamples` / `.minWindows` | Ab wann die Messung verwendet wird (Standard 8 Punkte aus 3 Fenstern) |
+| `subscription.monthlyPriceUsd` | Abo-Preis je Tarif für die Kachel „Abo-Gegenwert". Ohne Eintrag bleibt sie aus |
+| `subscription.billingDay` | Starttag des Abrechnungszeitraums (1–28) |
 | `counting.weights` | Welche Token-Arten gegen das Limit zählen |
 | `window.fiveHourBlockHours` | Fensterlänge (Standard 5) |
 | `week.resetWeekday/-Hour/-Minute` | **Hier deinen echten Wochen-Reset eintragen.** `0` = Sonntag, `1` = Montag … |
@@ -160,6 +269,12 @@ Preise in USD pro 1 Mio. Tokens, zum Selbstpflegen. Regeln:
   korrekt bepreist, auch nachdem die Aktion abgelaufen ist
 - Unbekannte Modelle stürzen nicht ab, sondern erscheinen als **„Preis unbekannt"** und werden
   in der Fußzeile aufgeführt. Ihre Tokens zählen weiterhin mit.
+- `lastUpdated` beim Anpassen mitpflegen. Veraltete Preise für *bekannte* Modelle merkt sonst
+  niemand — ab 120 Tagen weist die Fußzeile darauf hin.
+
+Die Kosten werden bei jedem Aufruf neu aus dieser Tabelle gerechnet, mit dem jeweiligen Tag als
+Stichtag. Eine korrigierte Preistabelle wirkt dadurch rückwirkend, und befristete
+Einführungspreise bleiben an ihr Datum gebunden.
 
 ## Wie es funktioniert
 
@@ -199,9 +314,13 @@ Ablauf des Fensters beginnt ein neuer Block. Das entspricht der Konvention von `
 „components". Der Anzeigename stammt aus dem *flachsten* beobachteten `cwd`.
 
 **Inkrementelles Einlesen.** Pro Datei wird der Byte-Offset gemerkt; ein Rescan liest nur den
-angehängten Teil (typisch wenige KB statt 26 MB). Eine unvollständige letzte Zeile — Claude
+angehängten Teil (typisch wenige KB statt 31 MB). Eine unvollständige letzte Zeile — Claude
 Code schreibt ja gerade weiter — wird nicht konsumiert, sondern beim nächsten Lauf komplett
 verarbeitet. Schrumpft eine Datei, wird sie vollständig neu gelesen.
+
+**Junge Dateien werden trotz Archiv immer ganz gelesen.** Tagesverlauf, Sessions und
+5-Stunden-Blöcke brauchen die einzelnen Einträge mit Zeitstempel, nicht nur Tagessummen. Erst
+jenseits von `history.detailDays` übernimmt das Archiv allein.
 
 **Aktualisierung.** `fs.watch` (rekursiv) mit Entprellung, plus Polling alle 20 s als Fallback.
 Änderungen gehen per Server-Sent Events an den Browser; kein Neuladen nötig.
@@ -215,23 +334,43 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-110 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik und den Live-Abruf,
-u. a.:
+201 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+Kalibrierung und die HTTP-Schicht, u. a.:
 
+**Live-Abruf**
 - Auslastung, Reset-Zeit und modellspezifische Kontingente werden korrekt ausgelesen;
   Fensterstart wird aus Reset minus Fensterlänge rekonstruiert
 - abgelaufenes Token wird **nicht** selbst erneuert (würde Claude Codes Sitzung stören)
 - 401/403, Netzwerkfehler, Timeout und geändertes Antwortformat degradieren auf die
   Schätzung, statt zu werfen
+- die Wartezeit nach einem Fehler wächst exponentiell und ist gedeckelt; „Aktualisieren"
+  überspringt sie nicht
 
+**Parsing und Kosten**
 - drei Content-Blöcke desselben Requests ergeben **einen** Eintrag
 - fehlende `requestId` kollabiert Einträge nicht
 - unvollständige letzte Zeile wird nicht konsumiert; Mehrbyte-UTF-8 überlebt die Offset-Grenze
 - 1h-Cache-Write kostet exakt das 1,6-fache eines 5m-Writes
 - Einführungspreis gilt vor dem Stichtag und danach nicht mehr
+
+**Zeitzonen**
 - **Sommerzeit:** der 29.03.2026 hat 23 Stunden, der 25.10.2026 deren 25; das Wochenfenster
   über die Umstellung ist 167 bzw. 169 Stunden lang, der Reset bleibt auf Mitternacht Ortszeit
 - Tagesgrenzen laufen nach `Europe/Berlin`, nicht nach UTC
+- der Abrechnungszeitraum behält über die Umstellung hinweg seine Ortszeit
+
+**Archiv und Kalibrierung**
+- gelöschte Transkripte bleiben in den Auswertungen erhalten
+- wiederholtes Einlesen — auch über Neustarts — verdoppelt keine Zahlen
+- eine abgespaltene Sitzung bringt archivierte Requests nicht ein zweites Mal ein
+- ein beschädigtes oder fremdformatiges Archiv wird verworfen statt falsch gelesen
+- die Regression trifft die Steigung exakt und meldet, ob Tokens oder Kosten besser erklären;
+  bei ähnlicher Güte bleibt sie ausdrücklich ohne Aussage
+
+**HTTP-Schicht**
+- `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet
+- kein Ausbrechen aus `public/` — auch nicht prozentkodiert (`%2e%2e`, `..%2f`, …)
+- der Server bindet an `127.0.0.1` und beendet beim Schließen nicht den Prozess
 
 ## Auf ein anderes Gerät mitnehmen
 
@@ -244,13 +383,16 @@ Zugangsdaten gelesen (Pro / Max 5× / Max 20×, funktioniert auch offline), die 
 kommen aus dem Live-Abruf. Nur wenn gar keine Zugangsdaten gefunden werden, greift `plan` aus
 der Config — dann steht ein „?" am Badge.
 
-Ein Account lässt sich **nicht** von einem zweiten Gerät aus überwachen. Dafür müsste man
-`~/.claude/.credentials.json` kopieren; dieses Token erlaubt Inferenz auf Kosten des Kontos und
-rotiert ohnehin regelmäßig. Für mehrere Accounts das Dashboard je Gerät starten.
+Die Zahlen *dieses* Geräts lassen sich mit denen anderer zusammenführen — siehe
+[Mehrere Geräte](#mehrere-geräte). Live überwachen lässt sich ein Account von einem zweiten
+Gerät aus nicht.
 
 > ⚠️ Achte beim Weitergeben eigener Screenshots darauf, dass darin Projektnamen, Kosten und
-> Session-IDs sichtbar sind. Die Bilder in `docs/` stammen aus **synthetischen Demo-Daten**;
-> die Auslastungswerte in den Kacheln sind echt, alles andere ist erfunden.
+> Session-IDs sichtbar sind. Dasselbe gilt für `data/history.json` — die Datei enthält
+> Projektnamen und Verbrauchszahlen und ist deshalb per `.gitignore` ausgenommen.
+>
+> Die Bilder in `docs/` stammen aus **synthetischen Demo-Daten**; die Auslastungswerte in den
+> Kacheln sind echt, alles andere ist erfunden.
 
 ## Nicht-Ziele
 
@@ -260,19 +402,21 @@ API-Console-Kosten.
 ## Projektstruktur
 
 ```
-config.json         Einstellungen (Limits, Zeitzone, Warnschwellen)
+config.json         Einstellungen (Limits, Archiv, Kalibrierung, Warnschwellen)
 pricing.json        Preistabelle je Modell
+data/history.json   Archiv der Tagessummen (wird angelegt, nicht eingecheckt)
 src/
   liveUsage.js      Echte Auslastung von Anthropic (OAuth-Token, defensives Parsen)
   tz.js             Zeitzonen-/Sommerzeit-Rechnung
   parser.js         Discovery, JSONL-Parsing, Dedup-Schlüssel, inkrementelles Lesen
   pricing.js        Tarifauflösung und Kostenberechnung
-  windows.js        5h-Session-Blöcke, Wochenfenster, Burn-Rate, Prognose
+  windows.js        5h-Session-Blöcke, Wochen- und Abrechnungsfenster, Burn-Rate, Prognose
+  history.js        Persistentes Archiv, Schlüssel-Hashes, Kalibrier-Regression
   aggregate.js      Aufschlüsselungen und Dashboard-Snapshot
-  store.js          In-Memory-Index, Datei-Offsets, File-Watcher
+  store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
-test/               Unit-Tests (node:test)
+test/               Unit- und Integrationstests (node:test)
 ```
 
 Nützlich beim Debuggen: `GET /api/snapshot` liefert den kompletten Datensatz als JSON,

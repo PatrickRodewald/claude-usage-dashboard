@@ -7,7 +7,9 @@
     "fast": "Optionaler Block: gilt nur, wenn usage.speed == 'fast'",
     "promo": "Optionaler Block: gilt nur fuer Eintraege mit Zeitstempel <= 'until'"
   },
-  "_stand": "2026-07-31",
+  "_hinweis_stand": "lastUpdated wird im Dashboard angezeigt. Beim Anpassen der Preise bitte mitpflegen - sonst rechnet die App still mit veralteten Saetzen weiter, und das faellt niemandem auf.",
+  "lastUpdated": "2026-07-31",
+  "source": "https://www.anthropic.com/pricing",
 
   "models": {
     "claude-fable-5": {

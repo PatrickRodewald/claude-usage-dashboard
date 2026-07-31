@@ -10,12 +10,17 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
 const pricingTable = JSON.parse(fs.readFileSync(path.join(root, 'pricing.json'), 'utf8'));
 
-/** Store ohne Transkript-Quellen, damit nur die Abruf-Logik geprueft wird. */
+/**
+ * Store ohne Transkript-Quellen, damit nur die Abruf-Logik geprueft wird.
+ * Archiv aus: sonst laese der Test das echte data/history.json des Rechners
+ * und haenge von dessen Inhalt ab.
+ */
 function makeStore(liveCfg = {}) {
   return createStore({
     config: {
       timezone: 'Europe/Berlin',
       plan: 'max5x',
+      history: { enabled: false },
       limits: { mode: 'auto', autoMinSamples: 3, plans: {} },
       counting: { weights: {} },
       window: {},
@@ -32,6 +37,7 @@ test('Live-Abruf laesst sich vollstaendig abschalten', async () => {
   const store = createStore({
     config: {
       timezone: 'Europe/Berlin',
+      history: { enabled: false },
       limits: { plans: {} },
       counting: {},
       window: {},

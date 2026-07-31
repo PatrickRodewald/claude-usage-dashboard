@@ -37,10 +37,22 @@ function sendJson(res, status, body) {
 }
 
 function serveStatic(res, urlPath) {
-  const rel = urlPath === '/' ? 'index.html' : urlPath.replace(/^\/+/, '');
-  const target = path.join(publicDir, rel);
-  // Kein Ausbrechen aus public/ - auch lokal nicht.
-  if (!target.startsWith(publicDir + path.sep) && target !== path.join(publicDir, 'index.html')) {
+  let rel;
+  try {
+    rel = decodeURIComponent(urlPath);
+  } catch {
+    res.writeHead(400).end('Bad Request');
+    return;
+  }
+  if (rel.includes('\0')) {
+    res.writeHead(400).end('Bad Request');
+    return;
+  }
+  rel = rel === '/' ? 'index.html' : rel.replace(/^\/+/, '');
+  const target = path.resolve(publicDir, rel);
+  // Kein Ausbrechen aus public/ - auch lokal nicht. Geprueft wird nach dem
+  // Aufloesen, damit weder '..' noch prozentkodierte Varianten durchkommen.
+  if (target !== publicDir && !target.startsWith(publicDir + path.sep)) {
     res.writeHead(403).end('Forbidden');
     return;
   }
@@ -80,14 +92,23 @@ function openBrowser(url) {
   }
 }
 
-export async function startServer({ config, pricingTable, openInBrowser = false } = {}) {
-  const store = createStore({ config, pricingTable });
+export async function startServer({
+  config,
+  pricingTable,
+  historyFile,
+  openInBrowser = false,
+  port: portOverride,
+  quiet = false,
+} = {}) {
+  const store = createStore({ config, pricingTable, historyFile });
   const cfg = store.config;
-  const port = cfg.port ?? 7842;
+  // Port 0 ist gueltig ("nimm einen freien") - deshalb ?? statt ||.
+  const port = portOverride ?? cfg.port ?? 7842;
   const host = '127.0.0.1';
+  const log = quiet ? () => {} : (...a) => console.log(...a);
 
   const dirs = store.dataDirs();
-  if (dirs.length === 0) {
+  if (dirs.length === 0 && !quiet) {
     console.warn(
       '\n  ! Keine Transkript-Verzeichnisse gefunden.\n' +
         '    Gesucht wurde in $CLAUDE_CONFIG_DIR/projects, ~/.claude/projects und ~/.config/claude/projects.\n' +
@@ -95,24 +116,41 @@ export async function startServer({ config, pricingTable, openInBrowser = false 
     );
   }
 
-  console.log('  Lese Transkripte ...');
+  log('  Lese Transkripte ...');
   await store.scan();
   const s0 = store.stats;
-  console.log(
-    `  ${s0.files} Dateien, ${s0.uniqueRequests} eindeutige Requests ` +
+  log(
+    `  ${s0.files} Dateien (${s0.filesSkipped} bereits archiviert, uebersprungen), ` +
+      `${s0.uniqueRequests} eindeutige Requests ` +
       `(${s0.duplicatesSkipped} Duplikate uebersprungen, ${s0.brokenLines} defekte Zeilen) ` +
       `in ${s0.lastScanDurationMs} ms`,
   );
+  const h0 = store.historyStats();
+  if (h0.enabled) {
+    log(
+      `  Archiv: ${h0.days} Tage aus ${h0.files} Transkripten` +
+        (h0.archivedOnly ? `, davon ${h0.archivedOnly} nicht mehr auf der Platte` : '') +
+        (h0.firstDay ? ` (ab ${h0.firstDay})` : '') +
+        (h0.note ? ` - ${h0.note}` : ''),
+    );
+  }
 
   const live0 = await store.refreshLiveUsage({ force: true });
   if (live0?.ok) {
-    console.log(
+    log(
       `  Echte Auslastung von Anthropic: 5h-Fenster ${live0.fiveHour?.percent ?? '?'} %, ` +
         `Woche ${live0.week?.percent ?? '?'} %  (${live0.rateLimitTier ?? 'Tarif unbekannt'})`,
     );
   } else {
-    console.log(
+    log(
       `  Live-Abruf nicht verfuegbar (${live0?.reason}) - Dashboard nutzt die lokale Schaetzung.`,
+    );
+  }
+  const cal0 = store.calibration();
+  if (cal0?.fiveHour?.ok) {
+    log(
+      `  Gemessenes 5h-Limit: ${Math.round(cal0.fiveHour.limit).toLocaleString('de-DE')} gewichtete Tokens ` +
+        `(${cal0.fiveHour.samples} Messpunkte aus ${cal0.fiveHour.windows} Fenstern)`,
     );
   }
 
@@ -146,7 +184,7 @@ export async function startServer({ config, pricingTable, openInBrowser = false 
       await store.refreshLiveUsage({ force });
       broadcast();
     } catch (err) {
-      console.error('  ! Fehler beim Einlesen:', err.message);
+      if (!quiet) console.error('  ! Fehler beim Einlesen:', err.message);
     } finally {
       scanning = false;
       if (rescanQueued) {
@@ -223,20 +261,33 @@ export async function startServer({ config, pricingTable, openInBrowser = false 
     server.listen(port, host, resolve);
   });
 
-  const url = `http://${host}:${port}`;
-  console.log(`\n  Claude Usage Dashboard laeuft auf  ${url}\n`);
+  const actualPort = server.address()?.port ?? port;
+  const url = `http://${host}:${actualPort}`;
+  log(`\n  Claude Usage Dashboard laeuft auf  ${url}\n`);
   if (openInBrowser || cfg.openBrowserOnStart === true) {
     openBrowser(url);
   }
-  console.log(
+  log(
     `  Aktualisierung: ${watcher.active ? 'File-Watcher aktiv' : 'File-Watcher nicht verfuegbar'}` +
       ` + Polling alle ${Math.round(pollMs / 1000)} s\n`,
   );
-  console.log('  Zum Beenden: Strg+C\n');
+  log('  Zum Beenden: Strg+C\n');
 
-  const shutdown = () => {
+  /**
+   * Sauber herunterfahren. Beendet bewusst NICHT den Prozess - das ist Sache
+   * des Aufrufers. Der Signal-Handler unten haengt das Beenden selbst an.
+   */
+  let closing = null;
+  function close() {
+    if (closing) return closing;
     clearInterval(poll);
     watcher.close();
+    // Letzter Stand des Archivs auf die Platte, bevor alles zumacht.
+    try {
+      store.flush();
+    } catch {
+      /* Archiv nicht schreibbar - kein Grund, das Beenden aufzuhalten. */
+    }
     for (const res of clients) {
       try {
         res.end();
@@ -244,13 +295,35 @@ export async function startServer({ config, pricingTable, openInBrowser = false 
         /* egal */
       }
     }
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 1000).unref();
-  };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+    clients.clear();
+    closing = new Promise((resolve) => {
+      server.close(() => resolve());
+      // Hartes Zeitlimit: eine haengende Verbindung darf das Beenden nicht
+      // blockieren.
+      setTimeout(resolve, 1000).unref?.();
+    });
+    return closing;
+  }
 
-  return { server, store, rescan, close: shutdown };
+  const onSignal = () => {
+    close().finally(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1500).unref();
+  };
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
+
+  return {
+    server,
+    store,
+    rescan,
+    port: actualPort,
+    url,
+    close: () => {
+      process.off('SIGINT', onSignal);
+      process.off('SIGTERM', onSignal);
+      return close();
+    },
+  };
 }
 
 // Direkt gestartet (npm start)?

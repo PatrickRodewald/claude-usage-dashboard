@@ -20,6 +20,7 @@ import {
   projectLimitHit,
   warnLevel,
   floorToHour,
+  billingPeriod,
   HOUR_MS,
 } from '../src/windows.js';
 
@@ -315,4 +316,54 @@ test('Warnstufen bei 70 % und 90 %', () => {
   assert.equal(warnLevel(90, w), 'critical');
   assert.equal(warnLevel(250, w), 'critical');
   assert.equal(warnLevel(null, w), 'unknown');
+});
+
+// --- Abrechnungszeitraum ----------------------------------------------------
+
+test('Abrechnungszeitraum laeuft von Monatsersten zu Monatsersten', () => {
+  const p = billingPeriod(Date.parse('2026-07-20T12:00:00Z'), TZ, { billingDay: 1 });
+  assert.equal(p.start, Date.parse('2026-06-30T22:00:00Z'), '01.07. 00:00 Berlin (Sommerzeit)');
+  assert.equal(p.end, Date.parse('2026-07-31T22:00:00Z'), '01.08. 00:00 Berlin');
+});
+
+test('vor dem Abrechnungstag gilt noch der vorige Zeitraum', () => {
+  const p = billingPeriod(Date.parse('2026-07-10T12:00:00Z'), TZ, { billingDay: 15 });
+  assert.equal(p.start, Date.parse('2026-06-14T22:00:00Z'), '15.06. 00:00 Berlin');
+  assert.equal(p.end, Date.parse('2026-07-14T22:00:00Z'), '15.07. 00:00 Berlin');
+});
+
+test('am Abrechnungstag selbst beginnt der neue Zeitraum', () => {
+  const p = billingPeriod(Date.parse('2026-07-15T00:00:00Z'), TZ, { billingDay: 15 });
+  assert.equal(p.start, Date.parse('2026-07-14T22:00:00Z'));
+});
+
+test('Jahreswechsel wird korrekt uebersprungen', () => {
+  const p = billingPeriod(Date.parse('2026-12-20T12:00:00Z'), TZ, { billingDay: 1 });
+  assert.equal(p.start, Date.parse('2026-11-30T23:00:00Z'), '01.12. 00:00 Berlin (Winterzeit)');
+  assert.equal(p.end, Date.parse('2026-12-31T23:00:00Z'), '01.01.2027 00:00 Berlin');
+});
+
+test('Zeitraum ueber die Zeitumstellung behaelt seine Ortszeit', () => {
+  // Im Oktober wird zurueckgestellt: der Zeitraum ist eine Stunde laenger,
+  // beginnt und endet aber weiterhin um Mitternacht Ortszeit.
+  const p = billingPeriod(Date.parse('2026-10-15T12:00:00Z'), TZ, { billingDay: 1 });
+  assert.equal(p.start, Date.parse('2026-09-30T22:00:00Z'), '01.10. 00:00 Berlin (Sommerzeit)');
+  assert.equal(p.end, Date.parse('2026-10-31T23:00:00Z'), '01.11. 00:00 Berlin (Winterzeit)');
+  assert.equal(p.end - p.start, 31 * 24 * HOUR_MS + HOUR_MS, '31 Tage plus die gewonnene Stunde');
+});
+
+test('billingDay wird auf 1-28 begrenzt statt in kurzen Monaten zu verrutschen', () => {
+  const a = billingPeriod(Date.parse('2026-07-20T12:00:00Z'), TZ, { billingDay: 31 });
+  const b = billingPeriod(Date.parse('2026-07-20T12:00:00Z'), TZ, { billingDay: 28 });
+  assert.equal(a.start, b.start);
+
+  const c = billingPeriod(Date.parse('2026-07-20T12:00:00Z'), TZ, { billingDay: 0 });
+  const d = billingPeriod(Date.parse('2026-07-20T12:00:00Z'), TZ, { billingDay: 1 });
+  assert.equal(c.start, d.start);
+});
+
+test('Februar bricht den Zeitraum nicht', () => {
+  const p = billingPeriod(Date.parse('2026-02-10T12:00:00Z'), TZ, { billingDay: 28 });
+  assert.equal(p.start, Date.parse('2026-01-27T23:00:00Z'), '28.01. 00:00 Berlin');
+  assert.equal(p.end, Date.parse('2026-02-27T23:00:00Z'), '28.02. 00:00 Berlin');
 });

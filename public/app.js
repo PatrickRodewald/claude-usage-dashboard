@@ -85,10 +85,36 @@ function dateTime(ms, tz) {
   }).format(new Date(ms));
 }
 
+function dateOnly(ms, tz) {
+  if (!Number.isFinite(ms)) return '–';
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: tz,
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  }).format(new Date(ms));
+}
+
 function shortDay(key) {
   const [, m, d] = key.split('-');
   return `${Number(d)}.${Number(m)}.`;
 }
+
+/** "12.7." aus einem Zeitstempel, in der Anzeigezone. */
+function dayMonth(ms, tz) {
+  if (!Number.isFinite(ms)) return '–';
+  return new Intl.DateTimeFormat('de-DE', { timeZone: tz, day: 'numeric', month: 'numeric' }).format(
+    new Date(ms),
+  );
+}
+
+/** Warnstufen-Farben aus dem Stylesheet - eine Quelle fuer UI und Charts. */
+const LEVEL_COLOR = {
+  ok: 'var(--status-good)',
+  warn: 'var(--status-warning)',
+  critical: 'var(--status-critical)',
+  unknown: 'var(--series-1)',
+};
 
 /* --- Kacheln ------------------------------------------------------------- */
 
@@ -153,6 +179,8 @@ function renderWindowTile(w, ids, tz) {
       `Kalibrierung läuft (${w.limitSamples} von ${w.limitMinSamples ?? 3} abgeschlossenen Fenstern). ` +
         'Bis dahin kein Prozentwert – ein geratener Planwert wäre irreführend.',
     );
+  } else if (w.projection?.alreadyReached && w.limitSource === 'measured') {
+    parts.push('Gemessenes Limit erreicht.');
   } else if (w.projection?.alreadyReached) {
     parts.push('Geschätztes Limit bereits überschritten.');
   } else if (w.projection?.beforeReset) {
@@ -163,8 +191,16 @@ function renderWindowTile(w, ids, tz) {
     parts.push(`Reset kommt vor dem Limit (${LEVEL_TEXT[w.level] ?? ''}).`);
   }
   if (w.source !== 'anthropic') {
-    if (w.limitSource === 'auto') {
-      parts.push(`100 % = höchstes bisher gemessenes Fenster (${w.limitSamples} Vergleichswerte).`);
+    if (w.limitSource === 'measured') {
+      parts.push(
+        `100 % = gemessen aus ${w.limitSamples} Vergleichen mit den echten Werten von Anthropic` +
+          (Number.isFinite(w.limitSpread) ? ` (Streuung ${nf1.format(w.limitSpread * 100)} %)` : '') +
+          '.',
+      );
+    } else if (w.limitSource === 'auto') {
+      parts.push(
+        `100 % = höchstes bisher beobachtetes Fenster (${w.limitSamples} Vergleichswerte) – eine untere Schranke.`,
+      );
     } else if (w.limitSource === 'plan') {
       parts.push('Fester Planwert aus config.json.');
     }
@@ -337,6 +373,24 @@ function render() {
         : 'nach dem Reset';
   $('cache-hit').textContent = pct(s.cache.hitRate * 100);
 
+  // --- Abo-Gegenwert
+  const sub = s.subscription;
+  const valTile = $('tile-value');
+  if (sub?.priceUsd) {
+    valTile.hidden = false;
+    $('val-ratio').textContent = `${nf1.format(sub.ratio)}×`;
+    $('val-cost').textContent = usd(sub.cost);
+    $('val-price').textContent = usd(sub.priceUsd);
+    $('val-period').textContent = `ab ${dateOnly(sub.start, tz)}`;
+    $('val-note').textContent =
+      sub.ratio >= 1
+        ? `Über die API hättest du in diesem Abrechnungszeitraum ${usd(sub.cost)} gezahlt.`
+        : 'API-Äquivalent liegt noch unter dem Abo-Preis.';
+  } else {
+    // Ohne hinterlegten Preis keine erfundene Kennzahl.
+    valTile.hidden = true;
+  }
+
   // --- 30-Tage-Chart
   $('daily-sub').textContent =
     `gewichtete Tokens pro Tag · ${s.timezone}` +
@@ -386,6 +440,43 @@ function render() {
     { label: 'Output', value: t.output, color: 'var(--series-4)' },
     { label: 'Input', value: t.input, color: 'var(--series-5)' },
   ].map((m) => ({ ...m, formatted: `${num(m.value)} Tokens` }));
+
+  // --- 5-Stunden-Blöcke
+  // Farbe kodiert hier die Warnstufe; ohne belastbares Limit bleibt es bei der
+  // neutralen Serienfarbe, damit keine Stufe suggeriert wird, die es nicht gibt.
+  const blocks = s.blocks ?? [];
+  const hasBlockLimit = blocks.some((b) => b.percent != null);
+  const bl = s.blocksLimit ?? {};
+  const BLOCK_BASIS = {
+    measured: 'gemessen aus dem Vergleich mit Anthropic',
+    auto: 'gegen das höchste bisher beobachtete Fenster',
+    plan: 'gegen den Planwert aus config.json',
+  };
+  // Für abgeschlossene Fenster liefert Anthropic keine Prozentwerte - diese
+  // Balken sind also lokal gerechnet, auch wenn die Kachel oben echt ist.
+  $('blocks-sub').textContent = hasBlockLimit
+    ? `Auslastung je Fenster, ${BLOCK_BASIS[bl.source] ?? 'lokal gerechnet'} · neuestes rechts`
+    : 'gewichtete Tokens je Fenster · neuestes rechts';
+  renderColumnChart($('chart-blocks'), {
+    data: blocks.map((b) => ({
+      // Uhrzeit allein wiederholt sich über Tage hinweg; das Datum trennt.
+      label: dayMonth(b.start, tz),
+      value: hasBlockLimit ? (b.percent ?? 0) : b.weighted,
+      color: hasBlockLimit ? LEVEL_COLOR[b.level] : undefined,
+      dim: b.active,
+      tooltip:
+        `${dateTime(b.start, tz)} – ${clock(b.end, tz)}${b.active ? '  (läuft)' : ''}\n` +
+        (b.percent != null ? `${pct(b.percent)} des Limits\n` : '') +
+        `${num(b.weighted)} gewichtete Tokens\n` +
+        `${compact(b.total)} gesamt · ${b.costKnown ? usd(b.cost) : 'Preis unbekannt'}\n` +
+        `${num(b.count)} Requests`,
+    })),
+    height: 190,
+    formatTick: hasBlockLimit ? (v) => `${nf0.format(v)} %` : compact,
+    labelEvery: blocks.length > 12 ? 3 : 1,
+    tooltip,
+    emptyText: 'Noch keine abgeschlossenen 5-Stunden-Fenster',
+  });
 
   renderStackedBar($('chart-mix'), mix, { tooltip });
   const legend = $('mix-legend');
@@ -450,9 +541,85 @@ function render() {
   // --- Fusszeile
   const sc = s.scan ?? {};
   $('scan-info').textContent =
-    `${num(sc.files)} Transkripte · ${num(sc.uniqueRequests)} eindeutige Requests ` +
+    `${num(sc.files)} Transkripte` +
+    (sc.filesSkipped ? ` (${num(sc.filesSkipped)} bereits archiviert, nicht erneut gelesen)` : '') +
+    ` · ${num(sc.uniqueRequests)} eindeutige Requests ` +
     `(${num(sc.duplicatesSkipped)} Duplikate übersprungen, ${num(sc.brokenLines)} defekte Zeilen) · ` +
     `zuletzt eingelesen ${clock(sc.lastScanMs, tz)} in ${num(sc.lastScanDurationMs)} ms`;
+
+  const h = s.history;
+  const histEl = $('history-info');
+  if (h?.enabled) {
+    const parts = [
+      `Archiv: ${num(h.days)} Tage aus ${num(h.files)} Transkripten`,
+      h.firstDay ? `ab ${dayLabelShort(h.firstDay)}` : null,
+      h.archivedOnly
+        ? `${num(h.archivedOnly)} davon von Claude Code bereits aufgeräumt – nur hier noch vorhanden`
+        : null,
+      h.merged ? `${num(h.merged)} weiteres Gerät eingebunden` : null,
+      h.bytes != null ? `${nf1.format(h.bytes / 1024)} KB` : null,
+      h.note,
+    ].filter(Boolean);
+    histEl.hidden = false;
+    histEl.textContent = parts.join(' · ');
+  } else {
+    histEl.hidden = false;
+    histEl.textContent =
+      'Archiv deaktiviert – die Historie reicht nur so weit zurück, wie Claude Code seine Transkripte aufhebt.';
+  }
+
+  // Kalibrierung: was wurde gemessen, und erklären Tokens oder Kosten die
+  // Auslastung besser? Diese Frage ist offen, solange Anthropic nichts sagt.
+  const calEl = $('calib-info');
+  const cal = s.calibration?.fiveHour;
+  if (cal && cal.samples > 0) {
+    calEl.hidden = false;
+    if (cal.ok) {
+      const better =
+        cal.better === 'tokens'
+          ? ' Die Auslastung folgt den gewichteten Tokens enger als den Kosten.'
+          : cal.better === 'cost'
+            ? ' Die Auslastung folgt den Kosten enger als den Tokens – das Limit dürfte kostenbasiert sein.'
+            : ' Tokens und Kosten erklären sie bisher gleich gut.';
+      calEl.textContent =
+        `Gemessen aus ${num(cal.samples)} Vergleichen in ${num(cal.windows)} Fenstern: ` +
+        `1 % des 5h-Limits ≈ ${compact(cal.tokensPerPercent)} gewichtete Tokens ` +
+        `bzw. ${usd(cal.costPerPercent)}. Volles Fenster ≈ ${compact(cal.limit)} Tokens.` +
+        better;
+    } else {
+      calEl.textContent =
+        `Kalibrierung sammelt: ${num(cal.samples)} von ${num(cal.minSamples)} Messpunkten aus ` +
+        `${num(cal.windows)} von ${num(cal.minWindows)} verschiedenen Fenstern. ` +
+        'Danach steht das Limit auf gemessenen Zahlen statt auf einer Schätzung.';
+    }
+  } else {
+    calEl.hidden = true;
+  }
+
+  // Ehrlicher Hinweis: oben Account, unten dieses Gerät.
+  const scopeEl = $('scope-note');
+  scopeEl.textContent =
+    s.live.source === 'anthropic'
+      ? 'Die Auslastung oben gilt für deinen gesamten Account, die Aufschlüsselungen unten nur für die ' +
+        'Transkripte auf diesem Gerät. Wer auf mehreren Rechnern arbeitet, kann die Archive über ' +
+        'history.mirrorTo / history.merge in der config.json zusammenführen.'
+      : 'Alle Zahlen stammen von diesem Gerät. Arbeit auf anderen Rechnern zählt gegen dasselbe Abo, ' +
+        'taucht hier aber nicht auf.';
+
+  // Preistabelle altert still - deshalb sichtbar machen, wie alt sie ist.
+  const pm = s.pricingMeta;
+  const priceEl = $('warn-price');
+  const ageDays = pm?.lastUpdated
+    ? Math.floor((Date.now() - Date.parse(pm.lastUpdated)) / 86400000)
+    : null;
+  if (ageDays != null && ageDays > 120) {
+    priceEl.hidden = false;
+    priceEl.textContent =
+      `Die Preistabelle ist vom ${dayLabelShort(pm.lastUpdated)} und damit ${num(ageDays)} Tage alt. ` +
+      'Alle USD-Beträge können daneben liegen – pricing.json prüfen.';
+  } else {
+    priceEl.hidden = true;
+  }
 
   // Der Hinweistext muss zur tatsaechlichen Datenquelle passen - sonst steht
   // "Schätzung" unter echten Werten.
@@ -504,6 +671,9 @@ function render() {
   } else {
     unknownEl.hidden = true;
   }
+
+  updateTabSignals(s);
+  maybeNotify(s);
 }
 
 function dayLabel(key) {
@@ -514,6 +684,100 @@ function dayLabel(key) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+function dayLabelShort(key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  if (!y || !m || !d) return String(key);
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+/* --- Warnkanaele --------------------------------------------------------- */
+
+/**
+ * Der Tab-Titel und das Favicon tragen die Auslastung mit.
+ *
+ * Ein Dashboard im Hintergrund-Tab wird nicht angesehen - der Tab selbst ist
+ * der einzige Kanal, der ohne Zutun sichtbar bleibt.
+ */
+const FAVICON_COLOR = { ok: '%233987e5', warn: '%23fab219', critical: '%23d03b3b', unknown: '%236b6b68' };
+
+function setFavicon(level) {
+  const fill = FAVICON_COLOR[level] ?? FAVICON_COLOR.unknown;
+  const href =
+    "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>" +
+    `<rect width='16' height='16' rx='4' fill='${fill}'/></svg>`;
+  let link = document.querySelector("link[rel='icon']");
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.append(link);
+  }
+  if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+}
+
+function updateTabSignals(s) {
+  const w = s.live.fiveHour;
+  const label = w.percent == null ? compact(w.weighted) : `${nf0.format(w.percent)} %`;
+  document.title = `${label} · Claude Usage`;
+  setFavicon(w.level);
+}
+
+/**
+ * Desktop-Hinweis beim Erreichen einer Warnschwelle.
+ *
+ * Bewusst opt-in ueber einen Schalter: ungefragt nach der Berechtigung zu
+ * fragen ist aufdringlich. Pro Fenster wird jede Stufe hoechstens einmal
+ * gemeldet - sonst meldet ein 20-Sekunden-Polling im Minutentakt dasselbe.
+ */
+const notify = {
+  enabled: localStorage.getItem('cud-notify') === '1',
+  seen: new Set(),
+};
+
+function updateNotifyButton() {
+  const btn = $('notify-toggle');
+  if (typeof Notification === 'undefined') {
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  const on = notify.enabled && Notification.permission === 'granted';
+  btn.textContent = on ? 'Hinweise an' : 'Hinweise aus';
+  btn.dataset.on = on ? '1' : '0';
+  btn.title =
+    Notification.permission === 'denied'
+      ? 'Der Browser hat Hinweise für diese Seite blockiert.'
+      : 'Desktop-Hinweis beim Erreichen von Warn- und Kritisch-Schwelle';
+}
+
+function maybeNotify(s) {
+  if (!notify.enabled || typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  for (const [key, w, name] of [
+    ['5h', s.live.fiveHour, '5-Stunden-Fenster'],
+    ['week', s.live.week, 'Wochenlimit'],
+  ]) {
+    if (w.percent == null || (w.level !== 'warn' && w.level !== 'critical')) continue;
+    const id = `${key}:${w.end}:${w.level}`;
+    if (notify.seen.has(id)) continue;
+    notify.seen.add(id);
+    try {
+      new Notification(
+        w.level === 'critical' ? `${name}: ${pct(w.percent)} – kritisch` : `${name}: ${pct(w.percent)}`,
+        {
+          body: `Reset ${dateTime(w.end, s.timezone)}`,
+          tag: `cud-${key}`,
+        },
+      );
+    } catch {
+      /* Benachrichtigung nicht moeglich - kein Grund, das Rendern zu stoeren. */
+    }
+  }
 }
 
 /* --- Verbindung ---------------------------------------------------------- */
@@ -550,6 +814,24 @@ $('refresh').addEventListener('click', async () => {
   setConn('', 'lese neu …');
   await fetch('/api/rescan', { method: 'POST' }).catch(() => {});
 });
+
+const notifyBtn = $('notify-toggle');
+notifyBtn.addEventListener('click', async () => {
+  if (typeof Notification === 'undefined') return;
+  if (notify.enabled && Notification.permission === 'granted') {
+    notify.enabled = false;
+    localStorage.setItem('cud-notify', '0');
+  } else {
+    const perm =
+      Notification.permission === 'granted'
+        ? 'granted'
+        : await Notification.requestPermission().catch(() => 'denied');
+    notify.enabled = perm === 'granted';
+    localStorage.setItem('cud-notify', notify.enabled ? '1' : '0');
+  }
+  updateNotifyButton();
+});
+updateNotifyButton();
 
 const themeBtn = $('theme-toggle');
 const savedTheme = localStorage.getItem('cud-theme');
@@ -589,7 +871,7 @@ if (typeof ResizeObserver === 'function') {
     }
     if (changed) scheduleRerender();
   });
-  for (const id of ['chart-daily', 'chart-hourly']) ro.observe($(id));
+  for (const id of ['chart-daily', 'chart-hourly', 'chart-blocks']) ro.observe($(id));
 } else {
   window.addEventListener('resize', scheduleRerender);
 }

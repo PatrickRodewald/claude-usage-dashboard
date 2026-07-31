@@ -16,8 +16,41 @@
   },
 
 
+  "history": {
+    "_hinweis": "Persistentes Archiv der Tagessummen. Claude Code raeumt seine Transkripte nach einer eigenen Frist auf - ohne dieses Archiv waere die Zeitreihe danach weg. Gespeichert werden nur Summen (Tag x Projekt x Modell), keine Prompts, keine Antworten. Loeschen der Datei setzt die Historie zurueck, mehr passiert nicht.",
+    "enabled": true,
+    "file": "data/history.json",
+    "retainDays": 400,
+    "detailDays": 45,
+    "keyDays": 120,
+    "saveIntervalMs": 30000,
+    "_hinweis_mehrgeraete": "Auf mehreren Rechnern: 'mirrorTo' legt eine Kopie in einen synchronisierten Ordner, 'merge' zieht die Archive der anderen Geraete lesend dazu. Dieselbe Datei niemals von zwei Geraeten beschreiben lassen - jedes Geraet spiegelt unter EIGENEM Dateinamen.",
+    "mirrorTo": null,
+    "merge": []
+  },
+
+  "calibration": {
+    "_hinweis": "Vergleicht die echte Auslastung von Anthropic mit den lokal gezaehlten Tokens im selben Fenster. Daraus wird gemessen (nicht geraten), wie viele gewichtete Tokens einem Prozent des Limits entsprechen. Greift erst ab minSamples Messpunkten aus minWindows verschiedenen Fenstern.",
+    "enabled": true,
+    "minSamples": 8,
+    "minWindows": 3,
+    "minPercent": 3,
+    "sampleIntervalMs": 300000,
+    "maxSamples": 500
+  },
+
+  "subscription": {
+    "_hinweis": "Nur fuer die Kachel 'Abo-Gegenwert': stellt das API-Preis-Aequivalent des laufenden Abrechnungszeitraums dem Abo-Preis gegenueber. billingDay ist der Starttag des Abrechnungszeitraums (1-28).",
+    "billingDay": 1,
+    "monthlyPriceUsd": {
+      "pro": 20,
+      "max5x": 100,
+      "max20x": 200
+    }
+  },
+
   "limits": {
-    "_hinweis": "mode 'auto' = selbstkalibrierend: 100% entspricht dem hoechsten jemals gemessenen 5h-Block bzw. der hoechsten Woche in deinen Daten. Das ist der ehrlichste Default, solange die echten Budgets unbekannt sind. mode 'fixed' = nutzt die festen Zahlen unter 'plans'.",
+    "_hinweis": "Rangfolge: 1. gemessen (siehe 'calibration'), 2. mode 'auto' = hoechstes jemals beobachtetes Fenster, 3. mode 'fixed' = feste Zahlen unter 'plans'. Solange nichts davon greift, zeigt das Dashboard bewusst KEINE Prozentzahl statt einer erfundenen.",
     "mode": "auto",
     "autoMinSamples": 3,
     "plans": {

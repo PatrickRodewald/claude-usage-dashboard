@@ -8,6 +8,10 @@ npm-debug.log*
 # Persoenliche Anpassungen, ohne die Vorlage zu ueberschreiben
 config.local.json
 
+# Das Verbrauchsarchiv ist persoenlich: Projektnamen, Zeiten, Tokenmengen.
+# Gehoert auf den eigenen Rechner, nicht in ein oeffentliches Repository.
+data/
+
 .DS_Store
 Thumbs.db
 .idea/

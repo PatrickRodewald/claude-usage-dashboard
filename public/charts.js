@@ -128,7 +128,9 @@ export function renderColumnChart(container, options) {
       svg.append(
         el('path', {
           d: roundedTopBar(x, padT + plotH - h, barW, h, 4),
-          fill: d.dim ? dimColor : color,
+          // Eine eigene Farbe je Datenpunkt nur dort, wo sie etwas KODIERT
+          // (Warnstufe eines Blocks) - sonst bleibt es bei einer Serienfarbe.
+          fill: d.color ?? (d.dim ? dimColor : color),
         }),
       );
     }

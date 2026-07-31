@@ -8,7 +8,7 @@
  */
 
 import { newTotals, addTokens, weightedTokens } from './pricing.js';
-import { startOfWeekWindow, endOfWeekWindow } from './tz.js';
+import { startOfWeekWindow, endOfWeekWindow, getZonedParts, zonedToUtc } from './tz.js';
 
 export const HOUR_MS = 3600_000;
 
@@ -134,6 +134,28 @@ export function projectLimitHit({ used, limit, ratePerMinute, nowMs, windowEndMs
     beforeReset: atMs < windowEndMs,
     alreadyReached: false,
   };
+}
+
+/** Zivil-Monat verschieben, ohne ueber Monatslaengen zu stolpern. */
+function shiftCivilMonths({ year, month }, delta) {
+  const idx = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(idx / 12), month: (idx % 12) + 1 };
+}
+
+/**
+ * Aktueller Abrechnungszeitraum des Abos.
+ *
+ * billingDay wird auf 1-28 begrenzt: ein Abo, das am 31. beginnt, haette in
+ * kurzen Monaten keinen Starttag - lieber eine klare Begrenzung als eine stille
+ * Verschiebung um ein bis drei Tage.
+ */
+export function billingPeriod(nowMs, timeZone, { billingDay = 1 } = {}) {
+  const day = Math.min(28, Math.max(1, Math.round(Number(billingDay) || 1)));
+  const p = getZonedParts(nowMs, timeZone);
+  const base = p.day >= day ? { year: p.year, month: p.month } : shiftCivilMonths(p, -1);
+  const start = zonedToUtc({ ...base, day, hour: 0, minute: 0, second: 0 }, timeZone);
+  const end = zonedToUtc({ ...shiftCivilMonths(base, 1), day, hour: 0, minute: 0, second: 0 }, timeZone);
+  return { start, end };
 }
 
 /** Warnstufe aus dem Prozentanteil ableiten. */

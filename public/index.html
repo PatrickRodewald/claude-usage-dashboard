@@ -20,6 +20,15 @@
       </div>
       <div class="topbar-right">
         <span class="conn" id="conn"><i class="dot"></i><span id="conn-text">verbinde …</span></span>
+        <button
+          type="button"
+          id="notify-toggle"
+          class="btn"
+          title="Desktop-Hinweis beim Erreichen der Warnschwellen"
+          hidden
+        >
+          Hinweise aus
+        </button>
         <button type="button" id="theme-toggle" class="btn" title="Hell/Dunkel umschalten">
           Hell
         </button>
@@ -82,6 +91,17 @@
           </dl>
           <p class="tile-note">Tokens/Min. im laufenden 5h-Fenster</p>
         </article>
+
+        <article class="tile" id="tile-value">
+          <p class="tile-label">Abo-Gegenwert</p>
+          <p class="tile-value" id="val-ratio">–</p>
+          <dl class="tile-facts">
+            <div><dt>Äquivalent</dt><dd id="val-cost">–</dd></div>
+            <div><dt>Abo-Preis</dt><dd id="val-price">–</dd></div>
+            <div><dt>Zeitraum</dt><dd id="val-period">–</dd></div>
+          </dl>
+          <p class="tile-note" id="val-note"></p>
+        </article>
       </section>
 
       <!-- Charts -->
@@ -110,6 +130,14 @@
           <div id="chart-mix"></div>
           <ul class="legend" id="mix-legend"></ul>
         </article>
+
+        <article class="panel panel-wide">
+          <header class="panel-head">
+            <h2>5-Stunden-Blöcke</h2>
+            <p class="panel-sub" id="blocks-sub">die letzten Fenster, neuestes rechts</p>
+          </header>
+          <div class="chart" id="chart-blocks"></div>
+        </article>
       </section>
 
       <!-- Tabellen -->
@@ -135,7 +163,11 @@
 
       <footer class="foot">
         <p id="scan-info">–</p>
+        <p id="history-info">–</p>
         <p class="disclaimer" id="disclaimer"></p>
+        <p id="calib-info" class="disclaimer" hidden></p>
+        <p id="scope-note" class="disclaimer"></p>
+        <p id="warn-price" class="warn-line" hidden></p>
         <p id="warn-unknown" class="warn-line" hidden></p>
       </footer>
     </main>

@@ -1,7 +1,7 @@
 {
   "name": "claude-usage-dashboard",
-  "version": "1.0.0",
-  "description": "Lokales Dashboard fuer den Verbrauch des Claude-Code-Abos. Liest die lokalen JSONL-Transkripte, keine Cloud, kein API-Key.",
+  "version": "1.1.0",
+  "description": "Lokales Dashboard fuer den Verbrauch des Claude-Code-Abos. Echte Limit-Auslastung von Anthropic plus Kosten und Historie aus den lokalen JSONL-Transkripten. Keine Cloud, kein API-Key.",
   "type": "module",
   "private": true,
   "engines": {

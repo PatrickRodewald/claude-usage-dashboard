@@ -135,6 +135,11 @@ h1 {
   color: var(--text-primary);
   border-color: var(--text-muted);
 }
+/* Eingeschaltete Hinweise: Zustand am Rahmen, nicht nur am Text. */
+.btn[data-on='1'] {
+  color: var(--status-good);
+  border-color: color-mix(in srgb, var(--status-good) 45%, transparent);
+}
 
 .conn {
   display: inline-flex;
