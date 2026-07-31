@@ -11,7 +11,8 @@
     "_hinweis": "Holt die ECHTE Auslastung deines Abos von Anthropic (GET /api/oauth/usage), authentifiziert mit dem OAuth-Token, das Claude Code unter ~/.claude/.credentials.json ablegt. Das Token wird nur gelesen, nie geschrieben, und geht ausschliesslich an api.anthropic.com. Auf false setzen fuer reinen Offline-Betrieb - dann greift wieder die lokale Schaetzung unten. Der Endpunkt ist nicht oeffentlich dokumentiert und kann sich aendern.",
     "enabled": true,
     "minIntervalMs": 60000,
-    "timeoutMs": 6000
+    "timeoutMs": 6000,
+    "maxBackoffMs": 900000
   },
 
 

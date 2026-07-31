@@ -190,7 +190,16 @@ export async function fetchLiveUsage({
     return { ok: false, reason: 'unauthorized', status: res.status, fetchedAt: now, ...planInfo };
   }
   if (!res.ok) {
-    return { ok: false, reason: 'http-error', status: res.status, fetchedAt: now, ...planInfo };
+    // Retry-After respektieren, wenn der Server einen Wert nennt.
+    const header = Number(res.headers?.get?.('retry-after'));
+    return {
+      ok: false,
+      reason: res.status === 429 ? 'rate-limited' : 'http-error',
+      status: res.status,
+      retryAfterMs: Number.isFinite(header) && header > 0 ? header * 1000 : null,
+      fetchedAt: now,
+      ...planInfo,
+    };
   }
 
   let body;
@@ -301,6 +310,7 @@ export const REASON_TEXT = {
   unauthorized: 'Zugangstoken abgelehnt – in Claude Code neu anmelden.',
   timeout: 'Zeitüberschreitung beim Abruf.',
   network: 'Keine Verbindung zu api.anthropic.com.',
+  'rate-limited': 'Zu viele Abrufe – Anthropic drosselt. Es wird automatisch später erneut versucht.',
   'http-error': 'Unerwartete Antwort von Anthropic.',
   'bad-json': 'Antwort von Anthropic nicht lesbar.',
   'unexpected-shape': 'Antwortformat von Anthropic hat sich geändert.',

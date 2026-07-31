@@ -98,6 +98,7 @@ const REASON_TEXT = {
   unauthorized: 'Token abgelehnt',
   timeout: 'Zeitüberschreitung',
   network: 'keine Verbindung',
+  'rate-limited': 'Anthropic drosselt',
   'http-error': 'unerwartete Antwort',
   'bad-json': 'Antwort nicht lesbar',
   'unexpected-shape': 'Antwortformat geändert',
@@ -311,7 +312,11 @@ function render() {
     srcEl.title = `Zuletzt abgerufen ${clock(s.live.fetchedAt, tz)}`;
   } else {
     srcEl.dataset.real = '0';
-    srcEl.textContent = `geschätzt (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'})`;
+    const retry =
+      s.live.nextAttemptAt && s.live.nextAttemptAt > Date.now()
+        ? `, nächster Versuch ${clock(s.live.nextAttemptAt, tz)}`
+        : '';
+    srcEl.textContent = `geschätzt (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'}${retry})`;
     srcEl.title = 'Die Limit-Anteile stammen aus der lokalen Hochrechnung.';
   }
 

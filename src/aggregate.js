@@ -415,6 +415,8 @@ export function buildSnapshot(
       available: Boolean(live),
       reason: liveUsage?.ok ? null : (liveUsage?.reason ?? 'disabled'),
       fetchedAt: liveUsage?.fetchedAt ?? null,
+      nextAttemptAt: liveUsage?.nextAttemptAt ?? null,
+      failures: liveUsage?.failures ?? 0,
       subscriptionType: live?.subscriptionType ?? null,
       rateLimitTier: live?.rateLimitTier ?? null,
       scoped: live?.scoped ?? [],

@@ -140,8 +140,20 @@ export function createStore({ config, pricingTable } = {}) {
    * Wert wird weiterverwendet, solange er frisch genug ist.
    */
   let liveUsage = null;
-  let liveFetchedAt = 0;
   let liveInFlight = null;
+  let liveFailures = 0;
+  let nextLiveAttemptAt = 0;
+
+  /**
+   * Wartezeit nach einem Fehlversuch: exponentiell, gedeckelt.
+   * Ohne das wuerde ein 429 bei 20-Sekunden-Polling alle 20 Sekunden erneut
+   * angeklopft - was die Drosselung nur verlaengert.
+   */
+  function backoffMs(result, minInterval, maxBackoff) {
+    if (result?.retryAfterMs) return Math.min(result.retryAfterMs, maxBackoff);
+    const factor = 2 ** Math.min(liveFailures - 1, 10);
+    return Math.min(minInterval * factor, maxBackoff);
+  }
 
   async function refreshLiveUsage({ force = false, now = Date.now() } = {}) {
     if (cfg.liveUsage?.enabled === false) {
@@ -149,19 +161,40 @@ export function createStore({ config, pricingTable } = {}) {
       return liveUsage;
     }
     const minInterval = cfg.liveUsage?.minIntervalMs ?? 60000;
-    if (!force && liveUsage && now - liveFetchedAt < minInterval) return liveUsage;
+    const maxBackoff = cfg.liveUsage?.maxBackoffMs ?? 900000;
+
+    // 'force' darf die normale Drosselung ueberspringen, aber NICHT eine
+    // laufende Fehler-Wartezeit: sonst wuerde ein Klick auf "Aktualisieren"
+    // waehrend einer Drosselung genau das Verhalten ausloesen, das sie
+    // verursacht hat.
+    const inBackoff = liveFailures > 0 && now < nextLiveAttemptAt;
+    if (inBackoff) return liveUsage;
+    if (!force && liveUsage && now < nextLiveAttemptAt) return liveUsage;
     if (liveInFlight) return liveInFlight;
 
     liveInFlight = fetchLiveUsage({ now, timeoutMs: cfg.liveUsage?.timeoutMs ?? 6000 })
       .then((result) => {
-        // Nur erfolgreiche Abrufe setzen den Drossel-Zeitstempel: nach einem
-        // Fehler darf der naechste Versuch sofort erfolgen.
-        if (result.ok) liveFetchedAt = now;
-        liveUsage = result;
-        return result;
+        if (result.ok) {
+          liveFailures = 0;
+          nextLiveAttemptAt = now + minInterval;
+        } else {
+          liveFailures++;
+          nextLiveAttemptAt = now + backoffMs(result, minInterval, maxBackoff);
+        }
+        liveUsage = { ...result, nextAttemptAt: nextLiveAttemptAt, failures: liveFailures };
+        return liveUsage;
       })
       .catch((err) => {
-        liveUsage = { ok: false, reason: 'network', fetchedAt: now, message: err?.message };
+        liveFailures++;
+        nextLiveAttemptAt = now + backoffMs(null, minInterval, maxBackoff);
+        liveUsage = {
+          ok: false,
+          reason: 'network',
+          fetchedAt: now,
+          message: err?.message,
+          nextAttemptAt: nextLiveAttemptAt,
+          failures: liveFailures,
+        };
         return liveUsage;
       })
       .finally(() => {
