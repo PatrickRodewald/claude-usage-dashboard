@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Claude Usage Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='4' fill='%233987e5'/></svg>"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Claude&nbsp;Usage</h1>
+        <span class="badge" id="plan-badge">–</span>
+        <span class="srcnote" id="src-note">–</span>
+      </div>
+      <div class="topbar-right">
+        <span class="conn" id="conn"><i class="dot"></i><span id="conn-text">verbinde …</span></span>
+        <button type="button" id="theme-toggle" class="btn" title="Hell/Dunkel umschalten">
+          Hell
+        </button>
+        <button type="button" id="refresh" class="btn" title="Jetzt neu einlesen">
+          Aktualisieren
+        </button>
+      </div>
+    </header>
+
+    <main id="app" hidden>
+      <!-- Statuskacheln -->
+      <section class="tiles" aria-label="Aktueller Status">
+        <article class="tile tile-hero" id="tile-5h">
+          <p class="tile-label">
+            5-Stunden-Fenster
+            <span class="est" id="fh-badge">–</span>
+          </p>
+          <p class="tile-value" id="fh-percent">–</p>
+          <div class="meter" id="fh-meter"><div class="meter-fill"></div></div>
+          <dl class="tile-facts">
+            <div><dt>Tokens im Fenster</dt><dd id="fh-used">–</dd></div>
+            <div><dt>Reset in</dt><dd id="fh-reset">–</dd></div>
+            <div><dt id="fh-limit-label">Limit</dt><dd id="fh-limit">–</dd></div>
+          </dl>
+          <p class="tile-note" id="fh-note"></p>
+        </article>
+
+        <article class="tile" id="tile-week">
+          <p class="tile-label">
+            Woche
+            <span class="est" id="wk-badge">–</span>
+          </p>
+          <p class="tile-value" id="wk-percent">–</p>
+          <div class="meter" id="wk-meter"><div class="meter-fill"></div></div>
+          <dl class="tile-facts">
+            <div><dt>Tokens im Fenster</dt><dd id="wk-used">–</dd></div>
+            <div><dt>Reset</dt><dd id="wk-reset">–</dd></div>
+          </dl>
+          <p class="tile-note" id="wk-note"></p>
+          <p class="tile-note" id="wk-scoped" hidden></p>
+        </article>
+
+        <article class="tile">
+          <p class="tile-label">Kosten heute</p>
+          <p class="tile-value" id="today-cost">–</p>
+          <dl class="tile-facts">
+            <div><dt>Tokens</dt><dd id="today-tokens">–</dd></div>
+            <div><dt>Requests</dt><dd id="today-req">–</dd></div>
+            <div><dt>Gesamt</dt><dd id="total-cost">–</dd></div>
+          </dl>
+          <p class="tile-note">API-Äquivalent, kein Abrechnungsbetrag</p>
+        </article>
+
+        <article class="tile">
+          <p class="tile-label">Burn-Rate</p>
+          <p class="tile-value" id="burn-rate">–</p>
+          <dl class="tile-facts">
+            <div><dt>Prognose</dt><dd id="burn-projection">–</dd></div>
+            <div><dt>Cache-Trefferquote</dt><dd id="cache-hit">–</dd></div>
+          </dl>
+          <p class="tile-note">Tokens/Min. im laufenden 5h-Fenster</p>
+        </article>
+      </section>
+
+      <!-- Charts -->
+      <section class="panels">
+        <article class="panel panel-wide">
+          <header class="panel-head">
+            <h2>Verbrauch der letzten 30 Tage</h2>
+            <p class="panel-sub" id="daily-sub">gewichtete Tokens pro Tag</p>
+          </header>
+          <div class="chart" id="chart-daily"></div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <h2>Heutiger Tagesverlauf</h2>
+            <p class="panel-sub" id="hourly-sub">gewichtete Tokens pro Stunde</p>
+          </header>
+          <div class="chart" id="chart-hourly"></div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <h2>Token-Zusammensetzung</h2>
+            <p class="panel-sub">alle erfassten Daten</p>
+          </header>
+          <div id="chart-mix"></div>
+          <ul class="legend" id="mix-legend"></ul>
+        </article>
+      </section>
+
+      <!-- Tabellen -->
+      <section class="panels">
+        <article class="panel">
+          <header class="panel-head"><h2>Nach Projekt</h2></header>
+          <div class="table-wrap"><table id="tbl-projects"></table></div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head"><h2>Nach Modell</h2></header>
+          <div class="table-wrap"><table id="tbl-models"></table></div>
+        </article>
+
+        <article class="panel panel-wide">
+          <header class="panel-head">
+            <h2>Letzte Sessions</h2>
+            <p class="panel-sub">die 50 zuletzt aktiven</p>
+          </header>
+          <div class="table-wrap"><table id="tbl-sessions"></table></div>
+        </article>
+      </section>
+
+      <footer class="foot">
+        <p id="scan-info">–</p>
+        <p class="disclaimer" id="disclaimer"></p>
+        <p id="warn-unknown" class="warn-line" hidden></p>
+      </footer>
+    </main>
+
+    <p id="boot" class="boot">Lade Daten …</p>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

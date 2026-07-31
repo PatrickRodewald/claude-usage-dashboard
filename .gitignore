@@ -1,0 +1,14 @@
+# Windows-Verknuepfungen betten den Rechnernamen und Volume-GUIDs ein.
+# Die .lnk wird lokal erzeugt (siehe README), nicht eingecheckt.
+*.lnk
+
+node_modules/
+npm-debug.log*
+
+# Persoenliche Anpassungen, ohne die Vorlage zu ueberschreiben
+config.local.json
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

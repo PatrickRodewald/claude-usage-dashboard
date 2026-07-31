@@ -1,0 +1,75 @@
+{
+  "_hinweis": "Preise in USD pro 1 Mio. Tokens (offizielle Anthropic-API-Listenpreise). Diese Datei ist zum Bearbeiten gedacht - bei Preisaenderungen einfach hier anpassen, kein Code-Eingriff noetig. Unbekannte Modelle stuerzen die App nicht ab, sie erscheinen als 'Preis unbekannt'.",
+  "_regeln": {
+    "cacheWrite5m": "1,25x Input-Preis (5-Minuten-Cache)",
+    "cacheWrite1h": "2,0x Input-Preis (1-Stunden-Cache)",
+    "cacheRead": "0,1x Input-Preis",
+    "fast": "Optionaler Block: gilt nur, wenn usage.speed == 'fast'",
+    "promo": "Optionaler Block: gilt nur fuer Eintraege mit Zeitstempel <= 'until'"
+  },
+  "_stand": "2026-07-31",
+
+  "models": {
+    "claude-fable-5": {
+      "input": 10, "output": 50,
+      "cacheWrite5m": 12.5, "cacheWrite1h": 20, "cacheRead": 1
+    },
+    "claude-mythos-5": {
+      "input": 10, "output": 50,
+      "cacheWrite5m": 12.5, "cacheWrite1h": 20, "cacheRead": 1
+    },
+    "claude-opus-5": {
+      "input": 5, "output": 25,
+      "cacheWrite5m": 6.25, "cacheWrite1h": 10, "cacheRead": 0.5,
+      "fast": {
+        "input": 10, "output": 50,
+        "cacheWrite5m": 12.5, "cacheWrite1h": 20, "cacheRead": 1
+      }
+    },
+    "claude-opus-4-8": {
+      "input": 5, "output": 25,
+      "cacheWrite5m": 6.25, "cacheWrite1h": 10, "cacheRead": 0.5,
+      "fast": {
+        "input": 10, "output": 50,
+        "cacheWrite5m": 12.5, "cacheWrite1h": 20, "cacheRead": 1
+      }
+    },
+    "claude-opus-4-7": {
+      "input": 5, "output": 25,
+      "cacheWrite5m": 6.25, "cacheWrite1h": 10, "cacheRead": 0.5
+    },
+    "claude-opus-4-6": {
+      "input": 5, "output": 25,
+      "cacheWrite5m": 6.25, "cacheWrite1h": 10, "cacheRead": 0.5
+    },
+    "claude-sonnet-5": {
+      "input": 3, "output": 15,
+      "cacheWrite5m": 3.75, "cacheWrite1h": 6, "cacheRead": 0.3,
+      "promo": {
+        "_hinweis": "Einfuehrungspreis, laeuft am 2026-08-31 aus",
+        "until": "2026-08-31T23:59:59.999Z",
+        "input": 2, "output": 10,
+        "cacheWrite5m": 2.5, "cacheWrite1h": 4, "cacheRead": 0.2
+      }
+    },
+    "claude-sonnet-4-6": {
+      "input": 3, "output": 15,
+      "cacheWrite5m": 3.75, "cacheWrite1h": 6, "cacheRead": 0.3
+    },
+    "claude-haiku-4-5": {
+      "input": 1, "output": 5,
+      "cacheWrite5m": 1.25, "cacheWrite1h": 2, "cacheRead": 0.1
+    }
+  },
+
+  "aliases": {
+    "_hinweis": "Vollstaendige/datierte Model-IDs auf einen Eintrag oben abbilden.",
+    "claude-haiku-4-5-20251001": "claude-haiku-4-5",
+    "claude-mythos-preview": "claude-mythos-5"
+  },
+
+  "ignoreModels": {
+    "_hinweis": "Diese Modell-Kennungen sind keine echten Modelle (API-Fehler-Platzhalter von Claude Code) und werden komplett aus der Auswertung ausgeschlossen.",
+    "list": ["<synthetic>"]
+  }
+}

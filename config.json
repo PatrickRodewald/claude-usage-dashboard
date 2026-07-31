@@ -1,0 +1,69 @@
+{
+  "_hinweis": "Alle Limit-Angaben sind SCHAETZUNGEN. Anthropic veroeffentlicht die genauen Token-Budgets von Pro/Max nicht. Details und Kalibrier-Anleitung: siehe README.md",
+
+  "port": 7842,
+  "timezone": "Europe/Berlin",
+  "locale": "de-DE",
+
+  "plan": "max5x",
+
+  "liveUsage": {
+    "_hinweis": "Holt die ECHTE Auslastung deines Abos von Anthropic (GET /api/oauth/usage), authentifiziert mit dem OAuth-Token, das Claude Code unter ~/.claude/.credentials.json ablegt. Das Token wird nur gelesen, nie geschrieben, und geht ausschliesslich an api.anthropic.com. Auf false setzen fuer reinen Offline-Betrieb - dann greift wieder die lokale Schaetzung unten. Der Endpunkt ist nicht oeffentlich dokumentiert und kann sich aendern.",
+    "enabled": true,
+    "minIntervalMs": 60000,
+    "timeoutMs": 6000
+  },
+
+
+  "limits": {
+    "_hinweis": "mode 'auto' = selbstkalibrierend: 100% entspricht dem hoechsten jemals gemessenen 5h-Block bzw. der hoechsten Woche in deinen Daten. Das ist der ehrlichste Default, solange die echten Budgets unbekannt sind. mode 'fixed' = nutzt die festen Zahlen unter 'plans'.",
+    "mode": "auto",
+    "autoMinSamples": 3,
+    "plans": {
+      "pro": { "fiveHourTokens": 19000, "weeklyTokens": 300000 },
+      "max5x": { "fiveHourTokens": 88000, "weeklyTokens": 1760000 },
+      "max20x": { "fiveHourTokens": 220000, "weeklyTokens": 4400000 }
+    }
+  },
+
+  "counting": {
+    "_hinweis": "Gewichte fuer die Frage 'welche Tokens zaehlen gegen das Limit?'. cacheRead ist standardmaessig 0, weil Cache-Reads erneutes Lesen bereits gezaehlten Kontextes sind und nur 0,1x kosten - sie wuerden jede Limit-Anzeige sonst voellig dominieren (in Testdaten 99% aller Tokens). Auf 1 setzen, wenn du die Rohsumme willst.",
+    "weights": {
+      "input": 1,
+      "output": 1,
+      "cacheWrite": 1,
+      "cacheRead": 0
+    }
+  },
+
+  "window": {
+    "_hinweis": "fiveHourBlockHours: Laenge des rollierenden Fensters. anchorToFullHour: Blockstart wird auf die volle Stunde abgerundet (so macht es auch ccusage).",
+    "fiveHourBlockHours": 5,
+    "anchorToFullHour": true
+  },
+
+  "week": {
+    "_hinweis": "Reset-Zeitpunkt deines Wochenlimits in lokaler Zeit (timezone oben). resetWeekday: 0=Sonntag, 1=Montag ... 6=Samstag. Trage hier ein, was du in der Claude-App als Wochen-Reset siehst.",
+    "resetWeekday": 1,
+    "resetHour": 0,
+    "resetMinute": 0
+  },
+
+  "warnings": {
+    "warnPercent": 70,
+    "criticalPercent": 90
+  },
+
+  "server": {
+    "_hinweis": "watchDebounceMs: Wartezeit nach einer Dateiaenderung, bevor neu eingelesen wird. pollIntervalMs: Fallback-Rescan, falls der File-Watcher auf diesem Dateisystem nicht feuert. sseHeartbeatMs: haelt die SSE-Verbindung offen.",
+    "watchDebounceMs": 400,
+    "pollIntervalMs": 20000,
+    "sseHeartbeatMs": 25000
+  },
+
+  "dataDirs": {
+    "_hinweis": "Leer lassen fuer Autodiscovery ($CLAUDE_CONFIG_DIR/projects, ~/.claude/projects, ~/.config/claude/projects). 'extra' ergaenzt weitere Pfade, 'only' schaltet die Suche ab und nutzt ausschliesslich die angegebenen.",
+    "extra": [],
+    "only": []
+  }
+}

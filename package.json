@@ -1,0 +1,15 @@
+{
+  "name": "claude-usage-dashboard",
+  "version": "1.0.0",
+  "description": "Lokales Dashboard fuer den Verbrauch des Claude-Code-Abos. Liest die lokalen JSONL-Transkripte, keine Cloud, kein API-Key.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "open": "node src/server.js --open",
+    "test": "node --test"
+  }
+}
