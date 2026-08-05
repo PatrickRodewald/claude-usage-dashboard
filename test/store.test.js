@@ -102,6 +102,73 @@ test('Wartezeit waechst exponentiell und ist gedeckelt', async () => {
   assert.ok(Math.max(...waits) <= 8000, 'Deckel eingehalten');
 });
 
+// --- Ueberbrueckung gescheiterter Abrufe ----------------------------------
+
+/** Store mit eingeschleustem Abrufer - kein Netzzugriff, feste Antworten. */
+function makeStoreWithFetch(responses, liveCfg = {}) {
+  const queue = [...responses];
+  return createStore({
+    config: {
+      timezone: 'Europe/Berlin',
+      plan: 'max5x',
+      history: { enabled: false },
+      limits: { mode: 'auto', autoMinSamples: 3, plans: {} },
+      counting: { weights: {} },
+      window: {},
+      week: {},
+      warnings: {},
+      dataDirs: { only: [path.join(here, 'gibt-es-nicht')] },
+      liveUsage: { enabled: true, minIntervalMs: 1000, maxBackoffMs: 8000, ...liveCfg },
+    },
+    pricingTable,
+    fetchUsage: () => queue.shift() ?? { ok: false, reason: 'network' },
+  });
+}
+
+const okResponse = (now) => ({
+  ok: true,
+  fetchedAt: now,
+  fiveHour: { percent: 42, start: now - 2 * 3600_000, end: now + 3 * 3600_000 },
+  week: { percent: 17, start: now - 86_400_000, end: now + 6 * 86_400_000 },
+  scoped: [],
+  rateLimitTier: 'default_claude_max_5x',
+});
+
+test('ein 429 wirft den zuletzt echten Wert nicht weg', async () => {
+  // Genau das Verhalten, das das Dashboard zwischen "live" und "Schaetzung"
+  // springen liess: der Endpunkt drosselt regelmaessig.
+  const t0 = Date.now();
+  const store = makeStoreWithFetch([
+    okResponse(t0),
+    { ok: false, reason: 'rate-limited', status: 429, fetchedAt: t0 + 2000 },
+  ]);
+
+  await store.refreshLiveUsage({ now: t0 });
+  assert.equal(store.snapshot(t0).live.source, 'anthropic');
+
+  const failed = await store.refreshLiveUsage({ now: t0 + 2000, force: true });
+  assert.equal(failed.ok, false, 'der Abruf selbst ist gescheitert');
+  assert.equal(store.lastGoodLiveUsage?.ok, true, 'letzter guter Wert bleibt erhalten');
+
+  const snap = store.snapshot(t0 + 2000);
+  assert.equal(snap.live.source, 'anthropic', 'Anzeige bleibt auf echten Werten');
+  assert.equal(snap.live.stale, true);
+  assert.equal(snap.live.reason, 'rate-limited');
+  assert.equal(snap.live.fiveHour.percent, 42);
+});
+
+test('abgeschalteter Live-Abruf reicht keinen alten Wert nach', async () => {
+  const t0 = Date.now();
+  const store = makeStoreWithFetch([okResponse(t0)]);
+  await store.refreshLiveUsage({ now: t0 });
+  assert.equal(store.lastGoodLiveUsage?.ok, true);
+
+  store.config.liveUsage.enabled = false;
+  await store.refreshLiveUsage({ now: t0 + 5000, force: true });
+  assert.equal(store.lastGoodLiveUsage, null);
+  assert.equal(store.snapshot(t0 + 5000).live.source, 'estimate');
+});
+
 test('Snapshot funktioniert auch ohne jede Live-Verbindung', async () => {
   const store = makeStore();
   await store.scan();

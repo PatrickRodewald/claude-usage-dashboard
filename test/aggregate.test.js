@@ -351,6 +351,113 @@ test('erkannter Tarif waehlt auch die Limits fuer die Schaetzung', () => {
   assert.equal(snap.live.fiveHour.limit, 999000, 'Limit des erkannten Tarifs, nicht des config-Tarifs');
 });
 
+// --- Ueberbrueckung gescheiterter Live-Abrufe -----------------------------
+//
+// Der Endpunkt drosselt regelmaessig (HTTP 429). Ohne Ueberbrueckung kippte das
+// Dashboard bei jedem einzelnen Fehlversuch fuer die Dauer der Backoff-Wartezeit
+// auf die lokale Schaetzung - sichtbar als staendiges Springen zwischen "live"
+// und "Schaetzung".
+
+const NOW_LIVE = iso('2026-07-31T11:00:00Z');
+/** Erfolgreicher Abruf, dessen Fenster zum Bezugszeitpunkt noch laufen. */
+const goodLive = (fetchedAt) => ({
+  ok: true,
+  fetchedAt,
+  fiveHour: { percent: 42, start: iso('2026-07-31T08:00:00Z'), end: iso('2026-07-31T13:00:00Z') },
+  week: { percent: 17, start: iso('2026-07-27T00:00:00Z'), end: iso('2026-08-03T00:00:00Z') },
+  scoped: [],
+  rateLimitTier: 'default_claude_max_5x',
+});
+
+test('gedrosselter Abruf faellt nicht sofort auf die Schaetzung zurueck', () => {
+  const snap = buildSnapshot([entry('2026-07-31T09:10:00Z', { output: 500 })], {
+    config: baseConfig,
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: { ok: false, reason: 'rate-limited', status: 429, fetchedAt: NOW_LIVE },
+    lastLiveUsage: goodLive(NOW_LIVE - 4 * 60_000),
+  });
+  assert.equal(snap.live.source, 'anthropic', 'echte Werte bleiben stehen');
+  assert.equal(snap.live.stale, true);
+  assert.equal(snap.live.ageMs, 4 * 60_000);
+  assert.equal(snap.live.reason, 'rate-limited', 'Grund bleibt sichtbar');
+  assert.equal(snap.live.fetchedAt, NOW_LIVE - 4 * 60_000, 'Zeitpunkt des ECHTEN Werts');
+  assert.equal(snap.live.lastAttemptAt, NOW_LIVE);
+  assert.equal(snap.live.fiveHour.percent, 42);
+  assert.equal(snap.live.fiveHour.stale, true);
+  assert.equal(snap.live.week.percent, 17);
+});
+
+test('Burn-Rate eines aufgehobenen Werts rechnet ab dem Abruf, nicht ab jetzt', () => {
+  // Sonst sinkt die Prozent-pro-Minute-Rate allein durch Zeitablauf, obwohl sich
+  // der zugrunde liegende Prozentwert gar nicht geaendert hat.
+  const fetchedAt = NOW_LIVE - 10 * 60_000;
+  const snap = buildSnapshot([], {
+    config: baseConfig,
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: { ok: false, reason: 'rate-limited', fetchedAt: NOW_LIVE },
+    lastLiveUsage: goodLive(fetchedAt),
+  });
+  // 42 % in 170 Minuten seit Fensterbeginn (08:00 -> 10:50), nicht in 180.
+  assert.ok(Math.abs(snap.live.fiveHour.burnPercentPerMin - 42 / 170) < 1e-9);
+  assert.equal(snap.live.fiveHour.asOf, fetchedAt);
+});
+
+test('zu alter Wert wird verworfen statt weiter angezeigt', () => {
+  const snap = buildSnapshot([], {
+    config: { ...baseConfig, liveUsage: { staleAfterMs: 600_000 } },
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: { ok: false, reason: 'rate-limited', fetchedAt: NOW_LIVE },
+    lastLiveUsage: goodLive(NOW_LIVE - 11 * 60_000),
+  });
+  assert.equal(snap.live.source, 'estimate');
+  assert.equal(snap.live.stale, false);
+  assert.equal(snap.live.ageMs, 0);
+});
+
+test('Fenster nach seinem Reset wird verworfen, auch wenn der Wert jung ist', () => {
+  // Nach dem Reset steht das Fenster wieder bei ~0 - der alte Prozentwert waere
+  // nicht bloss alt, sondern schlicht falsch.
+  const prev = goodLive(NOW_LIVE - 60_000);
+  prev.fiveHour = { ...prev.fiveHour, end: NOW_LIVE - 1000 };
+  const snap = buildSnapshot([], {
+    config: baseConfig,
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: { ok: false, reason: 'rate-limited', fetchedAt: NOW_LIVE },
+    lastLiveUsage: prev,
+  });
+  assert.equal(snap.live.fiveHour.source, 'estimate', '5h-Fenster ist zurueckgesetzt');
+  assert.equal(snap.live.week.source, 'anthropic', 'Wochenfenster laeuft weiter');
+});
+
+test('frischer Abruf hat Vorrang vor dem aufgehobenen Wert', () => {
+  const snap = buildSnapshot([], {
+    config: baseConfig,
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: goodLive(NOW_LIVE),
+    lastLiveUsage: { ...goodLive(NOW_LIVE - 60_000), fiveHour: { percent: 9, start: 0, end: NOW_LIVE + 1 } },
+  });
+  assert.equal(snap.live.stale, false);
+  assert.equal(snap.live.fiveHour.percent, 42);
+  assert.equal(snap.live.fiveHour.asOf, NOW_LIVE);
+});
+
+test('Tarif ueberlebt einen Fehler ohne Tarifangabe', () => {
+  const snap = buildSnapshot([], {
+    config: baseConfig,
+    pricing,
+    now: NOW_LIVE,
+    liveUsage: { ok: false, reason: 'no-credentials', fetchedAt: NOW_LIVE },
+    lastLiveUsage: { ...goodLive(NOW_LIVE - 60_000), rateLimitTier: 'default_claude_max_20x' },
+  });
+  assert.equal(snap.plan, 'max20x');
+  assert.equal(snap.planSource, 'account');
+});
+
 test('Snapshot spiegelt Konfiguration und Metadaten zurueck', () => {
   const snap = buildSnapshot([], {
     config: baseConfig,

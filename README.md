@@ -30,6 +30,9 @@ ausschließlich an `api.anthropic.com`.**
 
 Ist die API nicht erreichbar (offline, Token abgelaufen, `liveUsage.enabled: false`), fällt
 das Dashboard sichtbar gekennzeichnet auf die lokale Hochrechnung zurück, statt zu scheitern.
+Ein **einzelner** Fehlversuch reicht dafür allerdings nicht: der Endpunkt drosselt regelmäßig
+(HTTP 429), deshalb bleiben die zuletzt echten Werte mit Altersangabe stehen und erst nach
+`liveUsage.staleAfterMs` (Standard 15 min) übernimmt die Schätzung.
 
 > **Hinweis:** `/api/oauth/usage` gehört nicht zur öffentlich dokumentierten API und kann sich
 > ohne Ankündigung ändern. Das Parsen ist defensiv; bei unbekanntem Format schaltet das
@@ -237,7 +240,8 @@ eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, g
 |---|---|
 | `port` | Port des lokalen Servers (Standard 7842) |
 | `liveUsage.enabled` | Echte Werte von Anthropic abrufen. `false` = reiner Offline-Betrieb |
-| `liveUsage.minIntervalMs` | Drosselung des API-Abrufs (Standard 60 s, unabhängig vom 20-s-Polling) |
+| `liveUsage.minIntervalMs` | Mindestabstand zwischen echten Abrufen (Standard 5 min, unabhängig vom 20-s-Polling). Der Endpunkt drosselt, und Claude Code fragt ihn mit demselben Token ab — häufiger provoziert nur 429 |
+| `liveUsage.staleAfterMs` | So lange bleibt der letzte echte Wert bei einem Fehlversuch stehen (Standard 15 min), bevor die Schätzung übernimmt. Ein Fenster nach seinem Reset wird immer sofort verworfen |
 | `timezone` / `locale` | `Europe/Berlin` / `de-DE` für alle Anzeigen |
 | `plan` | Nur **Rückfallwert**. Der Tarif wird aus `rateLimitTier` in den Zugangsdaten gelesen (auch offline) und überstimmt diesen Eintrag. Wird er verwendet, markiert das Dashboard das Badge mit „?" |
 | `limits.mode` | `auto` (höchstes beobachtetes Fenster) oder `fixed` (Werte aus `plans`). Ein **gemessenes** Limit sticht beides |
@@ -345,6 +349,9 @@ Kalibrierung und die HTTP-Schicht, u. a.:
   Schätzung, statt zu werfen
 - die Wartezeit nach einem Fehler wächst exponentiell und ist gedeckelt; „Aktualisieren"
   überspringt sie nicht
+- ein einzelner Fehlversuch (typisch: 429) hält den zuletzt echten Wert; er wird verworfen,
+  sobald er zu alt ist **oder** sein Fenster inzwischen zurückgesetzt wurde — dann wäre er
+  nicht bloß alt, sondern falsch
 
 **Parsing und Kosten**
 - drei Content-Blöcke desselben Requests ergeben **einen** Eintrag

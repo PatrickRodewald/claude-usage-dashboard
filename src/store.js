@@ -50,7 +50,11 @@ export function loadPricingTable(file = path.join(rootDir, 'pricing.json')) {
   return readJson(file);
 }
 
-export function createStore({ config, pricingTable, historyFile } = {}) {
+/**
+ * @param fetchUsage Abrufer fuer die echte Auslastung. Nur zum Einschleusen in
+ *                   Tests gedacht - im Betrieb immer der echte Aufruf.
+ */
+export function createStore({ config, pricingTable, historyFile, fetchUsage = fetchLiveUsage } = {}) {
   const cfg = config ?? loadConfig();
   const table = pricingTable ?? loadPricingTable();
   const pricing = createPricing(table);
@@ -377,6 +381,16 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
    * Wert wird weiterverwendet, solange er frisch genug ist.
    */
   let liveUsage = null;
+  /**
+   * Letzter ERFOLGREICHER Abruf. Ueberlebt Fehlversuche bewusst: der Endpunkt
+   * drosselt regelmaessig (429), und ohne diesen Puffer wuerde jede einzelne
+   * Drosselung das gesamte Dashboard fuer die Dauer der Wartezeit auf die
+   * lokale Schaetzung zurueckwerfen - sichtbar als Springen zwischen "live"
+   * und "Schaetzung". Wie lange der Wert weiterverwendet wird, entscheidet
+   * aggregate.js (liveUsage.staleAfterMs, und nie ueber einen Fensterreset
+   * hinaus).
+   */
+  let lastGoodLive = null;
   let liveInFlight = null;
   let liveFailures = 0;
   let nextLiveAttemptAt = 0;
@@ -394,6 +408,8 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
 
   async function refreshLiveUsage({ force = false, now = Date.now() } = {}) {
     if (cfg.liveUsage?.enabled === false) {
+      // Ausdruecklich abgeschaltet: dann auch keinen alten Wert nachreichen.
+      lastGoodLive = null;
       liveUsage = { ok: false, reason: 'disabled', fetchedAt: now };
       return liveUsage;
     }
@@ -409,7 +425,10 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
     if (!force && liveUsage && now < nextLiveAttemptAt) return liveUsage;
     if (liveInFlight) return liveInFlight;
 
-    liveInFlight = fetchLiveUsage({ now, timeoutMs: cfg.liveUsage?.timeoutMs ?? 6000 })
+    // Ueber then() gestartet, damit auch ein synchron werfender Abrufer im
+    // catch() unten landet und nicht am Aufrufer vorbeifliegt.
+    liveInFlight = Promise.resolve()
+      .then(() => fetchUsage({ now, timeoutMs: cfg.liveUsage?.timeoutMs ?? 6000 }))
       .then((result) => {
         if (result.ok) {
           liveFailures = 0;
@@ -420,6 +439,7 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
           nextLiveAttemptAt = now + backoffMs(result, minInterval, maxBackoff);
         }
         liveUsage = { ...result, nextAttemptAt: nextLiveAttemptAt, failures: liveFailures };
+        if (result.ok) lastGoodLive = liveUsage;
         return liveUsage;
       })
       .catch((err) => {
@@ -480,6 +500,7 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
       pricing,
       now,
       liveUsage,
+      lastLiveUsage: lastGoodLive,
       buckets,
       calibration: calibration(),
       history: historyStats(),
@@ -525,6 +546,10 @@ export function createStore({ config, pricingTable, historyFile } = {}) {
     },
     get liveUsage() {
       return liveUsage;
+    },
+    /** Letzter erfolgreicher Abruf - null, solange noch keiner geklappt hat. */
+    get lastGoodLiveUsage() {
+      return lastGoodLive;
     },
     get size() {
       return entries.size;

@@ -212,11 +212,23 @@ function renderWindowTile(w, ids, tz) {
   const src = $(ids.badge);
   if (src) {
     const real = w.source === 'anthropic';
-    src.textContent = real ? 'live' : 'Schätzung';
-    src.dataset.real = real ? '1' : '0';
-    src.title = real
-      ? 'Echter Wert aus deinem Abo, direkt von Anthropic abgerufen.'
-      : 'Geschätzt – Anthropic konnte nicht abgerufen werden. Grund siehe Kopfzeile.';
+    if (real && w.stale) {
+      // Echt, aber aus einem frueheren Abruf. Der Wert bleibt stehen, statt bei
+      // jeder Drosselung auf die Schaetzung zurueckzufallen - das Alter gehoert
+      // dann aber sichtbar dazu.
+      const ageMin = Math.floor((Date.now() - w.asOf) / 60000);
+      src.textContent = ageMin >= 1 ? `live · ${ageMin} Min.` : 'live';
+      src.dataset.real = 'stale';
+      src.title =
+        `Echter Wert aus deinem Abo, zuletzt abgerufen um ${clock(w.asOf, tz)}. ` +
+        'Der nächste Abruf steht noch aus – Grund siehe Kopfzeile.';
+    } else {
+      src.textContent = real ? 'live' : 'Schätzung';
+      src.dataset.real = real ? '1' : '0';
+      src.title = real
+        ? 'Echter Wert aus deinem Abo, direkt von Anthropic abgerufen.'
+        : 'Geschätzt – Anthropic konnte nicht abgerufen werden. Grund siehe Kopfzeile.';
+    }
   }
 }
 
@@ -342,17 +354,28 @@ function render() {
 
   // Herkunfts-Hinweis in der Kopfzeile
   const srcEl = $('src-note');
-  if (s.live.source === 'anthropic') {
+  const tier = s.live.rateLimitTier ?? s.live.subscriptionType ?? '';
+  const nextTry =
+    s.live.nextAttemptAt && s.live.nextAttemptAt > Date.now()
+      ? `, nächster Versuch ${clock(s.live.nextAttemptAt, tz)}`
+      : '';
+  if (s.live.source === 'anthropic' && s.live.stale) {
+    // Der letzte Abruf ist gescheitert, der vorherige Wert gilt weiter. Ohne
+    // diesen Zustand wuerde die Anzeige bei jeder Drosselung kurz auf
+    // "geschätzt" umspringen.
+    srcEl.dataset.real = 'stale';
+    srcEl.textContent =
+      `echte Abo-Daten von ${clock(s.live.fetchedAt, tz)} · ${duration(s.live.ageMs)} alt`;
+    srcEl.title =
+      `Der letzte Abruf ist fehlgeschlagen (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'}${nextTry}). ` +
+      'Bis er wieder klappt, bleiben die zuletzt echten Werte stehen.';
+  } else if (s.live.source === 'anthropic') {
     srcEl.dataset.real = '1';
-    srcEl.textContent = `echte Abo-Daten · ${s.live.rateLimitTier ?? s.live.subscriptionType ?? ''}`;
+    srcEl.textContent = `echte Abo-Daten · ${tier}`;
     srcEl.title = `Zuletzt abgerufen ${clock(s.live.fetchedAt, tz)}`;
   } else {
     srcEl.dataset.real = '0';
-    const retry =
-      s.live.nextAttemptAt && s.live.nextAttemptAt > Date.now()
-        ? `, nächster Versuch ${clock(s.live.nextAttemptAt, tz)}`
-        : '';
-    srcEl.textContent = `geschätzt (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'}${retry})`;
+    srcEl.textContent = `geschätzt (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'}${nextTry})`;
     srcEl.title = 'Die Limit-Anteile stammen aus der lokalen Hochrechnung.';
   }
 
@@ -636,7 +659,20 @@ function render() {
     el.textContent = t;
     return el;
   };
-  if (s.live.source === 'anthropic') {
+  if (s.live.source === 'anthropic' && s.live.stale) {
+    frag.append(
+      'Die Limit-Anteile sind ',
+      strong('echte Werte aus deinem Abo'),
+      `, aber vom Abruf um ${clock(s.live.fetchedAt, tz)} — der letzte Versuch schlug fehl (`,
+      REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt',
+      '). Sie bleiben stehen, bis der nächste Abruf klappt; wird der Wert zu alt oder ' +
+        'sein Fenster zurückgesetzt, übernimmt wieder die lokale Schätzung. Grenze: ',
+      code('liveUsage.staleAfterMs'),
+      ' in ',
+      code('config.json'),
+      '.',
+    );
+  } else if (s.live.source === 'anthropic') {
     frag.append(
       'Die Limit-Anteile sind ',
       strong('echte Werte aus deinem Abo'),

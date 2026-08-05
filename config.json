@@ -9,8 +9,10 @@
 
   "liveUsage": {
     "_hinweis": "Holt die ECHTE Auslastung deines Abos von Anthropic (GET /api/oauth/usage), authentifiziert mit dem OAuth-Token, das Claude Code unter ~/.claude/.credentials.json ablegt. Das Token wird nur gelesen, nie geschrieben, und geht ausschliesslich an api.anthropic.com. Auf false setzen fuer reinen Offline-Betrieb - dann greift wieder die lokale Schaetzung unten. Der Endpunkt ist nicht oeffentlich dokumentiert und kann sich aendern.",
+    "_hinweis_takt": "minIntervalMs: Mindestabstand zwischen zwei echten Abrufen. Der Endpunkt drosselt (HTTP 429), und Claude Code selbst fragt ihn mit demselben Token ab - ein Abruf pro Minute reicht dafuer schon aus. 5 Minuten sind reichlich: der Prozentwert eines 5-Stunden-Fensters braucht keine Minutenaufloesung. staleAfterMs: so lange bleibt der letzte erfolgreiche Wert stehen, wenn ein Abruf scheitert (mit Altersangabe in der Kopfzeile). Erst danach faellt die Anzeige auf die lokale Schaetzung zurueck. Ein Fenster, dessen Reset inzwischen durch ist, wird immer sofort verworfen.",
     "enabled": true,
-    "minIntervalMs": 60000,
+    "minIntervalMs": 300000,
+    "staleAfterMs": 900000,
     "timeoutMs": 6000,
     "maxBackoffMs": 900000
   },

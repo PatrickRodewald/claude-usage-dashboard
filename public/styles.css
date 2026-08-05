@@ -230,6 +230,12 @@ main {
   color: var(--status-good);
   border-color: color-mix(in srgb, var(--status-good) 45%, transparent);
 }
+/* Echt, aber aus einem frueheren Abruf: naeher an "gut" als an "geschaetzt",
+   denn die Zahl stimmt - sie ist nur nicht mehr taufrisch. */
+.est[data-real='stale'] {
+  color: color-mix(in srgb, var(--status-good) 65%, var(--text-muted));
+  border-color: color-mix(in srgb, var(--status-good) 25%, transparent);
+}
 
 .srcnote {
   font-size: 11px;
@@ -243,6 +249,10 @@ main {
 .srcnote[data-real='0']::before {
   content: '● ';
   color: var(--status-warning);
+}
+.srcnote[data-real='stale']::before {
+  content: '◐ ';
+  color: var(--status-good);
 }
 
 /* Genau eine Hero-Zahl pro Ansicht: der Anteil im 5h-Fenster.
