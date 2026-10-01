@@ -907,6 +907,190 @@ td.name {
   display: inline;
 }
 
+/* --- Taetigkeit je Werkzeug (data-activity) ------------------------------- */
+
+.prop,
+.screen-fx,
+.waves,
+.thought,
+.celebration,
+.confetti,
+.rocket {
+  display: none;
+}
+.fig[data-activity='read'] .prop-read,
+.fig[data-activity='search'] .prop-search,
+.fig[data-activity='write'] .prop-write,
+.fig[data-activity='test'] .prop-test,
+.fig[data-activity='web'] .prop-web,
+.fig[data-activity='todo'] .prop-todo,
+.fig[data-activity='delegate'] .prop-delegate,
+.fig[data-activity='shell'] .screen-fx,
+.fig[data-activity='test'] .screen-fx,
+.fig[data-activity='web'] .waves,
+.fig[data-activity='think'] .thought {
+  display: inline;
+}
+.paper {
+  fill: #f4f1e8;
+  stroke: #c9c4b6;
+  stroke-width: 0.6;
+}
+.paper-line {
+  stroke: #b9b4a5;
+  stroke-width: 0.8;
+}
+.book-spine {
+  stroke: #8a5a3c;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.flip {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: cud-flip 1.4s ease-in-out infinite;
+}
+.lens {
+  animation: cud-scan 1.8s ease-in-out infinite;
+}
+.lens-glass {
+  fill: rgba(140, 196, 238, 0.35);
+  stroke: #6b6b68;
+  stroke-width: 1.4;
+}
+.lens-handle {
+  stroke: #6b6b68;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.pencil {
+  animation: cud-scribble 0.5s ease-in-out infinite;
+}
+.pencil-body {
+  fill: #f2c94c;
+}
+.pencil-tip {
+  fill: #3b3a37;
+}
+.tube {
+  fill: rgba(255, 255, 255, 0.15);
+  stroke: #b9b7af;
+  stroke-width: 1;
+}
+.tube-liquid {
+  fill: var(--series-3);
+  opacity: 0.85;
+}
+.bubble-dot {
+  fill: #fff;
+  opacity: 0;
+  animation: cud-rise 1.5s ease-in infinite;
+}
+.globe {
+  fill: var(--series-1);
+  opacity: 0.85;
+}
+.globe-line {
+  fill: none;
+  stroke: #e8f1fb;
+  stroke-width: 0.7;
+  opacity: 0.8;
+}
+.meridian {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-spin-y 2s linear infinite;
+}
+.globe-stand {
+  fill: #8d8c88;
+}
+.clipboard {
+  fill: var(--wood);
+}
+.clip {
+  fill: #8d8c88;
+}
+.tick {
+  fill: none;
+  stroke: var(--status-good);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  animation: cud-tick 1.8s ease-out infinite;
+}
+.prop-delegate .plane-body {
+  animation: cud-bob 0.9s ease-in-out infinite;
+}
+.screen-line {
+  stroke: #39d353;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  animation: cud-type-line 0.9s steps(4) infinite;
+}
+.wave {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-width: 1.2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: cud-wave 1.2s ease-out infinite;
+}
+.cloud-puff {
+  fill: var(--surface);
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+.gear {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-spin 2.4s linear infinite;
+}
+.gear-teeth {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gear-body {
+  fill: var(--text-secondary);
+}
+.gear-hole {
+  fill: var(--surface);
+}
+
+/* Erfolgreicher Commit: Konfetti. Push: zusaetzlich startet eine Rakete. */
+.fig[data-celebrate] .celebration,
+.fig[data-celebrate] .confetti,
+.fig[data-celebrate='push'] .rocket {
+  display: inline;
+}
+.confetto {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-confetti 1.6s ease-in forwards;
+}
+.rocket {
+  animation: cud-launch 2.2s ease-in forwards;
+}
+.rocket-body {
+  fill: #e8e4da;
+  stroke: #8d8c88;
+  stroke-width: 0.6;
+}
+.rocket-fin {
+  fill: var(--status-critical);
+}
+.rocket-flame {
+  fill: #ffb347;
+  animation: cud-blink 0.2s linear infinite;
+}
+
+/* Hintergrund-Tab: alles anhalten. */
+.workshop.paused * {
+  animation-play-state: paused !important;
+}
+
 /* Der Weg eines laufenden Auftrags wandert mit. */
 .route[data-state='flow'] .route-path {
   animation: cud-flow 1.4s linear infinite;
@@ -928,6 +1112,112 @@ td.name {
 @keyframes cud-type {
   50% {
     transform: translateY(-3px);
+  }
+}
+@keyframes cud-flip {
+  0%,
+  40% {
+    transform: scaleX(1);
+  }
+  70%,
+  100% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes cud-scan {
+  50% {
+    transform: translateX(10px);
+  }
+}
+@keyframes cud-scribble {
+  25% {
+    transform: translate(3px, -1px);
+  }
+  50% {
+    transform: translate(6px, 0);
+  }
+  75% {
+    transform: translate(3px, 1px);
+  }
+}
+@keyframes cud-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+@keyframes cud-spin-y {
+  50% {
+    transform: scaleX(0.15);
+  }
+}
+@keyframes cud-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cud-tick {
+  0%,
+  15% {
+    opacity: 0;
+  }
+  30%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cud-type-line {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+@keyframes cud-wave {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6) translateY(-2px);
+  }
+}
+@keyframes cud-confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, -6px) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), 42px) rotate(320deg);
+  }
+}
+@keyframes cud-launch {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-110px);
   }
 }
 @keyframes cud-bob {
@@ -967,6 +1257,14 @@ td.name {
   }
   /* Die Flieger laufen per SMIL - CSS haelt sie nicht an, also ausblenden. */
   .route[data-state='flow'] .plane {
+    display: none;
+  }
+  /* Ohne Bewegung: Haken und Wellen stehend zeigen, die Feier entfaellt. */
+  .tick,
+  .wave {
+    opacity: 1;
+  }
+  .fig[data-celebrate] .celebration {
     display: none;
   }
 }

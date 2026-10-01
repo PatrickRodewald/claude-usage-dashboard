@@ -627,3 +627,62 @@ test('abgeschaltet liefert der Snapshot keine Live-Ansicht', async () => {
   assert.equal(store.snapshot().activity, null);
   assert.deepEqual(store.activityDirs(), []);
 });
+
+// --- Taetigkeiten und Feiern ------------------------------------------------------
+
+import { commandKind, tailInfo } from '../src/activity.js';
+
+test('Shell-Befehle: Commit, Push und Testlaeufe werden erkannt', () => {
+  assert.equal(commandKind('Bash', { command: 'git add -A && git commit -m "x"' }), 'commit');
+  assert.equal(commandKind('Bash', { command: 'git -C /repo push origin main' }), 'push');
+  assert.equal(commandKind('PowerShell', { command: 'git push' }), 'push');
+  assert.equal(commandKind('Bash', { command: 'npm test 2>&1 | tail' }), 'test');
+  assert.equal(commandKind('Bash', { command: 'node --test test/x.test.js' }), 'test');
+  assert.equal(commandKind('Bash', { command: 'pytest -q' }), 'test');
+  assert.equal(commandKind('Bash', { command: 'git status' }), null);
+  assert.equal(commandKind('Read', { command: 'git commit' }), null, 'nur Shell-Werkzeuge');
+});
+
+function shellUse(ts, msgId, id, command) {
+  return {
+    type: 'assistant',
+    timestamp: iso(ts),
+    message: { id: msgId, role: 'assistant', content: [{ type: 'tool_use', id, name: 'Bash', input: { command } }] },
+  };
+}
+
+test('gefeiert wird nur ein erfolgreicher Commit oder Push', () => {
+  const now = Date.now();
+  const ok = tailInfo(
+    [shellUse(now - 2000, 'm1', 'c1', 'git commit -m x'), toolResult(now - 1000, 'c1')].map((l) => JSON.stringify(l)),
+  );
+  assert.deepEqual(ok.celebration, { id: 'c1', kind: 'commit', at: now - 1000 });
+  assert.equal(ok.pending, null);
+
+  const failed = tailInfo(
+    [shellUse(now - 2000, 'm1', 'c1', 'git push'), toolResult(now - 1000, 'c1', { isError: true })].map((l) =>
+      JSON.stringify(l),
+    ),
+  );
+  assert.equal(failed.celebration, null, 'abgelehnter Push wird nicht gefeiert');
+
+  const running = tailInfo([shellUse(now, 'm1', 'c1', 'git push')].map((l) => JSON.stringify(l)));
+  assert.equal(running.celebration, null, 'erst nach dem Ergebnis');
+  assert.deepEqual([running.pending.name, running.pending.detail], ['Bash', 'push']);
+});
+
+test('der Tracker reicht Detail und Feier bis in den Snapshot durch', async () => {
+  const now = Date.now();
+  const sb = sandbox();
+  sb.session(101, { sessionId: 's-a', cwd: CWD, status: 'busy', startedAt: now - 10 * MIN, statusUpdatedAt: now });
+  sb.main(CWD, 's-a', [
+    shellUse(now - 5000, 'm1', 'c1', 'git commit -m "fertig"'),
+    toolResult(now - 4000, 'c1'),
+    shellUse(now - 1000, 'm2', 't1', 'npm test'),
+  ]);
+  const t = sb.tracker();
+  await t.refresh(now);
+  const s = t.snapshot().projects[0].sessions[0];
+  assert.deepEqual([s.doing.kind, s.doing.tool, s.doing.detail], ['tool', 'Bash', 'test']);
+  assert.equal(s.celebration.kind, 'commit');
+});

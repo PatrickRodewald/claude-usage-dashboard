@@ -39,6 +39,8 @@ const MAIN_DESK_Y = MAIN_Y + 88; // Tischplatte der Hauptsitzungen, global
 const ROWS_TOP = 264; // erste Subagent-Reihe
 const ROW_H = 112;
 const BOARD_LINES = 3;
+/** Nur Commits/Pushes, die hoechstens so alt sind, werden gefeiert. */
+const CELEBRATE_FRESH_MS = 90_000;
 
 /** Farbe je Agent-Typ. Unbekannte Typen bekommen stabil eine der uebrigen Farben. */
 const TYPE_COLOR = {
@@ -115,6 +117,60 @@ function skyFor(h) {
   return 'night';
 }
 
+/* --- Taetigkeit je Werkzeug ---------------------------------------------------- */
+
+const TOOL_ACTIVITY = {
+  Read: 'read',
+  NotebookRead: 'read',
+  Skill: 'read',
+  Grep: 'search',
+  Glob: 'search',
+  LS: 'search',
+  ToolSearch: 'search',
+  Edit: 'write',
+  Write: 'write',
+  MultiEdit: 'write',
+  NotebookEdit: 'write',
+  Bash: 'shell',
+  PowerShell: 'shell',
+  BashOutput: 'shell',
+  WebFetch: 'web',
+  WebSearch: 'web',
+  TodoWrite: 'todo',
+  TaskCreate: 'todo',
+  TaskUpdate: 'todo',
+  Agent: 'delegate',
+  Task: 'delegate',
+};
+
+/**
+ * Welche Taetigkeit eine Figur zeigt. detail kommt vom Server (Commit, Push,
+ * Testlauf); MCP-Werkzeuge sprechen mit einem fremden Dienst - wie das Web.
+ */
+export function toolActivity(tool, detail) {
+  if (!tool) return null;
+  // Commit und Push sind waehrend der Ausfuehrung einfach Shell - gefeiert
+  // wird erst der Erfolg (celebration).
+  if (detail === 'test') return 'test';
+  if (TOOL_ACTIVITY[tool]) return TOOL_ACTIVITY[tool];
+  if (String(tool).startsWith('mcp__')) return 'web';
+  return 'tool';
+}
+
+/** Taetigkeit der Hauptfigur einer Sitzung (null = keine). */
+function sessionActivity(s, state) {
+  if (state === 'tool') return toolActivity(s.doing?.tool, s.doing?.detail);
+  if (state === 'delegating') return 'delegate';
+  if (state === 'thinking') return 'think';
+  return null;
+}
+
+function agentActivity(a, state) {
+  if (state === 'tool') return toolActivity(a.tool, a.toolDetail);
+  if (state === 'thinking') return 'think';
+  return null;
+}
+
 /* --- Zustand je Figur -------------------------------------------------------- */
 
 /** Zustand der Hauptfigur einer Sitzung. */
@@ -130,7 +186,7 @@ function sessionBubble(s, state) {
   if (state === 'stale') return '?';
   if (state === 'tool') return clip(s.doing.tool, 14);
   if (state === 'delegating') return 'delegiert';
-  if (state === 'thinking') return '• • •';
+  if (state === 'thinking') return null; // Gedankenwolke statt Sprechblase
   return clip(s.status, 12);
 }
 
@@ -141,8 +197,7 @@ function agentState(a) {
 
 function agentBubble(a, state) {
   if (state === 'tool') return clip(a.tool, 12);
-  if (state === 'thinking') return '• • •';
-  return null; // Beendete tragen ein Abzeichen statt einer Blase.
+  return null; // Nachdenken: Gedankenwolke; Beendete tragen ein Abzeichen.
 }
 
 const MARK = { running: '▸', completed: '✓', failed: '✗', stopped: '–' };
@@ -330,6 +385,144 @@ function mug(parent, x, deskTop) {
 }
 
 /**
+ * Requisiten je Taetigkeit, links auf dem Tisch. Ursprung (0,0) ist die Mitte
+ * der Tischplatte; s skaliert fuer die kleineren Tische der Subagents.
+ * Sichtbar ist jeweils nur die Gruppe, deren Klasse zu data-activity passt.
+ */
+function props(parent, ox, oy, s = 1) {
+  const g = el('g', { class: 'props', transform: `translate(${ox} ${oy}) scale(${s})` }, parent);
+
+  // Lesen: aufgeschlagenes Buch, eine Seite blaettert um.
+  const read = el('g', { class: 'prop prop-read' }, g);
+  el('path', { d: 'M-48 -1l12 -3v-9l-12 3z', class: 'paper' }, read);
+  el('path', { d: 'M-36 -4l12 3v-9l-12 -3z', class: 'paper' }, read);
+  el('path', { d: 'M-36 -4l11 2v-9l-11 -2z', class: 'paper flip' }, read);
+  el('path', { d: 'M-49 0h26', class: 'book-spine' }, read);
+
+  // Suchen: Lupe wandert ueber einen Stapel Blaetter.
+  const search = el('g', { class: 'prop prop-search' }, g);
+  el('rect', { x: -50, y: -4, width: 24, height: 4, rx: 1, class: 'paper' }, search);
+  const lens = el('g', { class: 'lens' }, search);
+  el('circle', { cx: -42, cy: -11, r: 5, class: 'lens-glass' }, lens);
+  el('path', { d: 'M-38.5 -7.5l5 5', class: 'lens-handle' }, lens);
+
+  // Schreiben: Notizblock, der Stift kritzelt.
+  const write = el('g', { class: 'prop prop-write' }, g);
+  el('rect', { x: -50, y: -16, width: 18, height: 16, rx: 1.5, class: 'paper' }, write);
+  for (const y of [-12, -8, -4]) el('path', { d: `M-47 ${y}h12`, class: 'paper-line' }, write);
+  const pencil = el('g', { class: 'pencil' }, write);
+  el('path', { d: 'M-40 -6l9 -13l3 2l-9 13z', class: 'pencil-body' }, pencil);
+  el('path', { d: 'M-40 -6l-1 4l3 -2z', class: 'pencil-tip' }, pencil);
+
+  // Testlauf: Reagenzglas mit aufsteigenden Blasen.
+  const test = el('g', { class: 'prop prop-test' }, g);
+  el('path', { d: 'M-42 -22v17a4 4 0 0 0 8 0v-17', class: 'tube' }, test);
+  el('path', { d: 'M-42 -12v7a4 4 0 0 0 8 0v-7z', class: 'tube-liquid' }, test);
+  for (const [x, d] of [
+    [-40, 0],
+    [-37, 0.5],
+    [-39, 1],
+  ]) {
+    el('circle', { cx: x, cy: -8, r: 1.2, class: 'bubble-dot', style: `animation-delay:${d}s` }, test);
+  }
+
+  // Web: kleiner Globus, der sich dreht.
+  const web = el('g', { class: 'prop prop-web' }, g);
+  el('circle', { cx: -40, cy: -10, r: 8, class: 'globe' }, web);
+  el('ellipse', { cx: -40, cy: -10, rx: 3.5, ry: 8, class: 'globe-line meridian' }, web);
+  el('path', { d: 'M-48 -10h16M-46.5 -14.5h13M-46.5 -5.5h13', class: 'globe-line' }, web);
+  el('path', { d: 'M-44 0h8l-1 -2h-6z', class: 'globe-stand' }, web);
+
+  // To-dos: Klemmbrett, Haken erscheinen nacheinander.
+  const todo = el('g', { class: 'prop prop-todo' }, g);
+  el('rect', { x: -50, y: -20, width: 18, height: 20, rx: 2, class: 'clipboard' }, todo);
+  el('rect', { x: -45, y: -22, width: 8, height: 4, rx: 1, class: 'clip' }, todo);
+  [-15, -9, -3].forEach((y, i) => {
+    el('rect', { x: -47, y: y - 2.5, width: 4, height: 4, rx: 0.8, class: 'paper' }, todo);
+    el('path', { d: `M-47 ${y - 0.5}l1.5 1.5l3 -3.5`, class: 'tick', style: `animation-delay:${i * 0.6}s` }, todo);
+    el('path', { d: `M-41 ${y - 0.5}h7`, class: 'paper-line' }, todo);
+  });
+
+  // Delegieren: Papierflieger, startbereit in der Hand.
+  const del = el('g', { class: 'prop prop-delegate' }, g);
+  el('path', { d: 'M-46 -14l14 4l-14 4l3 -4z', class: 'plane-body' }, del);
+
+  return g;
+}
+
+/** Bildschirminhalt bei Shell-Arbeit: gruener Text, der durchlaeuft. */
+function screenFx(parent, x, y, w, h) {
+  const g = el('g', { class: 'screen-fx' }, parent);
+  const rows = 3;
+  for (let i = 0; i < rows; i++) {
+    const ly = y + 2 + (i * (h - 3)) / (rows - 1);
+    el('path', { d: `M${x + 2} ${ly}h${w * (0.45 + 0.15 * i)}`, class: 'screen-line', style: `animation-delay:${i * 0.25}s` }, g);
+  }
+  return g;
+}
+
+/** Funkwellen fuer Web-Werkzeuge. */
+function waves(parent, x, y, r = 8) {
+  const g = el('g', { class: 'waves' }, parent);
+  for (let i = 0; i < 3; i++) {
+    el(
+      'path',
+      { d: `M${x - r} ${y}a${r} ${r} 0 0 1 ${2 * r} 0`, class: 'wave', style: `animation-delay:${i * 0.4}s` },
+      g,
+    );
+  }
+  return g;
+}
+
+/** Gedankenwolke mit drehendem Zahnrad - Claude denkt nach. */
+function thought(parent, x, y, s = 1) {
+  const g = el('g', { class: 'thought', transform: `translate(${x} ${y}) scale(${s})` }, parent);
+  el('circle', { cx: -9, cy: 14, r: 1.8, class: 'cloud-puff' }, g);
+  el('circle', { cx: -5, cy: 9, r: 2.6, class: 'cloud-puff' }, g);
+  el('path', { d: 'M-10 0a7 7 0 0 1 8 -7a8 8 0 0 1 14 2a6 6 0 0 1 2 11h-20a6 6 0 0 1 -4 -6z', class: 'cloud-puff' }, g);
+  // Position und Drehung getrennt: die CSS-Drehung ersetzt sonst das translate.
+  const gear = el('g', { class: 'gear' }, el('g', { transform: 'translate(3 0)' }, g));
+  const teeth = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    teeth.push(`M${Math.cos(a) * 3} ${Math.sin(a) * 3}L${Math.cos(a) * 5.4} ${Math.sin(a) * 5.4}`);
+  }
+  el('path', { d: teeth.join(''), class: 'gear-teeth' }, gear);
+  el('circle', { cx: 0, cy: 0, r: 3.4, class: 'gear-body' }, gear);
+  el('circle', { cx: 0, cy: 0, r: 1.2, class: 'gear-hole' }, gear);
+  return g;
+}
+
+/** Konfetti (Commit) und Rakete (Push) - nur kurz eingeblendet, siehe celebrate(). */
+function celebrationFx(parent, cx, y) {
+  const g = el('g', { class: 'celebration' }, parent);
+  const confetti = el('g', { class: 'confetti' }, g);
+  const colors = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-7)'];
+  for (let i = 0; i < 14; i++) {
+    const dx = ((i * 37) % 60) - 30;
+    el(
+      'rect',
+      {
+        x: cx + dx,
+        y,
+        width: 3,
+        height: 5,
+        rx: 0.8,
+        fill: colors[i % colors.length],
+        class: 'confetto',
+        style: `--dx:${dx / 3}px;animation-delay:${(i % 5) * 0.08}s`,
+      },
+      confetti,
+    );
+  }
+  const rocket = el('g', { class: 'rocket' }, g);
+  el('path', { d: `M${cx + 34} ${y + 30}l-5 -9l5 -12l5 12z`, class: 'rocket-body' }, rocket);
+  el('path', { d: `M${cx + 29} ${y + 21}l-3 6h6zM${cx + 39} ${y + 21}l3 6h-6z`, class: 'rocket-fin' }, rocket);
+  el('path', { d: `M${cx + 31} ${y + 31}l3 7l3 -7z`, class: 'rocket-flame' }, rocket);
+  return g;
+}
+
+/**
  * Hauptfigur am Schreibtisch, in lokalen Koordinaten (Tischplatte bei y=88).
  * Aussen die Position (transform-Attribut), innen die Animation (CSS) -
  * beides auf demselben Element wuerde sich gegenseitig ueberschreiben.
@@ -354,11 +547,18 @@ function mainFigure(parent, cx) {
   el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, bodyG);
 
+  // Funkwellen ueber der Antenne (Web) und Gedankenwolke (Nachdenken).
+  waves(fig, cx, 21, 6);
+  thought(fig, cx + 4, 9);
+
   // Schreibtisch, Laptop (Rueckseite mit leuchtendem Logo) und Tasse davor.
   drawDesk(fig, cx, 88, 118, 30);
   el('path', { d: `M${cx - 18} 88l4 -16h28l4 16z`, class: 'laptop' }, fig);
   el('rect', { x: cx - 11, y: 75, width: 22, height: 10, rx: 1.5, class: 'laptop-screen' }, fig);
+  screenFx(fig, cx - 11, 75, 22, 10);
   mug(fig, cx + 30, 88);
+  props(fig, cx, 88);
+  celebrationFx(fig, cx, 0);
 
   // Schlafende Figur: aufsteigende z.
   const zzz = el('g', { class: 'zzz' }, fig);
@@ -386,9 +586,15 @@ function agentFigure(parent, cx, top, color) {
   el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
 
+  waves(fig, cx, top + 22, 5);
+  thought(fig, cx + 3, top + 9, 0.75);
+
   drawDesk(fig, cx, top + 58, 70, 20);
   el('path', { d: `M${cx - 10} ${top + 58}l3 -10h14l3 10z`, class: 'laptop' }, fig);
   el('rect', { x: cx - 6, y: top + 50, width: 12, height: 6, rx: 1, class: 'laptop-screen' }, fig);
+  screenFx(fig, cx - 6, top + 50, 12, 6);
+  props(fig, cx, top + 58, 0.62);
+  celebrationFx(fig, cx, top - 4);
 
   // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich.
   const badge = el('g', { class: 'badge' }, fig);
@@ -552,6 +758,14 @@ function applyTime(st, timeZone) {
   }
 }
 
+function setActivity(node, activity) {
+  if (activity) {
+    if (node.dataset.activity !== activity) node.dataset.activity = activity;
+  } else if (node.dataset.activity) {
+    delete node.dataset.activity;
+  }
+}
+
 /** Zustand auf einen bestehenden Raum uebertragen - ohne Neuaufbau. */
 function applyOffice(st, project, ctx) {
   // Lange Namen lieber kleiner schreiben als abschneiden - erst ab 11 px wird
@@ -571,6 +785,7 @@ function applyOffice(st, project, ctx) {
     if (!f) continue;
     const state = sessionState(s);
     f.fig.dataset.state = state;
+    setActivity(f.fig, sessionActivity(s, state));
     applyBubble(f.bubble, sessionBubble(s, state));
     f.label.textContent = clip(sessionLabel(s, project.label), 18);
     f.sub.textContent = s.cost != null && s.costKnown ? ctx.usd(s.cost) : entrypointLabel(s.entrypoint);
@@ -581,6 +796,7 @@ function applyOffice(st, project, ctx) {
       if (!g) continue;
       const as = agentState(a);
       g.fig.dataset.state = as;
+      setActivity(g.fig, agentActivity(a, as));
       applyBubble(g.bubble, agentBubble(a, as));
       g.label.textContent = clip(a.type, 14);
       // Teilkosten (ein Modell ohne Preis) nicht als exakte Summe ausgeben.
@@ -616,6 +832,33 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
   const data = new Map();
   /** Figur unter dem Mauszeiger - ihr Tooltip folgt den Aktualisierungen. */
   let hovered = null;
+  /** Bereits gefeierte Commits/Pushes - jeder nur einmal, und nur frische. */
+  const celebrated = new Set();
+
+  const celebrate = (st, figId, c) => {
+    if (!c?.id || celebrated.has(c.id)) return;
+    celebrated.add(c.id);
+    // Beim ersten Laden der Seite liegen aeltere Commits vor - die nicht.
+    if (c.at == null || Date.now() - c.at > CELEBRATE_FRESH_MS) return;
+    const f = st.figs.get(figId);
+    if (!f) return;
+    f.fig.dataset.celebrate = c.kind;
+    setTimeout(() => {
+      if (f.fig.dataset.celebrate === c.kind) delete f.fig.dataset.celebrate;
+    }, 3600);
+  };
+
+  // Im Hintergrund-Tab sieht niemand zu: Animationen anhalten (CSS ueber die
+  // Klasse, die Papierflieger laufen per SMIL und brauchen pauseAnimations).
+  const syncPause = () => {
+    const hidden = document.hidden;
+    container.classList.toggle('paused', hidden);
+    for (const st of stations.values()) {
+      if (hidden) st.svg.pauseAnimations?.();
+      else st.svg.unpauseAnimations?.();
+    }
+  };
+  document.addEventListener('visibilitychange', syncPause);
 
   const hover = (node, id) => {
     node.addEventListener('pointerenter', (ev) => {
@@ -682,8 +925,13 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
         }
         st = fresh;
         stations.set(p.key, st);
+        if (document.hidden) st.svg.pauseAnimations?.();
       }
       applyOffice(st, p, ctx);
+      for (const s of p.sessions) {
+        celebrate(st, s.sessionId, s.celebration);
+        for (const a of s.agents) celebrate(st, a.id, a.celebration);
+      }
       wanted.push(st.root);
     }
     for (const [key, st] of stations) {

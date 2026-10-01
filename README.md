@@ -131,6 +131,22 @@ Kaffeetasse:
 - **arbeitet:** Laptop an, Lampe blinkt, die Arme tippen, der Kaffee dampft. Die Sprechblase
   zeigt das gerade laufende Werkzeug (`Bash`, `WebFetch`, …), „delegiert“ beim Warten auf einen
   Subagent und „• • •“ beim Nachdenken oder Schreiben.
+- **was genau:** Neben dem Laptop zeigt ein Requisit das laufende Werkzeug.
+
+  | Werkzeug | Requisit |
+  |---|---|
+  | Lesen | Buch mit umblätternder Seite |
+  | Suchen | wandernde Lupe |
+  | Schreiben | kritzelnder Stift auf dem Notizblock |
+  | Shell | grüner Text auf dem Laptop |
+  | Testlauf | blubberndes Reagenzglas |
+  | Web und MCP | Globus und Funkwellen an der Antenne |
+  | To-dos | Klemmbrett mit Haken |
+  | Delegieren | Papierflieger in der Hand |
+  | Nachdenken | Gedankenwolke mit drehendem Zahnrad |
+
+  Ein erfolgreicher `git commit` wird mit Konfetti gefeiert, ein `git push` zusätzlich mit einer
+  Rakete. Beides passiert einmal und nur, wenn der Commit frisch ist.
 - **wartet auf dich:** Augen zu, über dem Roboter steigen „z“ auf.
 - **kein Lebenszeichen:** blass mit „?“. Die Sitzung meldet „arbeitet“, hat aber seit 30 Minuten
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
@@ -147,7 +163,7 @@ Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sit
 Gerät. Sie funktioniert im hellen wie im dunklen Design und kommt ohne externe Schriften aus: Die
 Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard unter macOS). Wer
 Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, und die
-Papierflieger bleiben am Boden.
+Papierflieger bleiben am Boden. Liegt der Tab im Hintergrund, hält das Büro alle Animationen an.
 
 ### Warnkanäle
 
@@ -439,7 +455,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-280 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+287 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

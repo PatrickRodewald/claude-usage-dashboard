@@ -191,14 +191,36 @@ export function absorbLines(marks, text) {
   return marks;
 }
 
+const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
+
 /**
- * Das zuletzt begonnene, noch offene Werkzeug aus den letzten Zeilen eines
- * Transkripts. Claude Code schreibt eine Zeile pro Content-Block; Werkzeuge
- * derselben Antwort gehoeren zusammen.
+ * Was ein Shell-Befehl tut, soweit es fuer die Darstellung zaehlt: ein Commit,
+ * ein Push oder ein Testlauf. Alles andere bleibt einfach "Shell".
  */
-export function pendingToolFromLines(lines) {
+export function commandKind(toolName, input) {
+  if (!SHELL_TOOLS.has(toolName)) return null;
+  const cmd = String(input?.command ?? '');
+  // "git -C pfad push" ebenso wie "git push"
+  if (/\bgit\s+(?:-C\s+\S+\s+)*push\b/.test(cmd)) return 'push';
+  if (/\bgit\s+(?:-C\s+\S+\s+)*commit\b/.test(cmd)) return 'commit';
+  if (/\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|\bnode\s+--test\b|\bpytest\b|\b(?:go|cargo|dotnet|mvn|gradle)\s+test\b|\bvitest\b|\bjest\b/.test(cmd)) {
+    return 'test';
+  }
+  return null;
+}
+
+/**
+ * Aus den letzten Zeilen eines Transkripts:
+ *  - pending: das zuletzt begonnene, noch offene Werkzeug (mit detail, siehe
+ *    commandKind). Claude Code schreibt eine Zeile pro Content-Block;
+ *    Werkzeuge derselben Antwort gehoeren zusammen.
+ *  - celebration: der juengste ERFOLGREICH abgeschlossene Commit oder Push.
+ */
+export function tailInfo(lines) {
   let msgId = null;
   let tools = [];
+  const notable = new Map(); // toolUseId -> Commit/Push-Aufruf
+  let celebration = null;
   for (const line of lines) {
     if (!line.includes('"tool_use"') && !line.includes('"tool_result"')) continue;
     let o;
@@ -218,18 +240,32 @@ export function pendingToolFromLines(lines) {
         tools = [];
       }
       for (const b of uses) {
-        if (!tools.some((t) => t.id === b.id)) tools.push({ id: b.id, name: String(b.name ?? '?'), ts: timeOf(o), done: false });
+        if (tools.some((t) => t.id === b.id)) continue;
+        const name = String(b.name ?? '?');
+        const detail = commandKind(name, b.input);
+        tools.push({ id: b.id, name, detail, ts: timeOf(o), done: false });
+        if (detail === 'commit' || detail === 'push') notable.set(b.id, detail);
       }
     } else if (o.type === 'user') {
       for (const b of content) {
         if (b?.type !== 'tool_result') continue;
         const t = tools.find((x) => x.id === b.tool_use_id);
         if (t) t.done = true;
+        const kind = notable.get(b.tool_use_id);
+        if (kind && b.is_error !== true) {
+          celebration = { id: b.tool_use_id, kind, at: timeOf(o) };
+        }
       }
     }
   }
   const open = tools.filter((t) => !t.done);
-  return open.length ? open[open.length - 1] : null;
+  const p = open.length ? open[open.length - 1] : null;
+  return { pending: p ? { id: p.id, name: p.name, detail: p.detail, ts: p.ts } : null, celebration };
+}
+
+/** Das gerade laufende Werkzeug (Kurzform von tailInfo). */
+export function pendingToolFromLines(lines) {
+  return tailInfo(lines).pending;
 }
 
 const TASK_STATE = { completed: 'completed', failed: 'failed' };
@@ -265,8 +301,24 @@ export function createActivityTracker({
   const tracked = new Map();
   /** Letzter gueltiger Inhalt je JSON-Datei: Pfad -> { mtimeMs, value, seenAt } */
   const jsonCache = new Map();
+  /** Auswertung des Dateiendes, solange sich die Datei nicht aendert: Pfad -> { size, mtimeMs, info, seenAt } */
+  const tailCache = new Map();
   let state = { available: false, refreshedAt: null, sessions: [] };
   let inFlight = null;
+
+  /** Was am Ende eines Transkripts steht - nur neu gelesen, wenn es sich geaendert hat. */
+  async function tailOf(file, now) {
+    const st = await statOf(file);
+    if (!st) return { pending: null, celebration: null };
+    const c = tailCache.get(file);
+    if (c && c.size === st.size && c.mtimeMs === st.mtimeMs) {
+      c.seenAt = now;
+      return c.info;
+    }
+    const info = tailInfo(await readTailLines(file));
+    tailCache.set(file, { size: st.size, mtimeMs: st.mtimeMs, info, seenAt: now });
+    return info;
+  }
 
   async function statOf(file) {
     try {
@@ -466,7 +518,16 @@ export function createActivityTracker({
       if (stateName !== 'running' && (finishedAt == null || now - finishedAt > recentMs)) continue;
 
       let tool = null;
-      if (stateName === 'running') tool = pendingToolFromLines(await readTailLines(a.file))?.name ?? null;
+      let toolDetail = null;
+      let celebration = null;
+      if ((a.lastActivity ?? 0) >= since) {
+        const info = await tailOf(a.file, now);
+        if (stateName === 'running' && info.pending) {
+          tool = info.pending.name;
+          toolDetail = info.pending.detail;
+        }
+        celebration = info.celebration;
+      }
 
       agents.push({
         id: a.id,
@@ -480,6 +541,8 @@ export function createActivityTracker({
         lastActivity: a.lastActivity,
         finishedAt,
         tool,
+        toolDetail,
+        celebration,
       });
     }
     // Stabil sortieren: die Reihenfolge bestimmt das Layout der Werkstatt,
@@ -509,6 +572,7 @@ export function createActivityTracker({
         let agents = [];
         let doing = null;
         let latestWrite = null;
+        let celebration = null;
         if (projectDir) {
           const mainFile = path.join(projectDir, `${s.sessionId}.jsonl`);
           keep.add(mainFile);
@@ -517,10 +581,17 @@ export function createActivityTracker({
           const res = await sessionAgents(s, projectDir, mainMarks, now, keep);
           agents = res.agents;
           if (res.latestWrite != null && (latestWrite == null || res.latestWrite > latestWrite)) latestWrite = res.latestWrite;
+          const info = await tailOf(mainFile, now);
+          celebration = info.celebration;
           if (s.status === 'busy') {
-            const open = pendingToolFromLines(await readTailLines(mainFile));
+            const open = info.pending;
             doing = open
-              ? { kind: AGENT_TOOLS.has(open.name) ? 'delegating' : 'tool', tool: open.name, since: open.ts }
+              ? {
+                  kind: AGENT_TOOLS.has(open.name) ? 'delegating' : 'tool',
+                  tool: open.name,
+                  detail: open.detail,
+                  since: open.ts,
+                }
               : { kind: 'thinking', tool: null, since: s.statusSince };
           }
         }
@@ -535,7 +606,14 @@ export function createActivityTracker({
           }
         }
         if (!doing) doing = { kind: status === 'busy' ? 'thinking' : status === 'stale' ? 'stale' : 'idle', tool: null, since: s.statusSince };
-        sessions.push({ ...s, status, projectDir: projectDir ? path.basename(projectDir) : null, doing, agents });
+        sessions.push({
+          ...s,
+          status,
+          projectDir: projectDir ? path.basename(projectDir) : null,
+          doing,
+          celebration,
+          agents,
+        });
       }
     }
 
@@ -547,6 +625,7 @@ export function createActivityTracker({
     }
     for (const [file, t] of tracked) if (now - t.seenAt > KEEP_MS) tracked.delete(file);
     for (const [file, c] of jsonCache) if (now - c.seenAt > KEEP_MS) jsonCache.delete(file);
+    for (const [file, c] of tailCache) if (now - c.seenAt > KEEP_MS) tailCache.delete(file);
 
     // Dieselbe Sitzung zweimal (z. B. kurz waehrend eines Neustarts): die
     // juengere gewinnt.
@@ -598,6 +677,8 @@ export function createActivityTracker({
         kind: s.kind,
         version: s.version,
         doing: s.doing,
+        // Juengster erfolgreicher Commit/Push - das Buero feiert ihn kurz.
+        celebration: s.celebration ?? null,
         cost: sessionUsage?.cost ?? null,
         costKnown: sessionUsage?.costKnown ?? true,
         requests: sessionUsage?.requests ?? 0,
