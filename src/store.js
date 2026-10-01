@@ -26,6 +26,8 @@ import { createPricing, weightedTokens, newTotals, addTokens } from './pricing.j
 import { buildSnapshot } from './aggregate.js';
 import { fetchLiveUsage, HOUR_MS } from './liveUsage.js';
 import { createActivityTracker, DEFAULT_RECENT_MS, contextWindow } from './activity.js';
+import { buildTimeline, metaReader } from './replay.js';
+import { dayKey, startOfDay, zonedToUtc } from './tz.js';
 import {
   loadArchive,
   saveArchive,
@@ -724,6 +726,33 @@ export function createStore({
     };
   }
 
+  /**
+   * Zeitleiste eines Tages fuer den Rueckblick im Buero.
+   * @param day "YYYY-MM-DD" in der Anzeigezone; ohne (oder ungueltig): heute.
+   */
+  function replay({ day, now = Date.now() } = {}) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day ?? '');
+    let from = m ? zonedToUtc({ year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }, tz) : startOfDay(now, tz);
+    if (!Number.isFinite(from) || from > now) from = startOfDay(now, tz);
+    // Ein Tag hat 23 bis 25 Stunden: 30 Stunden spaeter liegt sicher im naechsten.
+    const to = startOfDay(from + 30 * 3_600_000, tz);
+    let first = Infinity;
+    for (const e of entries.values()) if (e.ts < first) first = e.ts;
+    return {
+      day: dayKey(from, tz),
+      firstDay: Number.isFinite(first) ? dayKey(first, tz) : dayKey(now, tz),
+      today: dayKey(now, tz),
+      timezone: tz,
+      now,
+      ...buildTimeline(entries.values(), {
+        from,
+        to,
+        costOf: (e) => pricing.costFor(e, e.model, { speed: e.speed, timestampMs: e.ts }),
+        readMeta: metaReader(dataDirs()),
+      }),
+    };
+  }
+
   function snapshot(now = Date.now()) {
     const buckets = historyEnabled ? archiveBuckets(archive) : null;
     return buildSnapshot([...entries.values()], {
@@ -769,6 +798,7 @@ export function createStore({
     pricing,
     scan,
     snapshot,
+    replay,
     dataDirs,
     /** Ordner, deren Aenderung einen Statuswechsel bedeuten kann (Live-Ansicht). */
     activityDirs: () => (activity ? activity.watchDirs() : []),

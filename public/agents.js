@@ -96,8 +96,8 @@ export function entrypointLabel(e) {
 
 /* --- Zeit fuer Uhr und Fenster ------------------------------------------------ */
 
-function zonedTime(timeZone) {
-  const now = new Date();
+function zonedTime(timeZone, ms = Date.now()) {
+  const now = new Date(ms);
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
       timeZone,
@@ -265,6 +265,17 @@ export function toolActivity(tool, detail) {
   return 'tool';
 }
 
+/**
+ * Kurzer Werkzeugname fuer Sprechblase und Tafel: bei MCP-Werkzeugen nur das
+ * Werkzeug selbst ("mcp__claude_ai_Notion__notion-search" -> "notion-search").
+ */
+export function toolLabel(tool) {
+  const name = String(tool ?? '');
+  if (!name.startsWith('mcp__')) return name;
+  const i = name.lastIndexOf('__');
+  return i > 3 && i + 2 < name.length ? name.slice(i + 2) : name;
+}
+
 /** Taetigkeit der Hauptfigur einer Sitzung (null = keine). */
 function sessionActivity(s, state) {
   if (state === 'tool') return toolActivity(s.doing?.tool, s.doing?.detail);
@@ -292,7 +303,7 @@ function sessionState(s) {
 function sessionBubble(s, state) {
   if (state === 'idle') return null; // schlaeft - die aufsteigenden z sagen genug
   if (state === 'stale') return '?';
-  if (state === 'tool') return clip(s.doing.tool, 14);
+  if (state === 'tool') return clip(toolLabel(s.doing.tool), 14);
   if (state === 'delegating') return 'delegiert';
   if (state === 'thinking') return null; // Gedankenwolke statt Sprechblase
   return clip(s.status, 12);
@@ -304,13 +315,13 @@ function agentState(a) {
 }
 
 function agentBubble(a, state) {
-  if (state === 'tool') return clip(a.tool, 12);
+  if (state === 'tool') return clip(toolLabel(a.tool), 12);
   return null; // Nachdenken: Gedankenwolke; Beendete tragen ein Abzeichen.
 }
 
 const MARK = { running: '▸', completed: '✓', failed: '✗', stopped: '–' };
 const SESSION_DOING = {
-  tool: (s) => s.doing.tool,
+  tool: (s) => toolLabel(s.doing.tool),
   delegating: () => 'delegiert',
   thinking: () => 'denkt nach',
   idle: () => 'Pause',
@@ -1085,8 +1096,8 @@ function buildOffice(project, ctx) {
 }
 
 /** Uhr und Fenster auf die aktuelle Zeit stellen. */
-function applyTime(st, timeZone) {
-  const { h, m } = zonedTime(timeZone);
+function applyTime(st, timeZone, ms) {
+  const { h, m } = zonedTime(timeZone, ms);
   const sky = skyFor(h);
   if (st.windowG) st.windowG.dataset.sky = sky;
   // Schreibtischlampen haengen am Raum, nicht am Fenster - kleine Raeume haben keins.
@@ -1246,7 +1257,7 @@ function applyOffice(st, project, ctx, env = {}) {
     }
   }
   // Lange am Stueck gearbeitet: zwischendurch strecken.
-  const now = Date.now();
+  const now = ctx.now();
   for (const s of project.sessions) {
     const f = st.figs.get(s.sessionId);
     if (!f) continue;
@@ -1288,7 +1299,7 @@ function applyOffice(st, project, ctx, env = {}) {
 
   if (onBreak) summary.unshift('Limit erreicht, Zwangspause');
   st.svg.setAttribute('aria-label', `Büro ${project.label}: ${summary.join(', ')}`);
-  applyTime(st, ctx.timeZone());
+  applyTime(st, ctx.timeZone(), ctx.now());
   applyCalendar(st, ctx.timeZone());
 }
 
@@ -1296,11 +1307,22 @@ function applyOffice(st, project, ctx, env = {}) {
 
 /**
  * @param container  Element, das die Raeume aufnimmt
- * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone() }
+ * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone(), now()?, emptyText? }
  * @returns {{ render(activity, env), tick(), setSound(on) }}  env = { fiveHour, week } aus snapshot.live;
  *          tick() stellt Uhren, Fenster und Kalender
  */
-export function createWorkshop(container, { tooltip, usd, describe, timeZone = () => undefined }) {
+export function createWorkshop(
+  container,
+  {
+    tooltip,
+    usd,
+    describe,
+    timeZone = () => undefined,
+    // Uhr, Fenster und Lampen folgen dieser Zeit - im Rueckblick der abgespielten.
+    now = () => Date.now(),
+    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.',
+  },
+) {
   /** Raeume je Projekt: key -> { root, figs, sig, ... } */
   const stations = new Map();
   /** Aktuelle Daten je Figur fuer den Tooltip (zum Zeitpunkt des Zeigens). */
@@ -1460,7 +1482,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
     setTimeout(() => st.root.remove(), WALK_MS + 100);
   };
 
-  const ctx = { usd, hover, timeZone, sound: play };
+  const ctx = { usd, hover, timeZone, now, sound: play };
 
   let empty = null;
 
@@ -1490,7 +1512,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
       if (!empty) {
         empty = document.createElement('p');
         empty.className = 'chart-empty';
-        empty.textContent = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.';
+        empty.textContent = emptyText;
       }
       if (empty.parentNode !== container) container.append(empty);
       renderedOnce = true;
@@ -1579,7 +1601,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
 
   function tick() {
     for (const st of stations.values()) {
-      applyTime(st, timeZone());
+      applyTime(st, timeZone(), now());
       applyCalendar(st, timeZone());
     }
   }

@@ -113,11 +113,33 @@
               <h2>Gerade aktiv</h2>
               <p class="panel-sub" id="live-sub">–</p>
             </div>
-            <button type="button" id="sound-toggle" class="btn" title="Gong, wenn ein Subagent fertig wird; Warnton, wenn das Limit kritisch wird">
-              Töne aus
-            </button>
+            <div class="panel-actions">
+              <button type="button" id="replay-toggle" class="btn" aria-pressed="false" title="Einen Tag im Zeitraffer noch einmal ansehen">
+                Rückblick
+              </button>
+              <button type="button" id="sound-toggle" class="btn" title="Gong, wenn ein Subagent fertig wird; Warnton, wenn das Limit kritisch wird">
+                Töne aus
+              </button>
+            </div>
           </header>
+          <div class="replay-bar" id="replay-bar" hidden>
+            <button type="button" id="replay-play" class="btn replay-play" aria-label="Abspielen">▶</button>
+            <div class="replay-track">
+              <svg class="replay-hist" id="replay-hist" viewBox="0 0 96 16" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <input type="range" id="replay-slider" min="0" max="1" step="60000" value="0" aria-label="Zeitpunkt des Tages" />
+            </div>
+            <output class="replay-time" id="replay-time">–</output>
+            <select id="replay-speed" class="btn" aria-label="Tempo">
+              <option value="120">2 Min./s</option>
+              <option value="600" selected>10 Min./s</option>
+              <option value="1800">30 Min./s</option>
+              <option value="3600">1 Std./s</option>
+            </select>
+            <input type="date" id="replay-day" class="btn" aria-label="Tag" />
+            <p class="replay-note" id="replay-note"></p>
+          </div>
           <div class="workshop" id="workshop"></div>
+          <div class="workshop" id="replay-workshop" hidden></div>
         </article>
       </section>
 

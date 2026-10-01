@@ -216,6 +216,15 @@ export async function startServer({
       return;
     }
 
+    if (url.pathname === '/api/replay') {
+      try {
+        sendJson(res, 200, store.replay({ day: url.searchParams.get('day') }));
+      } catch (err) {
+        sendJson(res, 500, { error: String(err?.message ?? err) });
+      }
+      return;
+    }
+
     if (url.pathname === '/api/events') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',

@@ -16,6 +16,7 @@ import {
   typeDuration,
   coinCount,
   arrivals,
+  toolLabel,
   isLongWork,
   roomAsleep,
   lookOffset,
@@ -146,4 +147,14 @@ test('arrivals: neue Figuren kommen, verschwundene gehen', () => {
   assert.deepEqual(arrivals(['s1'], []), { entering: [], leaving: ['s1'] });
   // Iterierbare Eingaben (Map-Schluessel) gehen auch.
   assert.deepEqual(arrivals(new Map([['x', 1]]).keys(), new Map([['y', 1]]).keys()), { entering: ['y'], leaving: ['x'] });
+});
+
+test('toolLabel kuerzt MCP-Werkzeuge auf das Werkzeug', () => {
+  assert.equal(toolLabel('mcp__claude_ai_Notion__notion-search'), 'notion-search');
+  assert.equal(toolLabel('mcp__server__tool'), 'tool');
+  assert.equal(toolLabel('Bash'), 'Bash');
+  // Unvollstaendige Namen bleiben, wie sie sind.
+  assert.equal(toolLabel('mcp__nurserver'), 'mcp__nurserver');
+  assert.equal(toolLabel('mcp__server__'), 'mcp__server__');
+  assert.equal(toolLabel(null), '');
 });

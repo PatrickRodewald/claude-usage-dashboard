@@ -215,7 +215,30 @@ Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sit
 Gerät. Sie funktioniert im hellen wie im dunklen Design und kommt ohne externe Schriften aus: Die
 Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard unter macOS). Wer
 Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, die
-Papierflieger bleiben am Boden, und wer kommt oder geht, ist einfach da oder weg. Liegt der Tab im Hintergrund, hält das Büro alle Animationen an.
+Papierflieger bleiben am Boden, und wer kommt oder geht, ist einfach da oder weg. Liegt der Tab
+im Hintergrund, hält das Büro alle Animationen an.
+
+#### Tagesrückblick
+
+„Rückblick“ im Kopf des Bereichs spielt einen Tag im Zeitraffer ab, im selben Büro. Figuren
+kommen und gehen, die Uhren und Fenster zeigen die abgespielte Zeit, Aktenstapel und
+Sparschweine wachsen mit. Die Leiste darüber hat:
+
+- **▶ / ❚❚** zum Abspielen und Anhalten,
+- einen **Regler** über den ganzen Tag, darüber ein Balken je Viertelstunde mit der Zahl der
+  Requests: so findet man die vollen Stunden,
+- das **Tempo** (2 Minuten bis 1 Stunde pro Sekunde, Standard 10 Minuten),
+- den **Tag**, zurück bis zum ältesten noch vorhandenen Transkript.
+
+Leere Zeiten werden beim Abspielen übersprungen. „Zurück zu live“ zeigt wieder das aktuelle Büro.
+
+Der Rückblick wird aus den Transkripten rekonstruiert. Die verraten, wann gearbeitet wurde, aber
+nicht, wann eine Sitzung offen war. Deshalb gelten Faustregeln: Eine Sitzung kommt mit ihrem
+ersten Request ins Büro und geht nach fünf Minuten ohne Request. Nach über 20 Minuten Pause
+kommt sie neu herein. Ein Subagent ist mit seinem letzten Request fertig. Sitzungen heißen hier
+„Sitzung 1“, „Sitzung 2“ in der Reihenfolge ihres ersten Auftritts, weil ihre Namen nur in der
+Statusdatei laufender Sitzungen stehen. Ereignisse wie Commits, Nachrichten und Fehler sowie das
+Limit spielt der Rückblick nicht ab.
 
 ### Warnkanäle
 
@@ -489,8 +512,16 @@ aufgenommen und läuft. Diese Transkripte werden inkrementell und eng vorgefilte
 eine Figur gerade tut, steht nur am Dateiende. Ein Statuswechsel kostet also nur die neu
 angehängten Zeilen. Ein Subagent, der zuletzt vor dem Start des aktuellen Prozesses geschrieben
 hat, gilt als abgebrochen: Er ist mit dem alten Prozess untergegangen. Statusdateien anderer
-Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergangen. Alle drei Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet
-nur dieser Bereich, das übrige Dashboard läuft weiter.
+Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergangen. Alle drei
+Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet nur dieser Bereich, das übrige
+Dashboard läuft weiter.
+
+**Tagesrückblick.** Der Server kennt ohnehin jeden Request mit Zeitstempel, Sitzung, Subagent,
+Kosten, Kontext und dem ersten aufgerufenen Werkzeug. `/api/replay` schneidet daraus einen Tag
+als kompakte Zeitleiste mit einem Schritt je Request; für einen vollen Arbeitstag sind das einige
+zehn Kilobyte. Den Zustand zu jedem Zeitpunkt rechnet der Browser aus und gibt ihn in derselben
+Form ans Büro wie den Live-Stand. Darum funktionieren dort Kommen und Gehen, Requisiten und
+Messwerte ohne eigene Darstellung.
 
 **Aktualisierung.** `fs.watch` (rekursiv) mit Entprellung, plus Polling alle 20 s als Fallback.
 Beobachtet werden auch die Statusdateien unter `~/.claude/sessions`, jeweils unter ihrem echten,
@@ -507,7 +538,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-302 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+315 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -563,6 +594,12 @@ Kalibrierung und die HTTP-Schicht, u. a.:
   ihrem Auftraggeber; beendete verschwinden nach der Anzeigedauer
 - Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung
 
+**Tagesrückblick**
+- der Tag wird in der Anzeigezone geschnitten; ungültige oder künftige Tage fallen auf heute
+- `meta.json` liefert Typ und Auftrag; Ids aus den Transkripten können keine Pfade bilden
+- Kommen, Arbeiten, Warten und Gehen je Zeitpunkt; Subagents laufen, werden fertig und gehen
+- Kosten laufen bis zum Zeitpunkt mit, gegangene Subagents eingeschlossen
+
 **HTTP-Schicht**
 - `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet
 - kein Ausbrechen aus `public/` — auch nicht prozentkodiert (`%2e%2e`, `..%2f`, …)
@@ -610,12 +647,16 @@ src/
   history.js        Persistentes Archiv, Schlüssel-Hashes, Kalibrier-Regression
   aggregate.js      Aufschlüsselungen und Dashboard-Snapshot
   activity.js       Laufende Sitzungen und Subagents (Bereich „Gerade aktiv")
+  replay.js         Zeitleiste eines Tages für den Rückblick
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
   agents.js         Büro mit Figuren für „Gerade aktiv"
+  replay.js         Zustand des Büros zu jedem Zeitpunkt eines Tages (Rückblick)
+  replayView.js     Leiste und Abspielen des Rückblicks
 test/               Unit- und Integrationstests (node:test)
 ```
 
 Nützlich beim Debuggen: `GET /api/snapshot` liefert den kompletten Datensatz als JSON,
+`GET /api/replay?day=YYYY-MM-DD` die Zeitleiste eines Tages,
 `?static=1` an der Dashboard-URL lädt einmalig ohne offenen SSE-Strom (für Screenshots).

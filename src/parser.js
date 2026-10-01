@@ -213,6 +213,9 @@ export function extractEntry(obj, { fallbackDirName, ignoreModels = DEFAULT_IGNO
 
   const str = (v) => (typeof v === 'string' && v.trim() ? v : null);
   const thinking = usage.output_tokens_details?.thinking_tokens;
+  const toolUse = Array.isArray(message.content)
+    ? message.content.find((b) => b?.type === 'tool_use' && typeof b.name === 'string')
+    : null;
 
   return {
     key,
@@ -239,6 +242,10 @@ export function extractEntry(obj, { fallbackDirName, ignoreModels = DEFAULT_IGNO
     // Id des Subagents (nur in dessen eigenem Transkript gesetzt) - damit
     // laesst sich der Verbrauch eines gerade laufenden Agents zuordnen.
     agentId: str(obj.agentId),
+    // Erstes Werkzeug, das dieser Request aufruft - fuer den Tagesrueckblick.
+    // Claude Code schreibt je Content-Block eine Zeile; der Werkzeugaufruf
+    // kommt per mergeDuplicate dazu.
+    tool: str(toolUse?.name),
   };
 }
 
@@ -279,6 +286,7 @@ export function mergeDuplicate(target, src) {
   target.skill ??= src.skill ?? null;
   target.effort ??= src.effort ?? null;
   target.agentId ??= src.agentId ?? null;
+  target.tool ??= src.tool ?? null;
   return delta;
 }
 

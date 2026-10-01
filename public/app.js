@@ -5,6 +5,7 @@
 
 import { renderColumnChart, renderStackedBar, createTooltip } from './charts.js';
 import { createWorkshop, entrypointLabel } from './agents.js';
+import { createReplay } from './replayView.js';
 
 const $ = (id) => document.getElementById(id);
 const tooltip = createTooltip();
@@ -306,9 +307,11 @@ const AGENT_STATE_TEXT = {
   stopped: 'abgebrochen',
 };
 
-/** Tooltip-Text einer Figur - erst beim Zeigen gebaut, damit "seit" stimmt. */
-function describeFigure(kind, it) {
-  const now = Date.now();
+/**
+ * Tooltip-Text einer Figur - erst beim Zeigen gebaut, damit "seit" stimmt.
+ * now ist im Rueckblick der abgespielte Zeitpunkt.
+ */
+function describeFigure(kind, it, now = Date.now()) {
   const tz = snapshot?.timezone;
   const since = (t) => (Number.isFinite(t) ? duration(now - t) : '–');
   const lines = [];
@@ -322,7 +325,8 @@ function describeFigure(kind, it) {
         : `${it.status === 'busy' ? 'arbeitet' : 'ruht'} seit ${since(it.statusSince)} · ${what}`,
     );
     lines.push(
-      `offen seit ${clock(it.startedAt, tz)} · ${entrypointLabel(it.entrypoint)}` +
+      `offen seit ${clock(it.startedAt, tz)}` +
+        (it.entrypoint ? ` · ${entrypointLabel(it.entrypoint)}` : '') +
         (it.version ? ` · Claude Code ${it.version}` : ''),
     );
     if (it.cost != null) {
@@ -360,6 +364,18 @@ const workshop = createWorkshop($('workshop'), {
   usd,
   describe: describeFigure,
   timeZone: () => snapshot?.timezone,
+});
+
+// Tagesrueckblick: ein eigenes Buero spielt einen Tag im Zeitraffer ab.
+const replay = createReplay({
+  tooltip,
+  usd,
+  describe: describeFigure,
+  timeZone: () => snapshot?.timezone,
+  onToggle: (on) => {
+    if (on) $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
+    else if (snapshot) renderActivity(snapshot);
+  },
 });
 
 // Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
@@ -414,7 +430,7 @@ function renderActivity(s) {
   ].filter(Boolean);
   if (!c.sessions) parts.splice(0, parts.length, 'live von diesem Gerät');
   if (act.error) parts.push(`gestört: ${act.error}`);
-  $('live-sub').textContent = parts.join(' · ');
+  if (!replay.active) $('live-sub').textContent = parts.join(' · ');
   // Das Buero reagiert auf das Limit (Warnlampe, Zwangspause, Kalender).
   workshop.render(act, { fiveHour: s.live.fiveHour, week: s.live.week });
 }
