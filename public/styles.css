@@ -1086,6 +1086,160 @@ td.name {
   animation: cud-blink 0.2s linear infinite;
 }
 
+/* --- Limit: Warnlampe, Schimmer, Zwangspause, Kalender (data-limit) -------- */
+
+.beacon-base {
+  fill: #4a4741;
+}
+.beacon-dome {
+  fill: #6b6b68;
+}
+.beacon-beams {
+  display: none;
+}
+.beacon-beam {
+  fill: currentColor;
+  opacity: 0.35;
+}
+.station[data-limit='warn'] .beacon,
+.station[data-limit='critical'] .beacon,
+.station[data-limit='reached'] .beacon {
+  color: var(--status-warning);
+}
+.station[data-limit='critical'] .beacon,
+.station[data-limit='reached'] .beacon {
+  color: var(--status-critical);
+}
+.station[data-limit='warn'] .beacon-dome,
+.station[data-limit='critical'] .beacon-dome,
+.station[data-limit='reached'] .beacon-dome {
+  fill: currentColor;
+}
+.station[data-limit='warn'] .beacon-beams,
+.station[data-limit='critical'] .beacon-beams,
+.station[data-limit='reached'] .beacon-beams {
+  display: inline;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-beacon 1.6s linear infinite;
+}
+.station[data-limit='critical'] .beacon-beams,
+.station[data-limit='reached'] .beacon-beams {
+  animation-duration: 0.9s;
+}
+.alarm-glow {
+  fill: var(--status-critical);
+  opacity: 0;
+  pointer-events: none;
+}
+.station[data-limit='critical'] .alarm-glow,
+.station[data-limit='reached'] .alarm-glow {
+  animation: cud-alarm 2.4s ease-in-out infinite;
+}
+
+.counter {
+  fill: var(--wood-dark);
+}
+.counter-top {
+  fill: var(--wood);
+}
+.machine {
+  fill: #3b3a37;
+}
+.machine-panel {
+  fill: #23221f;
+}
+.machine-light {
+  fill: var(--status-good);
+}
+.machine-spout {
+  fill: #6b6b68;
+}
+.machine-steam {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.station[data-limit='reached'] .machine-steam {
+  animation: cud-steam 1.8s ease-in-out infinite;
+}
+
+/* Zwangspause: aufstehen, mit Tasse zur Kaffeemaschine gehen. */
+.legs,
+.break-cup {
+  display: none;
+}
+.fig .fig-body,
+.fig .badge {
+  transition: transform 1.8s ease-in-out;
+}
+.fig[data-break] .fig-body,
+.fig[data-break] .badge {
+  transform: translate(var(--bx, 0), var(--by, 0));
+  animation: none !important;
+}
+.fig[data-break] .legs,
+.fig[data-break] .break-cup {
+  display: inline;
+}
+/* In der Pause sind die Bildschirme aus, und es fliegen keine Auftraege. */
+.fig[data-break][data-state] .laptop-screen {
+  fill: #4a4946;
+}
+.station[data-limit='reached'] .route .plane {
+  display: none;
+}
+.station[data-limit='reached'] .route-path {
+  animation: none;
+  opacity: 0.2;
+}
+.fig[data-break] .bubble,
+.fig[data-break] .thought,
+.fig[data-break] .props,
+.fig[data-break] .waves,
+.fig[data-break] .zzz,
+.fig[data-break] .screen-fx,
+.fig[data-break] .mug,
+.fig[data-break] .celebration {
+  display: none !important;
+}
+
+/* Abreisskalender */
+.calendar-page {
+  fill: #f7f5ee;
+  stroke: #c9c4b6;
+  stroke-width: 0.6;
+}
+.calendar-head {
+  fill: var(--status-critical);
+}
+.calendar-headtext {
+  font-size: 5px;
+  font-weight: 700;
+  fill: #fff;
+  letter-spacing: 0.4px;
+}
+.calendar-big {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #262624;
+}
+.calendar-small {
+  font-size: 5.2px;
+  fill: #6b6b68;
+}
+.calendar-sheet {
+  display: none;
+}
+.calendar.tear .calendar-sheet {
+  display: inline;
+  transform-box: fill-box;
+  transform-origin: top left;
+  animation: cud-tear 1.2s ease-in forwards;
+}
+
 /* Hintergrund-Tab: alles anhalten. */
 .workshop.paused * {
   animation-play-state: paused !important;
@@ -1112,6 +1266,33 @@ td.name {
 @keyframes cud-type {
   50% {
     transform: translateY(-3px);
+  }
+}
+@keyframes cud-beacon {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes cud-alarm {
+  50% {
+    opacity: 0.07;
+  }
+}
+@keyframes cud-tear {
+  0% {
+    opacity: 1;
+    transform: rotate(0deg) translate(0, 0);
+  }
+  30% {
+    transform: rotate(-14deg) translate(-1px, 1px);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-35deg) translate(-6px, 34px);
   }
 }
 @keyframes cud-flip {
@@ -1251,6 +1432,7 @@ td.name {
 @media (prefers-reduced-motion: reduce) {
   .workshop-svg * {
     animation: none !important;
+    transition: none !important;
   }
   .zzz text {
     opacity: 1;

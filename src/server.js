@@ -99,8 +99,10 @@ export async function startServer({
   openInBrowser = false,
   port: portOverride,
   quiet = false,
+  // Nur fuer Tests und Demos: ersetzt den echten Abruf bei Anthropic.
+  fetchUsage,
 } = {}) {
-  const store = createStore({ config, pricingTable, historyFile });
+  const store = createStore({ config, pricingTable, historyFile, fetchUsage });
   const cfg = store.config;
   // Port 0 ist gueltig ("nimm einen freien") - deshalb ?? statt ||.
   const port = portOverride ?? cfg.port ?? 7842;

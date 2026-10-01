@@ -378,7 +378,8 @@ function renderActivity(s) {
   if (!c.sessions) parts.splice(0, parts.length, 'live von diesem Gerät');
   if (act.error) parts.push(`gestört: ${act.error}`);
   $('live-sub').textContent = parts.join(' · ');
-  workshop.render(act);
+  // Das Buero reagiert auf das Limit (Warnlampe, Zwangspause, Kalender).
+  workshop.render(act, { fiveHour: s.live.fiveHour, week: s.live.week });
 }
 
 function costCell(row) {

@@ -152,6 +152,18 @@ Kaffeetasse:
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
   inzwischen neu vergeben hat.
 
+Das Büro reagiert auf dein 5-Stunden-Limit, aber nur auf echte Werte von Anthropic. Eine lokale
+Schätzung kann weit danebenliegen und würde sonst grundlos Alarm schlagen.
+
+- **ab der Warnschwelle (70 %):** Auf der Tafel schwenkt eine gelbe Warnlampe.
+- **ab 90 %:** Die Lampe wird rot, über dem Raum pulsiert ein roter Schimmer.
+- **bei 100 %:** Zwangspause. Alle stehen auf und gehen mit ihrer Tasse zur Kaffeemaschine. Die
+  Bildschirme gehen aus, es fliegen keine Aufträge, und auf der Tafel steht „Zwangspause bis
+  14:30“. Sinkt die Auslastung, geht es zurück an die Tische.
+
+Unter der Uhr hängt ein Abreißkalender mit den Tagen bis zum Wochen-Reset, am letzten Tag mit
+Stunden. Ändert sich die Zahl, fällt das alte Blatt ab. Der Tooltip nennt den genauen Zeitpunkt.
+
 Subagents sitzen an kleineren Tischen davor, eingefärbt nach Typ (Explore, Plan,
 general-purpose, …). Solange sie laufen, fliegen Papierflieger mit Aufträgen vom Tisch des
 Auftraggebers zu ihnen. Verschachtelte Subagents bekommen ihre Aufträge von dem Subagent, der sie
@@ -455,7 +467,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-287 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+290 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

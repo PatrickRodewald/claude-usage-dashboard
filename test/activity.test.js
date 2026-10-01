@@ -16,6 +16,8 @@ import {
   newMarks,
   pendingToolFromLines,
   STALE_BUSY_MS,
+  commandKind,
+  tailInfo,
 } from '../src/activity.js';
 
 const MIN = 60_000;
@@ -629,8 +631,6 @@ test('abgeschaltet liefert der Snapshot keine Live-Ansicht', async () => {
 });
 
 // --- Taetigkeiten und Feiern ------------------------------------------------------
-
-import { commandKind, tailInfo } from '../src/activity.js';
 
 test('Shell-Befehle: Commit, Push und Testlaeufe werden erkannt', () => {
   assert.equal(commandKind('Bash', { command: 'git add -A && git commit -m "x"' }), 'commit');

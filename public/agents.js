@@ -110,6 +110,49 @@ function zonedTime(timeZone) {
   }
 }
 
+/** Uhrzeit "14:30" in der Anzeigezone. */
+function hhmm(ms, timeZone) {
+  try {
+    return new Intl.DateTimeFormat('de-DE', { timeZone, hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toTimeString().slice(0, 5);
+  }
+}
+
+/* --- Limit ---------------------------------------------------------------------- */
+
+/**
+ * Wie das Buero auf das 5h-Fenster reagiert: 'ok', 'warn' (ab der
+ * Warnschwelle), 'critical', 'reached' (100 %, Zwangspause) oder 'unknown'.
+ */
+export function limitState(fiveHour) {
+  // Nur echte Werte von Anthropic: eine lokale Schaetzung kann weit daneben
+  // liegen und wuerde sonst grundlos Alarm schlagen oder Pause machen.
+  if (fiveHour?.source !== 'anthropic') return 'unknown';
+  const p = fiveHour.percent;
+  if (!Number.isFinite(p)) return 'unknown';
+  if (p >= 100) return 'reached';
+  if (fiveHour.level === 'critical') return 'critical';
+  if (fiveHour.level === 'warn') return 'warn';
+  return 'ok';
+}
+
+/**
+ * Was der Abreisskalender zeigt: volle Tage bis zum Wochen-Reset, im letzten
+ * Tag die angefangenen Stunden.
+ */
+export function calendarFace(weekEnd, now = Date.now()) {
+  if (!Number.isFinite(weekEnd)) return null;
+  const hours = (weekEnd - now) / 3_600_000;
+  if (hours <= 0) return { big: '0', small: 'Std.' };
+  if (hours < 24) {
+    const h = Math.ceil(hours);
+    return { big: String(h), small: h === 1 ? 'Stunde' : 'Std.' };
+  }
+  const d = Math.floor(hours / 24);
+  return { big: String(d), small: d === 1 ? 'Tag' : 'Tage' };
+}
+
 function skyFor(h) {
   if (h >= 7 && h < 18) return 'day';
   if (h >= 5 && h < 7) return 'dawn';
@@ -255,6 +298,17 @@ function drawBoard(svg, w) {
   el('rect', { x: bx + bw - 44, y: by + bh + 2, width: 12, height: 3, rx: 1.5, class: 'chalk-piece' }, svg);
   el('rect', { x: bx + bw - 28, y: by + bh + 2, width: 8, height: 3, rx: 1.5, class: 'chalk-piece alt' }, svg);
 
+  // Warnlampe oben auf dem Rahmen: dreht sich ab der Warnschwelle (data-limit).
+  const beacon = el('g', { class: 'beacon' }, svg);
+  const bcx = bx + bw / 2;
+  el('rect', { x: bcx - 7, y: by - 8, width: 14, height: 4, rx: 1, class: 'beacon-base' }, beacon);
+  // Ein Strahl, der von vorn gesehen hin und her schwenkt - eine volle
+  // Drehung wuerde am oberen Rand des Raums abgeschnitten.
+  const beams = el('g', { class: 'beacon-beams' }, beacon);
+  el('path', { d: `M${bcx - 30} ${by - 12}l30 -2v4z`, class: 'beacon-beam' }, beams);
+  el('path', { d: `M${bcx} ${by - 12}l30 -6v12z`, class: 'beacon-beam' }, beams);
+  el('path', { d: `M${bcx - 5} ${by - 8}a5 5 0 0 1 10 0z`, class: 'beacon-dome' }, beacon);
+
   const title = el('text', { x: bx + 12, y: by + 22, class: 'chalk chalk-title' }, svg);
   // Kreidestrich unter dem Titel
   el('path', { d: `M${bx + 12} ${by + 29}q${bw * 0.3} 3 ${bw * 0.55} -1`, class: 'chalk-line' }, svg);
@@ -319,6 +373,39 @@ function drawClock(svg, cx, cy) {
   const minute = el('line', { x1: cx, y1: cy, x2: cx, y2: cy - 11, class: 'clock-hand minute' }, g);
   el('circle', { cx, cy, r: 1.4, class: 'clock-pin' }, g);
   return { hour, minute, cx, cy };
+}
+
+/**
+ * Abreisskalender: Tage bis zum Wochen-Reset. Fuer das Abreissen liegt ein
+ * zweites Blatt bereit, das mit der alten Zahl herunterfaellt.
+ */
+function drawCalendar(svg, cx, top) {
+  const g = el('g', { class: 'calendar' }, svg);
+  const title = el('title', {}, g);
+  el('rect', { x: cx - 13, y: top, width: 26, height: 28, rx: 2, class: 'calendar-page' }, g);
+  el('rect', { x: cx - 13, y: top, width: 26, height: 7, rx: 2, class: 'calendar-head' }, g);
+  const head = el('text', { x: cx, y: top + 5.6, 'text-anchor': 'middle', class: 'calendar-headtext' }, g);
+  head.textContent = 'Reset';
+  const big = el('text', { x: cx, y: top + 19, 'text-anchor': 'middle', class: 'calendar-big' }, g);
+  const small = el('text', { x: cx, y: top + 25.5, 'text-anchor': 'middle', class: 'calendar-small' }, g);
+  const sheet = el('g', { class: 'calendar-sheet' }, g);
+  el('rect', { x: cx - 13, y: top + 7, width: 26, height: 21, rx: 1, class: 'calendar-page' }, sheet);
+  const sheetBig = el('text', { x: cx, y: top + 19, 'text-anchor': 'middle', class: 'calendar-big' }, sheet);
+  return { g, title, big, small, sheetBig, last: null };
+}
+
+/** Kaffeeecke links an der Wand: Theke mit Maschine. Hierher geht es zur Zwangspause. */
+function drawCoffeeCorner(svg) {
+  const g = el('g', { class: 'coffee-corner' }, svg);
+  el('rect', { x: 4, y: WALL_H + 2, width: 38, height: 32, rx: 2, class: 'counter' }, g);
+  el('rect', { x: 4, y: WALL_H + 2, width: 38, height: 4, rx: 1.5, class: 'counter-top' }, g);
+  el('rect', { x: 12, y: WALL_H - 24, width: 22, height: 26, rx: 3, class: 'machine' }, g);
+  el('rect', { x: 15, y: WALL_H - 20, width: 16, height: 6, rx: 1, class: 'machine-panel' }, g);
+  el('circle', { cx: 28, cy: WALL_H - 17, r: 1.4, class: 'machine-light' }, g);
+  el('rect', { x: 20, y: WALL_H - 12, width: 6, height: 3, class: 'machine-spout' }, g);
+  el('rect', { x: 19, y: WALL_H - 5, width: 8, height: 7, rx: 1.5, class: 'mug-body' }, g);
+  el('path', { d: `M21 ${WALL_H - 7}q2 -3 0 -6M25 ${WALL_H - 7}q2 -3 0 -6`, class: 'machine-steam' }, g);
+  return g;
 }
 
 /** Topfpflanze an der Wand. */
@@ -546,6 +633,11 @@ function mainFigure(parent, cx) {
   // Arme zum Tisch; tippen, solange gearbeitet wird.
   el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, bodyG);
+  // Nur in der Zwangspause sichtbar: Beine zum Stehen und eine Tasse in der Hand.
+  const legs = el('g', { class: 'legs' }, bodyG);
+  el('rect', { x: cx - 12, y: 88, width: 8, height: 24, rx: 3, class: 'fig-fill' }, legs);
+  el('rect', { x: cx + 4, y: 88, width: 8, height: 24, rx: 3, class: 'fig-fill' }, legs);
+  el('rect', { x: cx + 18, y: 78, width: 9, height: 9, rx: 2, class: 'mug-body break-cup' }, bodyG);
 
   // Funkwellen ueber der Antenne (Web) und Gedankenwolke (Nachdenken).
   waves(fig, cx, 21, 6);
@@ -585,6 +677,10 @@ function agentFigure(parent, cx, top, color) {
   el('rect', { x: cx - 11, y: top + 44, width: 22, height: 18, rx: 6, class: 'fig-fill' }, bodyG);
   el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
+  const legs = el('g', { class: 'legs' }, bodyG);
+  el('rect', { x: cx - 8, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
+  el('rect', { x: cx + 2, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
+  el('rect', { x: cx + 12, y: top + 53, width: 6, height: 6, rx: 1.5, class: 'mug-body break-cup' }, bodyG);
 
   waves(fig, cx, top + 22, 5);
   thought(fig, cx + 3, top + 9, 0.75);
@@ -596,7 +692,8 @@ function agentFigure(parent, cx, top, color) {
   props(fig, cx, top + 58, 0.62);
   celebrationFx(fig, cx, top - 4);
 
-  // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich.
+  // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich. Bewusst nicht im
+  // (blass gestellten) Koerper; in die Pause geht es per CSS mit.
   const badge = el('g', { class: 'badge' }, fig);
   el('circle', { cx: cx + 11, cy: top + 24, r: 7 }, badge);
   el('path', { class: 'badge-ok', d: `M${cx + 7.5} ${top + 24}l2.5 2.5l4.5 -5` }, badge);
@@ -696,11 +793,14 @@ function buildOffice(project, ctx) {
   const board = drawBoard(svg, width);
   let windowG = null;
   let clock = null;
+  let calendar = null;
   if (board.sideRoom >= 74) {
     windowG = drawWindow(svg, Math.max(14, board.sideRoom / 2 - 28), 24);
     clock = drawClock(svg, width - Math.max(30, board.sideRoom / 2), 52);
+    calendar = drawCalendar(svg, clock.cx, 76);
   }
   drawPlant(svg, width - 20, WALL_H + 30);
+  drawCoffeeCorner(svg);
 
   const figures = el('g', {}, svg);
   // Nach den Figuren: die Papierflieger fliegen vor Tischen und Robotern.
@@ -716,7 +816,15 @@ function buildOffice(project, ctx) {
     const main = mainFigure(pos, cx);
     const label = el('text', { x: cx, y: MAIN_DESK_Y + 46, 'text-anchor': 'middle', class: 'fig-label' }, figures);
     const sub = el('text', { x: cx, y: MAIN_DESK_Y + 59, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
-    figs.set(block.s.sessionId, { ...main, label, sub, kind: 'session', desk: { x: cx - 26, y: MAIN_DESK_Y + 2 } });
+    figs.set(block.s.sessionId, {
+      ...main,
+      label,
+      sub,
+      kind: 'session',
+      desk: { x: cx - 26, y: MAIN_DESK_Y + 2 },
+      // Wo die Figur steht, wenn sie aufsteht (Fuesse der Beine, global).
+      home: { x: cx, feet: MAIN_Y + 112 },
+    });
     ctx.hover(main.fig, block.s.sessionId);
 
     block.agents.forEach((a, i) => {
@@ -727,7 +835,7 @@ function buildOffice(project, ctx) {
       const fig = agentFigure(figures, ax, top, typeColor(a.type));
       const label = el('text', { x: ax, y: top + 93, 'text-anchor': 'middle', class: 'fig-label' }, figures);
       const sub = el('text', { x: ax, y: top + 105, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
-      figs.set(a.id, { ...fig, label, sub, kind: 'agent', desk: { x: ax - 20, y: top + 60 } });
+      figs.set(a.id, { ...fig, label, sub, kind: 'agent', desk: { x: ax - 20, y: top + 60 }, home: { x: ax, feet: top + 74 } });
       ctx.hover(fig.fig, a.id);
     });
     x0 += block.width;
@@ -743,8 +851,36 @@ function buildOffice(project, ctx) {
     }
   }
 
+  // Zwangspause: jede Figur weiss, wohin sie geht - eine Schlange neben der
+  // Kaffeemaschine, Fuesse auf derselben Linie. Gesetzt als CSS-Variablen,
+  // der Weg selbst ist eine CSS-Transition.
+  // Der Abstand folgt der Figurbreite; reicht der Raum nicht, beginnt eine
+  // zweite Reihe etwas weiter vorn.
+  let qx = 52;
+  let qRow = 0;
+  for (const block of blocks) {
+    for (const id of [block.s.sessionId, ...block.agents.map((a) => a.id)]) {
+      const f = figs.get(id);
+      if (!f) continue;
+      // Breite samt Armen und Tasse (gemessen: 50 bzw. 34 px) plus etwas Luft.
+      const span = f.kind === 'session' ? 54 : 38;
+      if (qx + span > width - 50) {
+        qx = 52;
+        qRow++;
+      }
+      const targetX = qx + span / 2;
+      const feetY = WALL_H + 52 + qRow * 40;
+      f.fig.style.setProperty('--bx', `${targetX - f.home.x}px`);
+      f.fig.style.setProperty('--by', `${feetY - f.home.feet}px`);
+      qx += span;
+    }
+  }
+
+  // Roter Schimmer ueber dem ganzen Raum, solange das Limit kritisch ist.
+  el('rect', { x: 0, y: 0, width, height, class: 'alarm-glow' }, svg);
+
   root.append(svg);
-  return { root, svg, figs, board, windowG, clock, sig: layoutSignature(project) };
+  return { root, svg, figs, board, windowG, clock, calendar, sig: layoutSignature(project) };
 }
 
 /** Uhr und Fenster auf die aktuelle Zeit stellen. */
@@ -766,15 +902,67 @@ function setActivity(node, activity) {
   }
 }
 
+/** Abreisskalender nachfuehren; bei einer neuen Zahl faellt das alte Blatt. */
+function applyCalendar(st, timeZone) {
+  const cal = st.calendar;
+  if (!cal) return;
+  const week = st.env?.week;
+  const face = calendarFace(week?.end);
+  cal.g.style.display = face ? '' : 'none';
+  if (!face) return;
+  const key = `${face.big} ${face.small}`;
+  if (cal.last && cal.last !== key) {
+    cal.sheetBig.textContent = cal.big.textContent;
+    cal.g.classList.remove('tear');
+    cal.g.getBoundingClientRect(); // Animation neu starten
+    cal.g.classList.add('tear');
+    clearTimeout(cal.timer);
+    cal.timer = setTimeout(() => cal.g.classList.remove('tear'), 1300);
+  }
+  cal.last = key;
+  cal.big.textContent = face.big;
+  cal.small.textContent = face.small;
+  let when = '';
+  try {
+    when = new Intl.DateTimeFormat('de-DE', {
+      timeZone,
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(week.end));
+  } catch {
+    when = new Date(week.end).toLocaleString('de-DE');
+  }
+  cal.title.textContent =
+    `Wochenlimit setzt sich zurück: ${when}` +
+    (Number.isFinite(week.percent) ? ` · ${Math.round(week.percent)} % verbraucht` : '');
+}
+
 /** Zustand auf einen bestehenden Raum uebertragen - ohne Neuaufbau. */
-function applyOffice(st, project, ctx) {
+function applyOffice(st, project, ctx, env = {}) {
+  st.env = env;
+  // Limit: Warnlampe und Schimmer haengen an data-limit (CSS); bei 100 %
+  // stehen alle auf und gehen zur Kaffeemaschine.
+  const limit = limitState(env.fiveHour);
+  if (st.root.dataset.limit !== limit) st.root.dataset.limit = limit;
+  const onBreak = limit === 'reached';
+  for (const f of st.figs.values()) {
+    if (onBreak) f.fig.dataset.break = '1';
+    else if (f.fig.dataset.break) delete f.fig.dataset.break;
+  }
+
   // Lange Namen lieber kleiner schreiben als abschneiden - erst ab 11 px wird
   // gekuerzt. titleChars gilt fuer die volle Groesse von 15 px.
   const len = project.label.length;
   const size = len > st.board.titleChars ? Math.max(11, (15 * st.board.titleChars) / len) : 15;
   st.board.title.style.fontSize = `${size.toFixed(1)}px`;
   st.board.title.textContent = clip(project.label, Math.floor((st.board.titleChars * 15) / size));
-  const lines = boardLines(project);
+  let lines = boardLines(project);
+  if (onBreak && Number.isFinite(env.fiveHour?.end)) {
+    lines = [`Zwangspause bis ${hhmm(env.fiveHour.end, ctx.timeZone())}`, ...lines].slice(0, BOARD_LINES);
+  }
   st.board.lines.forEach((t, i) => {
     t.textContent = lines[i] ? clip(lines[i], st.board.lineChars) : '';
   });
@@ -814,8 +1002,10 @@ function applyOffice(st, project, ctx) {
       summary.push(`${a.type} ${as === 'tool' || as === 'thinking' ? 'läuft' : g.sub.textContent}`);
     }
   }
+  if (onBreak) summary.unshift('Limit erreicht, Zwangspause');
   st.svg.setAttribute('aria-label', `Büro ${project.label}: ${summary.join(', ')}`);
   applyTime(st, ctx.timeZone());
+  applyCalendar(st, ctx.timeZone());
 }
 
 /* --- Einstieg ------------------------------------------------------------------ */
@@ -823,7 +1013,8 @@ function applyOffice(st, project, ctx) {
 /**
  * @param container  Element, das die Raeume aufnimmt
  * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone() }
- * @returns {{ render(activity), tick() }}  tick() stellt Uhren und Fenster
+ * @returns {{ render(activity, env), tick() }}  env = { fiveHour, week } aus snapshot.live;
+ *          tick() stellt Uhren, Fenster und Kalender
  */
 export function createWorkshop(container, { tooltip, usd, describe, timeZone = () => undefined }) {
   /** Raeume je Projekt: key -> { root, figs, sig, ... } */
@@ -877,7 +1068,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
 
   let empty = null;
 
-  function render(activity) {
+  function render(activity, env = {}) {
     const projects = activity?.projects ?? [];
     data.clear();
     for (const p of projects) {
@@ -927,7 +1118,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
         stations.set(p.key, st);
         if (document.hidden) st.svg.pauseAnimations?.();
       }
-      applyOffice(st, p, ctx);
+      applyOffice(st, p, ctx, env);
       for (const s of p.sessions) {
         celebrate(st, s.sessionId, s.celebration);
         for (const a of s.agents) celebrate(st, a.id, a.celebration);
@@ -959,7 +1150,10 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
   }
 
   function tick() {
-    for (const st of stations.values()) applyTime(st, timeZone());
+    for (const st of stations.values()) {
+      applyTime(st, timeZone());
+      applyCalendar(st, timeZone());
+    }
   }
 
   return { render, tick };
