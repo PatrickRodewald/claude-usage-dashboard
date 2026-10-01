@@ -18,6 +18,12 @@
   },
 
 
+  "activity": {
+    "_hinweis": "Bereich 'Gerade aktiv': laufende Claude-Code-Sitzungen und ihre Subagents als kleine Figuren, live. Gelesen werden ~/.claude/sessions/<pid>.json (Status je laufendem Prozess, die .key-Dateien daneben nie) und die Metadaten der Subagents. Beides ist nicht dokumentiert - faellt etwas weg, verschwindet nur dieser Bereich. recentMs: so lange bleiben beendete Subagents sichtbar.",
+    "enabled": true,
+    "recentMs": 900000
+  },
+
   "history": {
     "_hinweis": "Persistentes Archiv der Tagessummen. Claude Code raeumt seine Transkripte nach einer eigenen Frist auf - ohne dieses Archiv waere die Zeitreihe danach weg. Gespeichert werden nur Summen (Tag x Projekt x Modell), keine Prompts, keine Antworten. Loeschen der Datei setzt die Historie zurueck, mehr passiert nicht.",
     "enabled": true,

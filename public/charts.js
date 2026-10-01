@@ -233,6 +233,10 @@ export function createTooltip() {
     move(ev) {
       if (!node.hidden) place(ev);
     },
+    /** Text eines sichtbaren Tooltips ersetzen, ohne ihn zu verschieben. */
+    update(text) {
+      if (!node.hidden && node.textContent !== text) node.textContent = text;
+    },
     hide() {
       node.hidden = true;
     },

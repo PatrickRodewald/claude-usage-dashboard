@@ -13,6 +13,8 @@ import {
   projectNameFrom,
   readIncremental,
   listTranscripts,
+  readTailLines,
+  scanLines,
 } from '../src/parser.js';
 
 /** Realistische Assistant-Zeile, nachgebaut aus echten Transkripten. */
@@ -464,5 +466,59 @@ test('Subagent-Transkripte in Unterordnern werden gefunden', () => {
     assert.ok(found.every((f) => f.projectDir === 'c--Projekte-app'), 'Projekt bleibt der oberste Ordner');
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('Subagent-Zeilen tragen ihre agentId', () => {
+  const e = extractEntry(line({ agentId: 'a40fe48ed828ff044', isSidechain: true }));
+  assert.equal(e.agentId, 'a40fe48ed828ff044');
+  assert.equal(extractEntry(line()).agentId, null);
+});
+
+test('readTailLines liefert nur vollstaendige Zeilen vom Dateiende', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 'tail.jsonl');
+  try {
+    const lines = Array.from({ length: 50 }, (_, i) => JSON.stringify({ n: i, pad: 'x'.repeat(40) }));
+    fs.writeFileSync(file, lines.join('\n') + '\n');
+    const tail = await readTailLines(file, 300);
+    assert.ok(tail.length > 0 && tail.length < 50);
+    assert.deepEqual(JSON.parse(tail[tail.length - 1]), { n: 49, pad: 'x'.repeat(40) });
+    for (const l of tail) assert.doesNotThrow(() => JSON.parse(l), 'keine angeschnittene Zeile');
+    assert.deepEqual(await readTailLines(path.join(dir, 'fehlt.jsonl')), []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('scanLines meldet einen Neustart vor dem ersten Block - ein Lesedurchgang genuegt', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 'r.jsonl');
+  try {
+    fs.writeFileSync(file, 'eins\nzwei\ndrei\n');
+    const first = await scanLines(file, 0, () => {});
+    fs.writeFileSync(file, 'neu\n');
+    const order = [];
+    const res = await scanLines(file, first.offset, (t) => order.push(`text:${t.trim()}`), {
+      onRestart: () => order.push('restart'),
+    });
+    assert.equal(res.restarted, true);
+    assert.deepEqual(order, ['restart', 'text:neu']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('readTailLines laesst eine gerade geschriebene letzte Zeile weg', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 't.jsonl');
+  try {
+    fs.writeFileSync(file, '{"a":1}\n{"b":2}\n{"c":');
+    assert.deepEqual(await readTailLines(file), ['{"a":1}', '{"b":2}']);
+    // Fenster ohne jeden Zeilenumbruch: keine vollstaendige Zeile.
+    fs.writeFileSync(file, `{"x":"${'y'.repeat(500)}"}\n`);
+    assert.deepEqual(await readTailLines(file, 100), []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

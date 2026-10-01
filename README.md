@@ -115,6 +115,30 @@ deshalb steht an den Kacheln `SCHÄTZUNG` statt `LIVE`, in der Kopfzeile der Gru
 nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen (hier: gemessen aus
 12 Vergleichen, Streuung 1,9 %).
 
+### Gerade aktiv
+
+Unter den Statuskacheln zeigt eine kleine Werkstatt, was gerade arbeitet. Jedes Projekt bekommt
+eine Station, und jede offene Claude-Code-Sitzung sitzt dort als Figur am Laptop:
+
+- **arbeitet:** Bildschirm an, Lampe blinkt, die Arme tippen. Die Sprechblase zeigt das gerade
+  laufende Werkzeug (`Bash`, `WebFetch`, …), „delegiert“ beim Warten auf einen Subagent und
+  „• • •“ beim Nachdenken oder Schreiben.
+- **wartet auf dich:** Augen zu, über der Figur steigen „z“ auf.
+- **kein Lebenszeichen:** blass mit „?“. Die Sitzung meldet „arbeitet“, hat aber seit 30 Minuten
+  nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
+  inzwischen neu vergeben hat.
+
+Subagents stehen darunter, eingefärbt nach Typ (Explore, Plan, general-purpose, …). Sie hängen
+an einer Leitung zu ihrem Auftraggeber, in der Arbeit fließt, solange sie laufen. Verschachtelte
+Subagents hängen an dem Subagent, der sie gestartet hat. Beendete Subagents bleiben noch eine
+Viertelstunde blass stehen, mit Haken, Kreuz oder Strich für fertig, fehlgeschlagen oder
+abgebrochen (`activity.recentMs`). Der Tooltip einer Figur nennt Auftrag, Laufzeit, aktuelles
+Werkzeug und die bisherigen Kosten.
+
+Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sitzungen auf
+diesem Gerät. Wer Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die
+Figuren still.
+
 ### Warnkanäle
 
 Der Tab-Titel trägt die aktuelle Auslastung (`32 % · Claude Usage`), das Favicon wechselt bei
@@ -276,6 +300,8 @@ eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, g
 | `plan` | Nur **Rückfallwert**. Der Tarif wird aus `rateLimitTier` in den Zugangsdaten gelesen (auch offline) und überstimmt diesen Eintrag. Wird er verwendet, markiert das Dashboard das Badge mit „?" |
 | `limits.mode` | `auto` (höchstes beobachtetes Fenster) oder `fixed` (Werte aus `plans`). Ein **gemessenes** Limit sticht beides |
 | `limits.autoMinSamples` | Ab wie vielen abgeschlossenen Fenstern `auto` greift |
+| `activity.enabled` | Bereich „Gerade aktiv“ mit laufenden Sitzungen und Subagents. `false` = Bereich aus, `~/.claude/sessions` wird nicht gelesen |
+| `activity.recentMs` | So lange bleiben beendete Subagents sichtbar (Standard 15 min) |
 | `history.enabled` | Tagessummen dauerhaft festhalten. `false` = Historie endet mit der Aufräumfrist von Claude Code |
 | `history.file` | Ablageort des Archivs (Standard `data/history.json`) |
 | `history.detailDays` | Ab welchem Alter vollständig archivierte Dateien beim Start übersprungen werden (Standard 45) |
@@ -373,7 +399,23 @@ fassen kann.
 5-Stunden-Blöcke brauchen die einzelnen Einträge mit Zeitstempel, nicht nur Tagessummen. Erst
 jenseits von `history.detailDays` übernimmt das Archiv allein.
 
+**Was gerade arbeitet.** Claude Code legt für jeden laufenden Prozess eine Statusdatei
+`~/.claude/sessions/<pid>.json` an. Sie enthält Sitzungs-Id, Arbeitsverzeichnis und den Status
+`busy`/`idle`. Gezeigt werden nur Einträge, deren Prozess noch existiert. Die `.key`-Dateien
+daneben sind Schlüssel und werden nie geöffnet. Jeder Subagent hat neben seinem Transkript eine
+`agent-<id>.meta.json` mit Typ, Auftrag, Vorder- oder Hintergrund und Verschachtelungstiefe.
+Sein Ende steht im Transkript des Auftraggebers: im Vordergrund als `tool_result` zum Aufruf, im
+Hintergrund als `<task-notification>` mit Status. Gezählt werden nur echte Zustellungen, nicht
+derselbe Text in Werkzeug-Ausgaben. Schreibt ein Agent nach seiner Meldung weiter, wurde er wieder
+aufgenommen und läuft. Diese Transkripte werden inkrementell und eng vorgefiltert verfolgt. Was
+eine Figur gerade tut, steht nur am Dateiende. Ein Statuswechsel kostet also nur die neu
+angehängten Zeilen. Ein Subagent, der zuletzt vor dem Start des aktuellen Prozesses geschrieben
+hat, gilt als abgebrochen: Er ist mit dem alten Prozess untergegangen. Statusdateien anderer
+Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergangen. Alle drei Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet
+nur dieser Bereich, das übrige Dashboard läuft weiter.
+
 **Aktualisierung.** `fs.watch` (rekursiv) mit Entprellung, plus Polling alle 20 s als Fallback.
+Beobachtet werden auch die Statusdateien unter `~/.claude/sessions`.
 Änderungen gehen per Server-Sent Events an den Browser; kein Neuladen nötig.
 
 **Robustheit.** Kaputte JSONL-Zeilen werden übersprungen und gezählt (in der Fußzeile
@@ -385,7 +427,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-244 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+279 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -431,6 +473,15 @@ Kalibrierung und die HTTP-Schicht, u. a.:
   anderen Woche übertragen
 - nach einer geänderten Zählung werden Messpunkte bis zum damaligen Messzeitpunkt nachgerechnet,
   nicht mehr belegbare verworfen, und das nur einmal
+
+**Gerade aktiv**
+- nur Sitzungen mit laufendem Prozess; `.key`-Dateien und kaputte Statusdateien werden übergangen
+- das laufende Werkzeug von Sitzung und Subagent, „denkt nach“ zwischen zwei Werkzeugen
+- Vordergrund-Agents enden mit ihrem Ergebnis, Hintergrund-Agents erst mit ihrer
+  Abschlussmeldung, nicht schon mit dem sofortigen Start-Bescheid
+- Agents aus einem früheren Lauf der Sitzung gelten als abgebrochen; verschachtelte hängen an
+  ihrem Auftraggeber; beendete verschwinden nach der Anzeigedauer
+- Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung
 
 **HTTP-Schicht**
 - `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet
@@ -478,9 +529,11 @@ src/
   windows.js        5h-Session-Blöcke, Wochen- und Abrechnungsfenster, Burn-Rate, Prognose
   history.js        Persistentes Archiv, Schlüssel-Hashes, Kalibrier-Regression
   aggregate.js      Aufschlüsselungen und Dashboard-Snapshot
+  activity.js       Laufende Sitzungen und Subagents (Bereich „Gerade aktiv")
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
+  agents.js         Werkstatt mit Figuren für „Gerade aktiv"
 test/               Unit- und Integrationstests (node:test)
 ```
 

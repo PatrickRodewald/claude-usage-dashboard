@@ -4,6 +4,7 @@
  */
 
 import { renderColumnChart, renderStackedBar, createTooltip } from './charts.js';
+import { createWorkshop, entrypointLabel } from './agents.js';
 
 const $ = (id) => document.getElementById(id);
 const tooltip = createTooltip();
@@ -290,6 +291,91 @@ function buildTable(table, { columns, rows, maxBarValue }) {
   table.append(tbody);
 }
 
+/* --- Werkstatt ----------------------------------------------------------- */
+
+const DOING_TEXT = {
+  tool: (d) => `führt ${d.tool} aus`,
+  delegating: () => 'wartet auf ihren Subagent',
+  thinking: () => 'denkt nach bzw. schreibt',
+  idle: () => 'wartet auf dich',
+  stale: () => 'meldet „arbeitet“, schreibt aber nichts – vermutlich beendet',
+};
+const AGENT_STATE_TEXT = {
+  completed: 'fertig',
+  failed: 'fehlgeschlagen',
+  stopped: 'abgebrochen',
+};
+
+/** Tooltip-Text einer Figur - erst beim Zeigen gebaut, damit "seit" stimmt. */
+function describeFigure(kind, it) {
+  const now = Date.now();
+  const tz = snapshot?.timezone;
+  const since = (t) => (Number.isFinite(t) ? duration(now - t) : '–');
+  const lines = [];
+  if (kind === 'session') {
+    lines.push(`${it.project} · Sitzung ${it.name ?? it.sessionId.slice(0, 8)}`);
+    const d = it.doing ?? { kind: 'idle' };
+    const what = (DOING_TEXT[d.kind] ?? (() => it.status))(d);
+    lines.push(
+      it.status === 'stale'
+        ? `kein Lebenszeichen seit ${since(d.since)} · ${what}`
+        : `${it.status === 'busy' ? 'arbeitet' : 'ruht'} seit ${since(it.statusSince)} · ${what}`,
+    );
+    lines.push(
+      `offen seit ${clock(it.startedAt, tz)} · ${entrypointLabel(it.entrypoint)}` +
+        (it.version ? ` · Claude Code ${it.version}` : ''),
+    );
+    if (it.cost != null) {
+      lines.push(`bisher ${it.costKnown ? usd(it.cost) : 'Preis unbekannt'} in ${num(it.requests)} Requests`);
+    }
+    const running = it.agents.filter((a) => a.state === 'running').length;
+    if (running) lines.push(`${running} ${running === 1 ? 'Subagent läuft' : 'Subagents laufen'}`);
+  } else {
+    lines.push(`${it.type} · ${it.background ? 'im Hintergrund' : 'im Vordergrund'}`);
+    if (it.description) lines.push(`Auftrag: ${it.description}`);
+    if (it.state === 'running') {
+      lines.push(
+        `läuft${it.startedAt ? ` seit ${since(it.startedAt)}` : ''} · ` +
+          (it.tool ? `gerade: ${it.tool}` : 'denkt nach bzw. schreibt'),
+      );
+      lines.push(`zuletzt aktiv vor ${since(it.lastActivity)}`);
+    } else {
+      lines.push(`${AGENT_STATE_TEXT[it.state] ?? it.state} vor ${since(it.finishedAt)}`);
+    }
+    if (it.cost != null) {
+      lines.push(`bisher ${it.costKnown ? usd(it.cost) : 'Preis unbekannt'} in ${num(it.requests)} Requests`);
+    }
+  }
+  return lines.join('\n');
+}
+
+const renderWorkshop = createWorkshop($('workshop'), { tooltip, usd, describe: describeFigure });
+
+function renderActivity(s) {
+  const act = s.activity;
+  const section = $('live-section');
+  // Ohne Sitzungsordner (andere Claude-Code-Version, fremdes Geraet) bleibt
+  // der Bereich weg, statt dauerhaft "nichts offen" zu behaupten.
+  if (!act?.available) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  const c = act.counts ?? {};
+  const parts = [
+    c.busy
+      ? `${num(c.busy)} ${c.busy === 1 ? 'Sitzung arbeitet' : 'Sitzungen arbeiten'}`
+      : 'alle Sitzungen ruhen',
+    c.agentsRunning ? `${num(c.agentsRunning)} ${c.agentsRunning === 1 ? 'Subagent läuft' : 'Subagents laufen'}` : null,
+    `${num(c.sessions ?? 0)} offen`,
+    'live von diesem Gerät',
+  ].filter(Boolean);
+  if (!c.sessions) parts.splice(0, parts.length, 'live von diesem Gerät');
+  if (act.error) parts.push(`gestört: ${act.error}`);
+  $('live-sub').textContent = parts.join(' · ');
+  renderWorkshop(act);
+}
+
 function costCell(row) {
   return row.costKnown
     ? { text: usd(row.cost) }
@@ -394,6 +480,8 @@ function render() {
     srcEl.textContent = `geschätzt (${REASON_TEXT[s.live.reason] ?? s.live.reason ?? 'unbekannt'}${nextTry})`;
     srcEl.title = 'Die Limit-Anteile stammen aus der lokalen Hochrechnung.';
   }
+
+  renderActivity(s);
 
   $('today-cost').textContent = usd(s.today.cost);
   $('today-tokens').textContent = compact(s.today.total);

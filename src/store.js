@@ -25,6 +25,7 @@ import {
 import { createPricing, weightedTokens, newTotals, addTokens } from './pricing.js';
 import { buildSnapshot } from './aggregate.js';
 import { fetchLiveUsage, HOUR_MS } from './liveUsage.js';
+import { createActivityTracker, DEFAULT_RECENT_MS } from './activity.js';
 import {
   loadArchive,
   saveArchive,
@@ -61,8 +62,16 @@ export function loadPricingTable(file = path.join(rootDir, 'pricing.json')) {
 /**
  * @param fetchUsage Abrufer fuer die echte Auslastung. Nur zum Einschleusen in
  *                   Tests gedacht - im Betrieb immer der echte Aufruf.
+ * @param isAlive    Prozesspruefung fuer die Live-Ansicht, ebenfalls nur fuer
+ *                   Tests (dort gibt es die Prozesse der Testdaten nicht).
  */
-export function createStore({ config, pricingTable, historyFile, fetchUsage = fetchLiveUsage } = {}) {
+export function createStore({
+  config,
+  pricingTable,
+  historyFile,
+  fetchUsage = fetchLiveUsage,
+  isAlive,
+} = {}) {
   const cfg = config ?? loadConfig();
   const table = pricingTable ?? loadPricingTable();
   const pricing = createPricing(table);
@@ -139,6 +148,19 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
       only: cfg.dataDirs?.only ?? [],
     });
   }
+
+  /**
+   * Was gerade arbeitet. Die Konfigurationsordner sind die Eltern der
+   * Transkript-Verzeichnisse (~/.claude/projects -> ~/.claude).
+   */
+  const activityEnabled = cfg.activity?.enabled !== false;
+  const activity = activityEnabled
+    ? createActivityTracker({
+        configDirs: () => dataDirs().map((d) => path.dirname(d)),
+        recentMs: cfg.activity?.recentMs ?? DEFAULT_RECENT_MS,
+        isAlive,
+      })
+    : null;
 
   function recordFor(id, meta) {
     let rec = archive.files[id];
@@ -324,6 +346,17 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     // Erst nach dem Einlesen ALLER Dateien: das Fenster eines Limit-Treffers
     // kann Requests aus mehreren Transkripten umfassen.
     for (const ev of limitEvents) recordLimitHit(ev);
+
+    // Die Live-Ansicht darf das Einlesen nie zu Fall bringen - sie liest
+    // undokumentierte Dateien, die sich jederzeit aendern koennen.
+    if (activity) {
+      try {
+        await activity.refresh(now);
+        stats.activityError = null;
+      } catch (err) {
+        stats.activityError = err?.message ?? String(err);
+      }
+    }
 
     stats.filesRead = readIds.size;
     stats.lastScanMs = Date.now();
@@ -629,9 +662,38 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     };
   }
 
+  /**
+   * Verbrauch der gerade laufenden Sitzungen und ihrer Subagents, aus den
+   * Einzeleintraegen. Subagent-Zeilen tragen die Sitzungs-Id des Auftraggebers
+   * und zusaetzlich ihre eigene agentId.
+   */
+  function activityUsage() {
+    const ids = activity.sessionIds();
+    const sums = new Map();
+    if (ids.size) {
+      const add = (key, e) => {
+        let u = sums.get(key);
+        if (!u) sums.set(key, (u = { cost: 0, costKnown: true, requests: 0 }));
+        const r = pricing.costFor(e, e.model, { speed: e.speed, timestampMs: e.ts });
+        u.cost += r.cost;
+        if (!r.known) u.costKnown = false;
+        u.requests++;
+      };
+      for (const e of entries.values()) {
+        if (!ids.has(e.sessionId)) continue;
+        add(e.sessionId, e);
+        if (e.agentId) add(`${e.sessionId}:${e.agentId}`, e);
+      }
+    }
+    return (sessionId, agentId) => sums.get(agentId ? `${sessionId}:${agentId}` : sessionId) ?? null;
+  }
+
   function snapshot(now = Date.now()) {
     const buckets = historyEnabled ? archiveBuckets(archive) : null;
     return buildSnapshot([...entries.values()], {
+      activity: activity
+        ? { ...activity.snapshot({ usage: activityUsage() }), error: stats.activityError ?? null }
+        : null,
       config: cfg,
       pricing,
       now,
@@ -672,6 +734,8 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     scan,
     snapshot,
     dataDirs,
+    /** Ordner, deren Aenderung einen Statuswechsel bedeuten kann (Live-Ansicht). */
+    activityDirs: () => (activity ? activity.watchDirs() : []),
     refreshLiveUsage,
     calibration,
     historyStats,
@@ -704,23 +768,35 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
  * falls fs.watch auf dem Dateisystem nicht funktioniert (Netzlaufwerke,
  * manche Container-Mounts).
  */
-export function createWatcher(dirs, onChange, { debounceMs = 400 } = {}) {
+export function createWatcher(
+  dirs,
+  onChange,
+  { debounceMs = 400, maxWaitMs = 2000, match = (filename) => filename.endsWith('.jsonl') } = {},
+) {
   const watchers = [];
   let timer = null;
+  let firstAt = 0;
   let watching = false;
 
+  // Entprellt, aber mit Obergrenze: schreiben mehrere Agents ununterbrochen,
+  // wuerde ein reines Entprellen den Timer endlos verschieben.
   const trigger = () => {
+    const now = Date.now();
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      timer = null;
-      onChange();
-    }, debounceMs);
+    else firstAt = now;
+    timer = setTimeout(
+      () => {
+        timer = null;
+        onChange();
+      },
+      Math.max(0, Math.min(debounceMs, firstAt + maxWaitMs - now)),
+    );
   };
 
   for (const dir of dirs) {
     try {
       const w = fs.watch(dir, { recursive: true }, (_event, filename) => {
-        if (!filename || filename.endsWith('.jsonl')) trigger();
+        if (!filename || match(String(filename))) trigger();
       });
       w.on('error', () => {});
       watchers.push(w);

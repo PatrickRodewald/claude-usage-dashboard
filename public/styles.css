@@ -515,6 +515,255 @@ td.name {
   display: none;
 }
 
+/* --- Werkstatt: was gerade arbeitet ------------------------------------- */
+
+/* .panels setzt display: grid und wuerde das hidden-Attribut sonst ueberstimmen. */
+.panels[hidden] {
+  display: none;
+}
+.workshop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+.station {
+  flex: 0 1 auto;
+  max-width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px 4px;
+}
+.station-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.station-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.station-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+/* Skaliert in schmalen Fenstern herunter, aber nie ueber die Naturgroesse. */
+.workshop-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.workshop-svg .desk {
+  fill: var(--axis);
+}
+.workshop-svg .laptop {
+  fill: var(--text-muted);
+}
+.workshop-svg .laptop-screen {
+  fill: var(--grid);
+}
+.fig-fill {
+  fill: var(--fig);
+}
+.fig-line {
+  stroke: var(--fig);
+  stroke-width: 2;
+}
+.fig-lamp {
+  fill: var(--text-muted);
+}
+.fig-eye {
+  fill: var(--surface);
+}
+.fig-eye-line {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.eyes-closed,
+.zzz,
+.badge,
+.badge path {
+  display: none;
+}
+.fig-label,
+.fig-sublabel {
+  paint-order: stroke;
+  stroke: var(--surface-2);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.fig-label {
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+.fig-sublabel {
+  font-size: 10px;
+  fill: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bubble rect,
+.bubble path {
+  fill: var(--surface);
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+.bubble text {
+  font-size: 10px;
+  fill: var(--text-primary);
+}
+
+/* Arbeitet: Bildschirm an, Lampe blinkt, Arme tippen. */
+.fig[data-state='tool'] .laptop-screen,
+.fig[data-state='thinking'] .laptop-screen,
+.fig[data-state='delegating'] .laptop-screen {
+  fill: var(--series-1);
+}
+.fig[data-state='tool'] .fig-lamp,
+.fig[data-state='thinking'] .fig-lamp,
+.fig[data-state='delegating'] .fig-lamp {
+  fill: var(--status-good);
+  animation: cud-blink 1s ease-in-out infinite;
+}
+.fig[data-state='tool'] .arm {
+  animation: cud-type 0.32s ease-in-out infinite;
+}
+.fig[data-state='tool'] .arm-r {
+  animation-delay: 0.16s;
+}
+.fig[data-state='thinking'] .fig-body,
+.fig[data-state='delegating'] .fig-body {
+  animation: cud-bob 1.6s ease-in-out infinite;
+}
+.fig-agent[data-state='tool'] .fig-body {
+  animation: cud-bob 0.9s ease-in-out infinite;
+}
+.fig[data-state='thinking'] .bubble text {
+  animation: cud-blink 1.2s ease-in-out infinite;
+}
+
+/* Wartet auf dich: Augen zu, z steigen auf. */
+.fig[data-state='idle'] .eyes-open {
+  display: none;
+}
+.fig[data-state='idle'] .eyes-closed,
+.fig[data-state='idle'] .zzz {
+  display: inline;
+}
+.zzz text {
+  fill: var(--text-muted);
+  font-weight: 600;
+  opacity: 0;
+  animation: cud-z 2.4s ease-in-out infinite;
+}
+.zzz text:nth-child(2) {
+  animation-delay: 0.8s;
+}
+.zzz text:nth-child(3) {
+  animation-delay: 1.6s;
+}
+
+/* Meldet "arbeitet", schreibt aber nichts: blass, mit Fragezeichen. */
+.fig[data-state='stale'] .fig-body {
+  opacity: 0.4;
+}
+
+/* Beendete Subagents: blass, mit Abzeichen. */
+.fig-agent[data-state='completed'] .fig-body,
+.fig-agent[data-state='failed'] .fig-body,
+.fig-agent[data-state='stopped'] .fig-body {
+  opacity: 0.4;
+}
+.fig-agent[data-state='completed'] .badge,
+.fig-agent[data-state='failed'] .badge,
+.fig-agent[data-state='stopped'] .badge {
+  display: inline;
+}
+.badge circle {
+  fill: var(--text-muted);
+}
+.badge path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fig-agent[data-state='completed'] .badge circle {
+  fill: var(--status-good);
+}
+.fig-agent[data-state='failed'] .badge circle {
+  fill: var(--status-critical);
+}
+.fig-agent[data-state='completed'] .badge-ok,
+.fig-agent[data-state='failed'] .badge-fail,
+.fig-agent[data-state='stopped'] .badge-stop {
+  display: inline;
+}
+
+/* Leitung zum Auftraggeber: Arbeit fliesst, solange der Agent laeuft. */
+.link {
+  fill: none;
+  stroke: var(--axis);
+  stroke-width: 1.5;
+}
+.link[data-state='flow'] {
+  stroke: var(--series-1);
+  stroke-dasharray: 4 5;
+  animation: cud-flow 0.9s linear infinite;
+}
+.link[data-state='done'] {
+  stroke-dasharray: 2 4;
+}
+
+@keyframes cud-type {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes cud-bob {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes cud-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes cud-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -7px);
+  }
+}
+@keyframes cud-flow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workshop-svg * {
+    animation: none !important;
+  }
+  .zzz text {
+    opacity: 1;
+  }
+}
+
 .foot {
   color: var(--text-muted);
   font-size: 11px;

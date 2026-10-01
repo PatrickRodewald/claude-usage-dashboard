@@ -236,6 +236,9 @@ export function extractEntry(obj, { fallbackDirName, ignoreModels = DEFAULT_IGNO
     agent: str(obj.attributionAgent),
     skill: str(obj.attributionSkill),
     effort: str(obj.effort),
+    // Id des Subagents (nur in dessen eigenem Transkript gesetzt) - damit
+    // laesst sich der Verbrauch eines gerade laufenden Agents zuordnen.
+    agentId: str(obj.agentId),
   };
 }
 
@@ -275,6 +278,7 @@ export function mergeDuplicate(target, src) {
   target.agent ??= src.agent ?? null;
   target.skill ??= src.skill ?? null;
   target.effort ??= src.effort ?? null;
+  target.agentId ??= src.agentId ?? null;
   return delta;
 }
 
@@ -356,12 +360,23 @@ const READ_CHUNK = 32 * 1024 * 1024;
 /** Laengere Einzelzeilen werden uebersprungen statt den Speicher zu sprengen. */
 const MAX_LINE = 256 * 1024 * 1024;
 
-export async function readIncremental(filePath, fromOffset = 0, opts = {}) {
+
+/**
+ * Vollstaendige Zeilen einer Datei ab einem Byte-Offset blockweise lesen.
+ *
+ * onText bekommt Textbloecke, die ausschliesslich aus vollstaendigen Zeilen
+ * bestehen. Grundlage fuer readIncremental und fuer alles andere, das
+ * Transkripte nachverfolgt (activity.js) - die Regeln zu angefangenen und
+ * ueberlangen Zeilen gelten damit ueberall gleich.
+ *
+ * @returns {{offset, size, restarted, mtimeMs, skipped, missing?}}
+ */
+export async function scanLines(filePath, fromOffset, onText, opts = {}) {
   let fh;
   try {
     fh = await fs.promises.open(filePath, 'r');
   } catch {
-    return { entries: [], events: [], skipped: 0, offset: fromOffset, size: 0, missing: true };
+    return { skipped: 0, offset: fromOffset, size: 0, missing: true };
   }
   try {
     const stat = await fh.stat();
@@ -372,16 +387,14 @@ export async function readIncremental(filePath, fromOffset = 0, opts = {}) {
     if (size < fromOffset) {
       start = 0;
       restarted = true;
-    }
-    if (size === start) {
-      return { entries: [], events: [], skipped: 0, offset: start, size, restarted, mtimeMs: stat.mtimeMs };
+      // Vor dem ersten Block melden, damit der Aufrufer seinen Stand
+      // zuruecksetzen kann - sonst muesste er die Datei ein zweites Mal lesen.
+      opts.onRestart?.();
     }
 
     // Kleinere Werte nur fuer Tests, um Blockgrenzen ohne riesige Dateien zu pruefen.
     const chunkSize = opts.chunkSize ?? READ_CHUNK;
     const maxLine = opts.maxLine ?? MAX_LINE;
-    const entries = [];
-    const events = [];
     let skipped = 0;
     // Bis hierhin ist alles verarbeitet; der Rest ist eine angefangene Zeile.
     let offset = start;
@@ -428,23 +441,69 @@ export async function readIncremental(filePath, fromOffset = 0, opts = {}) {
         }
         continue;
       }
-      const part = parseChunk(data.subarray(0, lastNl + 1).toString('utf8'), opts);
-      for (const e of part.entries) entries.push(e);
-      for (const e of part.events) events.push(e);
-      skipped += part.skipped;
+      onText(data.subarray(0, lastNl + 1).toString('utf8'));
       carry = data.subarray(lastNl + 1);
       offset = pos - carry.length;
     }
 
-    return {
-      entries,
-      events,
-      skipped,
-      offset,
-      size,
-      restarted,
-      mtimeMs: stat.mtimeMs,
-    };
+    return { skipped, offset, size, restarted, mtimeMs: stat.mtimeMs };
+  } finally {
+    await fh.close().catch(() => {});
+  }
+}
+
+export async function readIncremental(filePath, fromOffset = 0, opts = {}) {
+  const entries = [];
+  const events = [];
+  let skipped = 0;
+  const res = await scanLines(
+    filePath,
+    fromOffset,
+    (text) => {
+      const part = parseChunk(text, opts);
+      for (const e of part.entries) entries.push(e);
+      for (const e of part.events) events.push(e);
+      skipped += part.skipped;
+    },
+    opts,
+  );
+  return { ...res, entries, events, skipped: skipped + res.skipped };
+}
+
+/**
+ * Die letzten vollstaendigen Zeilen einer Datei, ohne sie ganz zu lesen.
+ * Fuer "was macht dieser Agent gerade" reicht das Ende des Transkripts.
+ */
+export async function readTailLines(filePath, maxBytes = 256 * 1024) {
+  let fh;
+  try {
+    fh = await fs.promises.open(filePath, 'r');
+  } catch {
+    return [];
+  }
+  try {
+    const { size } = await fh.stat();
+    const start = Math.max(0, size - maxBytes);
+    const buf = Buffer.allocUnsafe(size - start);
+    let n = 0;
+    while (n < buf.length) {
+      const { bytesRead } = await fh.read(buf, n, buf.length - n, start + n);
+      if (bytesRead === 0) break;
+      n += bytesRead;
+    }
+    let text = buf.subarray(0, n).toString('utf8');
+    // Die letzte Zeile wird womoeglich gerade geschrieben.
+    const complete = text.endsWith('\n');
+    if (start > 0) {
+      // Mitten in einer Zeile begonnen: das angeschnittene Stueck verwerfen.
+      // Ohne jeden Umbruch im Fenster gibt es keine vollstaendige Zeile.
+      const nl = text.indexOf('\n');
+      if (nl === -1) return [];
+      text = text.slice(nl + 1);
+    }
+    const lines = text.split('\n');
+    if (!complete) lines.pop();
+    return lines.filter((l) => l.trim());
   } finally {
     await fh.close().catch(() => {});
   }

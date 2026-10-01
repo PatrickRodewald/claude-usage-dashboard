@@ -248,9 +248,12 @@ export async function startServer({
     serveStatic(res, url.pathname);
   });
 
-  // File-Watcher; Polling laeuft immer als Fallback mit.
-  const watcher = createWatcher(dirs, () => rescan(), {
+  // File-Watcher; Polling laeuft immer als Fallback mit. Beobachtet werden
+  // auch die Statusdateien laufender Sitzungen (sessions/<pid>.json) und die
+  // Metadaten neuer Subagents (*.meta.json) - beides zeigt die Live-Ansicht.
+  const watcher = createWatcher([...dirs, ...store.activityDirs()], () => rescan(), {
     debounceMs: cfg.server?.watchDebounceMs ?? 400,
+    match: (f) => f.endsWith('.jsonl') || f.endsWith('.json'),
   });
   const pollMs = cfg.server?.pollIntervalMs ?? 20000;
   const poll = setInterval(() => rescan(), pollMs);
