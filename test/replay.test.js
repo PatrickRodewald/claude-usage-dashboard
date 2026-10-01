@@ -113,6 +113,24 @@ test('metaReader liest meta.json und laesst keine Pfade aus den Transkripten dur
   assert.equal(read('..', 's1', 'a1'), null);
   assert.equal(read('c--app', '../s1', 'a1'), null);
   assert.equal(read('c--app', 's1', 'a1/../a1'), null);
+
+  // Tief verschachtelte Projekte: Claude Code kuerzt Ordnernamen erst nach 200 Zeichen.
+  const long = `c--${'tief-'.repeat(40)}app-1a2b3c`;
+  assert.ok(long.length > 200);
+  fs.mkdirSync(path.join(base, long, 's1', 'subagents'), { recursive: true });
+  fs.writeFileSync(path.join(base, long, 's1', 'subagents', 'agent-a1.meta.json'), JSON.stringify({ agentType: 'Plan' }));
+  assert.equal(read(long, 's1', 'a1').agentType, 'Plan');
+});
+
+test('buildTimeline: ein 1M-Fenster ohne Suffix im Modellnamen wird am groessten Kontext erkannt', () => {
+  const sonnet = { model: 'claude-sonnet-4-5-20250929', input: 0 };
+  const limit = (...contexts) =>
+    buildTimeline(
+      contexts.map((c, i) => entry(at(9, i), { ...sonnet, cacheRead: c })),
+      { from: FROM, to: at(24), costOf },
+    ).projects[0].sessions[0].contextLimit;
+  assert.equal(limit(150_000), 200_000);
+  assert.equal(limit(150_000, 320_000, 90_000), 1_000_000, 'mehr als 200k geht nur mit 1M');
 });
 
 // --- Zustand je Zeitpunkt (Browser) ------------------------------------------

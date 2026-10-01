@@ -697,6 +697,35 @@ test('Kontextfenster je Modell', () => {
   assert.equal(contextWindow('claude-sonnet-4-5-20250929'), 200_000);
   assert.equal(contextWindow('claude-opus-4-5[1m]'), 1_000_000, 'ausdruecklich 1M');
   assert.equal(contextWindow(undefined), 1_000_000);
+  // "sonnet[1m]" steht im Transkript ohne Suffix - nur die Groesse verraet es.
+  assert.equal(contextWindow('claude-sonnet-4-5-20250929', 450_000), 1_000_000, 'mehr als 200k geht nur mit 1M');
+  assert.equal(contextWindow('claude-sonnet-4-5-20250929', 150_000), 200_000);
+});
+
+test('Kontext: ein 1M-Fenster ohne Suffix im Modellnamen wird am groessten Kontext erkannt', async () => {
+  const { createStore } = await import('../src/store.js');
+  const pricingTable = JSON.parse(fs.readFileSync(new URL('../pricing.json', import.meta.url), 'utf8'));
+  const now = Date.now();
+  const sb = sandbox();
+  sb.session(101, { sessionId: 's-a', cwd: CWD, status: 'busy', startedAt: now - 60 * MIN, statusUpdatedAt: now });
+  const line = (id, ts, cacheRead) => ({
+    type: 'assistant',
+    timestamp: iso(ts),
+    sessionId: 's-a',
+    requestId: `r-${id}`,
+    message: { id, model: 'claude-sonnet-4-5-20250929', role: 'assistant', content: [], usage: { input_tokens: 0, output_tokens: 10, cache_read_input_tokens: cacheRead } },
+  });
+  // Vor der Compaction 450k, danach wieder klein: das Fenster bleibt 1M.
+  sb.main(CWD, 's-a', [line('m1', now - 20 * MIN, 450_000), line('m2', now - MIN, 120_000)]);
+  const store = createStore({
+    pricingTable,
+    isAlive: (pid) => sb.alive.has(pid),
+    config: { liveUsage: { enabled: false }, history: { enabled: false }, dataDirs: { only: [path.join(sb.base, 'projects')] } },
+  });
+  await store.scan({ now });
+  const s = store.snapshot(now).activity.projects[0].sessions[0];
+  assert.equal(s.context, 120_000);
+  assert.equal(s.contextLimit, 1_000_000);
 });
 
 test('Kontext und Tempo: Sitzung nur Hauptstrang, Subagent fuer sich, Kosten zusammen', async () => {
@@ -765,6 +794,13 @@ test('eine Nachricht von dir wird erkannt, Eingespieltes nicht', () => {
     ['Erinnerung', user('<system-reminder>…</system-reminder>')],
     ['Werkzeug-Ergebnis', user([{ type: 'tool_result', tool_use_id: 't', content: 'ok' }])],
     ['Subagent-Auftrag', user('Recherchiere X', { isSidechain: true })],
+    ['Abbruch per Esc', user('[Request interrupted by user]')],
+    ['Abbruch eines Werkzeugs', user([{ type: 'text', text: '[Request interrupted by user for tool use]' }])],
+    [
+      'Zusammenfassung nach /compact',
+      user('This session is being continued from a previous conversation that ran out of context.', { isCompactSummary: true }),
+    ],
+    ['Zusammenfassung ohne Kennzeichen', user('This session is being continued from a previous conversation. Summary: …')],
   ]) {
     assert.equal(tailInfo([line]).prompt, null, name);
   }
@@ -784,6 +820,108 @@ test('Fehler: Werkzeug, API und Drosselung', () => {
   assert.equal(conn.error.kind, 'api');
 
   assert.equal(tailInfo([JSON.stringify(toolResult(now, 't1'))]).error, null, 'Erfolg ist kein Fehler');
+
+  // Abgebrochen (Esc) oder abgelehnt hast du - das Werkzeug ist nicht gescheitert.
+  for (const content of [
+    '[Request interrupted by user for tool use]',
+    [{ type: 'text', text: "The user doesn't want to proceed with this tool use. The tool use was rejected." }],
+  ]) {
+    const r = toolResult(now, 't1', { isError: true });
+    r.message.content[0].content = content;
+    assert.equal(tailInfo([JSON.stringify(r)]).error, null, JSON.stringify(content));
+  }
+});
+
+test('ein per Esc abgebrochener Subagent gilt als abgebrochen, nicht als fehlgeschlagen', async () => {
+  const now = Date.now();
+  const sb = sandbox();
+  sb.session(101, { sessionId: 's-a', cwd: CWD, status: 'idle', startedAt: now - 10 * MIN });
+  const stop = toolResult(now - MIN, 'tu-1', { isError: true });
+  stop.message.content[0].content = '[Request interrupted by user for tool use]';
+  const fail = toolResult(now - MIN, 'tu-2', { isError: true });
+  fail.message.content[0].content = 'Agent crashed';
+  sb.main(CWD, 's-a', [toolUse(now - 5 * MIN, 'm1', ['tu-1', 'Agent'], ['tu-2', 'Agent']), stop, fail]);
+  sb.agent(CWD, 's-a', 'a1', { agentType: 'Explore', toolUseId: 'tu-1' }, [toolUse(now - 2 * MIN, 'x1', ['s1', 'Read'])]);
+  sb.agent(CWD, 's-a', 'a2', { agentType: 'Explore', toolUseId: 'tu-2' }, [toolUse(now - 2 * MIN, 'y1', ['s1', 'Read'])]);
+  const t = sb.tracker();
+  await t.refresh(now);
+  const byId = Object.fromEntries(allAgents(t.snapshot()).map((a) => [a.id, a.state]));
+  assert.deepEqual(byId, { a1: 'stopped', a2: 'failed' });
+});
+
+// --- Neu vergebene Prozessnummern ---------------------------------------------------
+
+test('eine neu vergebene Prozessnummer laesst keine Geist-Sitzung zurueck', async () => {
+  // Fenster hart geschlossen, waehrend die Sitzung wartete: die Statusdatei
+  // bleibt auf "idle", und Windows gibt die Nummer einem anderen Programm.
+  const now = Date.now();
+  const sb = sandbox();
+  const written = new Date(now - 60 * MIN);
+  const starts = new Map([
+    [101, now - 30 * MIN], // erst nach dem letzten Schreiben gestartet: fremd
+    [102, now - 90 * MIN], // davor gestartet: der echte Besitzer
+    // 103: Startzeit unbekannt (anderer Benutzer) - im Zweifel zeigen
+  ]);
+  for (const [pid, id] of [
+    [101, 's-geist'],
+    [102, 's-echt'],
+    [103, 's-unklar'],
+  ]) {
+    sb.session(pid, { sessionId: id, cwd: CWD, status: 'idle', startedAt: now - 120 * MIN });
+    fs.utimesSync(path.join(sb.base, 'sessions', `${pid}.json`), written, written);
+  }
+  const asked = [];
+  const t = sb.tracker({
+    processStart: async (pids) => {
+      asked.push([...pids].sort());
+      return starts;
+    },
+  });
+  const ids = () =>
+    t
+      .snapshot()
+      .projects.flatMap((p) => p.sessions.map((s) => s.sessionId))
+      .sort();
+
+  await t.refresh(now);
+  assert.deepEqual(ids(), ['s-echt', 's-unklar']);
+  assert.deepEqual(asked, [[101, 102, 103]], 'ein Aufruf fuer alle');
+
+  // Statuswechsel schreiben die Datei neu - kein Grund, erneut zu fragen:
+  // unter Windows kostet die Abfrage eine Sekunde.
+  sb.session(102, { sessionId: 's-echt', cwd: CWD, status: 'busy', startedAt: now - 120 * MIN, statusUpdatedAt: now });
+  await t.refresh(now + 20_000);
+  assert.equal(asked.length, 1);
+  assert.deepEqual(ids(), ['s-echt', 's-unklar']);
+
+  // Ein neuer Claude-Code-Prozess bekommt die Nummer und schreibt seine Datei.
+  sb.session(101, { sessionId: 's-neu', cwd: CWD, status: 'busy', startedAt: now, statusUpdatedAt: now });
+  await t.refresh(now + 40_000);
+  assert.deepEqual(ids(), ['s-echt', 's-neu', 's-unklar'], 'nach seinem Start geschrieben: seine');
+
+  // Nach einer Weile wird erneut gefragt - die Nummer koennte inzwischen neu vergeben sein.
+  await t.refresh(now + 50_000 + 10 * MIN);
+  assert.equal(asked.length, 2);
+});
+
+test('Startzeiten von Prozessen je Betriebssystem auslesen', async () => {
+  const { procStatStart, parsePsStarts, parseWindowsStarts } = await import('../src/activity.js');
+  // Linux: Feld 22 in Takten seit Systemstart; der Name darf Klammern und Leerzeichen enthalten.
+  const stat = '4242 (claude (main) x) S 1 4242 4242 0 -1 4194560 100 0 0 0 5 3 0 0 20 0 11 0 123456 0 0';
+  assert.equal(procStatStart(stat, 1_790_000_000), 1_790_001_234_560);
+  assert.equal(procStatStart('kaputt', 1_790_000_000), null);
+
+  // macOS: lstart in Ortszeit, C-Locale
+  const ps = parsePsStarts('  123 Wed Oct  1 10:00:00 2026\n 77 Thu Jan  1 00:00:05 2026\nunsinn\n');
+  assert.equal(ps.get(123), new Date(2026, 9, 1, 10, 0, 0).getTime());
+  assert.equal(ps.get(77), new Date(2026, 0, 1, 0, 0, 5).getTime());
+  assert.equal(ps.size, 2);
+
+  // Windows: FILETIME (100 ns seit 1601, UTC)
+  const ms = Date.UTC(2026, 9, 1, 12, 34, 56, 789);
+  const ft = (BigInt(ms) + 11_644_473_600_000n) * 10_000n;
+  const win = parseWindowsStarts(`15080 ${ft}\r\n\r\nWARNUNG: irgendwas\r\n`);
+  assert.deepEqual([...win], [[15080, ms]]);
 });
 
 test('der Tracker meldet Nachricht und Fehler je Figur', async () => {

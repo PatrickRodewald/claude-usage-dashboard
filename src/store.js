@@ -678,7 +678,7 @@ export function createStore({
       const slot = (key) => {
         let u = sums.get(key);
         if (!u) {
-          sums.set(key, (u = { cost: 0, costKnown: true, requests: 0, lastTs: -1, context: null, contextLimit: null, recentOutput: 0 }));
+          sums.set(key, (u = { cost: 0, costKnown: true, requests: 0, lastTs: -1, context: null, model: null, maxContext: 0, recentOutput: 0 }));
         }
         return u;
       };
@@ -690,11 +690,14 @@ export function createStore({
       };
       // Eigener Strang: Kontext der juengsten Anfrage und Output der letzten
       // zwei Minuten - fuer die Sitzung nur der Hauptstrang, nicht ihre Agents.
+      // Der groesste Kontext verraet ein 1M-Fenster (contextWindow).
       const addOwn = (u, e) => {
+        const context = (e.input || 0) + (e.cacheRead || 0) + (e.cacheWrite5m || 0) + (e.cacheWrite1h || 0);
+        if (context > u.maxContext) u.maxContext = context;
         if (e.ts > u.lastTs) {
           u.lastTs = e.ts;
-          u.context = (e.input || 0) + (e.cacheRead || 0) + (e.cacheWrite5m || 0) + (e.cacheWrite1h || 0);
-          u.contextLimit = contextWindow(e.model);
+          u.context = context;
+          u.model = e.model;
         }
         if (now - e.ts <= RATE_WINDOW_MS && e.ts <= now) u.recentOutput += e.output || 0;
       };
@@ -720,27 +723,49 @@ export function createStore({
         costKnown: u.costKnown,
         requests: u.requests,
         context: u.context,
-        contextLimit: u.contextLimit,
+        contextLimit: u.context == null ? null : contextWindow(u.model, u.maxContext),
         outputPerMin: Math.round(u.recentOutput / (RATE_WINDOW_MS / 60_000)),
       };
     };
   }
 
   /**
+   * Beginn des fruehesten Tages, dessen Einzeleintraege vollstaendig im
+   * Speicher liegen. Ein Transkript, das dieser Prozess nicht gelesen hat -
+   * vom Archiv uebersprungen (history.detailDays) oder von Claude Code
+   * aufgeraeumt -, fehlt allen Tagen bis zu seinem letzten Eintrag. Im
+   * Rueckblick saehen die aus, als haette kaum jemand gearbeitet.
+   */
+  function firstCompleteDay(now) {
+    const nextDay = (ms) => startOfDay(startOfDay(ms, tz) + 30 * 3_600_000, tz);
+    let first = Infinity;
+    for (const e of entries.values()) if (e.ts < first) first = e.ts;
+    let from = Number.isFinite(first) ? startOfDay(first, tz) : startOfDay(now, tz);
+    if (historyEnabled) {
+      // Archive anderer Geraete zaehlen nicht: deren Transkripte gab es hier nie.
+      for (const [id, rec] of Object.entries(archive.files)) {
+        if (!readIds.has(id) && !rec.foreign && Number.isFinite(rec.lastTs)) from = Math.max(from, nextDay(rec.lastTs));
+      }
+    }
+    return Math.min(from, startOfDay(now, tz));
+  }
+
+  /**
    * Zeitleiste eines Tages fuer den Rueckblick im Buero.
    * @param day "YYYY-MM-DD" in der Anzeigezone; ohne (oder ungueltig): heute.
+   *            Vor dem ersten vollstaendigen Tag: dieser.
    */
   function replay({ day, now = Date.now() } = {}) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day ?? '');
     let from = m ? zonedToUtc({ year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }, tz) : startOfDay(now, tz);
     if (!Number.isFinite(from) || from > now) from = startOfDay(now, tz);
+    const firstDay = firstCompleteDay(now);
+    if (from < firstDay) from = firstDay;
     // Ein Tag hat 23 bis 25 Stunden: 30 Stunden spaeter liegt sicher im naechsten.
     const to = startOfDay(from + 30 * 3_600_000, tz);
-    let first = Infinity;
-    for (const e of entries.values()) if (e.ts < first) first = e.ts;
     return {
       day: dayKey(from, tz),
-      firstDay: Number.isFinite(first) ? dayKey(first, tz) : dayKey(now, tz),
+      firstDay: dayKey(firstDay, tz),
       today: dayKey(now, tz),
       timezone: tz,
       now,

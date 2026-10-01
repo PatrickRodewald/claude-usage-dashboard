@@ -43,7 +43,7 @@ Ein **einzelner** Fehlversuch reicht dafür allerdings nicht: der Endpunkt dross
 ```bash
 npm start        # danach http://localhost:7842 öffnen
 npm run open     # dasselbe, öffnet den Browser gleich mit
-npm test         # 201 Unit- und Integrationstests
+npm test         # 321 Unit- und Integrationstests
 ```
 
 Kein Build-Schritt, kein `npm install` — das Projekt hat keine Dependencies. Voraussetzung ist
@@ -120,7 +120,8 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum.
 
 - **An der Rückwand** hängt eine Tafel mit dem Projektnamen in Kreideschrift. Darunter stehen
-  die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen. Ohne
+  die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen, „–“
+  abgebrochen (auch per Esc). Ohne
   Subagents steht dort, was jede Sitzung gerade tut.
 - **Daneben:** ein Fenster, dessen Himmel der Ortszeit folgt (Morgen, Tag, Abend, Nacht mit Mond
   und Sternen), eine Wanduhr mit der echten Uhrzeit und eine Topfpflanze.
@@ -149,8 +150,9 @@ Kaffeetasse:
   Rakete. Beides passiert einmal und nur, wenn der Commit frisch ist.
 - **wartet auf dich:** Augen zu, über dem Roboter steigen „z“ auf.
 - **kein Lebenszeichen:** blass mit „?“. Die Sitzung meldet „arbeitet“, hat aber seit 30 Minuten
-  nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
-  inzwischen neu vergeben hat.
+  nichts geschrieben. Hart beendete Sitzungen, deren Prozessnummer Windows inzwischen neu
+  vergeben hat, erkennt das Dashboard ohnehin und zeigt sie gar nicht erst (siehe
+  [Wie es funktioniert](#wie-es-funktioniert)).
 
 Dazu kommt etwas ruhige Lebendigkeit:
 
@@ -169,7 +171,8 @@ ist. Beim Öffnen der Seite tauchen keine alten Ereignisse auf.
 - **Neue Nachricht von dir:** Ein Briefumschlag fliegt auf den Tisch der angesprochenen Sitzung.
 - **Fehler:** Über der Figur erscheint ein rotes Ausrufezeichen mit Funken, bei einer Drosselung
   durch Anthropic (HTTP 429) „Gedrosselt!“. Das gilt für fehlgeschlagene Werkzeuge ebenso wie
-  für API-Fehler, auch bei Subagents.
+  für API-Fehler, auch bei Subagents. Ein Werkzeug, das du per Esc abbrichst oder ablehnst, ist
+  kein Fehler, und der Abbruch ist auch keine neue Nachricht von dir.
 
 „Wartet auf deine Freigabe“ fehlt bewusst: Dieser Zustand steht nicht verlässlich in den Dateien.
 Claude Codes Hooks würden ihn melden, dafür müsste das Dashboard aber in der `settings.json`
@@ -178,7 +181,9 @@ eingetragen werden.
 Drei Gegenstände zeigen echte Messwerte:
 
 - **Aktenstapel:** Die Höhe entspricht dem Kontext der letzten Anfrage im Verhältnis zum
-  Kontextfenster des Modells. Ab 85 % wackelt der Stapel, eine Compaction steht bevor.
+  Kontextfenster des Modells. Ab 85 % wackelt der Stapel, eine Compaction steht bevor. Ein
+  1M-Fenster (etwa `sonnet[1m]`) steht nicht im Modellnamen der Transkripte. Es gilt, sobald
+  die Sitzung einmal mehr Kontext hatte als das Standardfenster.
 - **Tempo:** Wie schnell eine Figur tippt und wie stark ihr Kaffee dampft, hängt an ihrem Output
   der letzten zwei Minuten.
 - **Sparschwein** unter jedem Hauptschreibtisch: Der Münzstapel wächst logarithmisch mit dem
@@ -228,7 +233,9 @@ Sparschweine wachsen mit. Die Leiste darüber hat:
 - einen **Regler** über den ganzen Tag, darüber ein Balken je Viertelstunde mit der Zahl der
   Requests: so findet man die vollen Stunden,
 - das **Tempo** (2 Minuten bis 1 Stunde pro Sekunde, Standard 10 Minuten),
-- den **Tag**, zurück bis zum ältesten noch vorhandenen Transkript.
+- den **Tag**, zurück bis zum ältesten Tag, dessen Transkripte noch alle eingelesen sind. Ältere
+  Transkripte übernimmt nach `history.detailDays` das Archiv, oder Claude Code hat sie
+  aufgeräumt; das Archiv kennt nur Tagessummen, und die Tage davor wären lückenhaft.
 
 Leere Zeiten werden beim Abspielen übersprungen. „Zurück zu live“ zeigt wieder das aktuelle Büro.
 
@@ -502,8 +509,13 @@ jenseits von `history.detailDays` übernimmt das Archiv allein.
 
 **Was gerade arbeitet.** Claude Code legt für jeden laufenden Prozess eine Statusdatei
 `~/.claude/sessions/<pid>.json` an. Sie enthält Sitzungs-Id, Arbeitsverzeichnis und den Status
-`busy`/`idle`. Gezeigt werden nur Einträge, deren Prozess noch existiert. Die `.key`-Dateien
-daneben sind Schlüssel und werden nie geöffnet. Jeder Subagent hat neben seinem Transkript eine
+`busy`/`idle`. Gezeigt werden nur Einträge, deren Prozess noch existiert. Eine hart beendete
+Sitzung (Fenster geschlossen, Absturz) hinterlässt ihre Datei, und Windows vergibt die
+Prozessnummer bald neu. Deshalb wird zusätzlich die Startzeit des Prozesses geprüft: Startete er
+erst nach dem letzten Schreiben der Statusdatei, gehört die Nummer einem anderen Programm. Linux
+liest dafür `/proc`, macOS fragt `ps`, Windows `Get-Process` per PowerShell, einmal für alle
+Prozessnummern und höchstens alle zehn Minuten erneut. Lässt sich die Startzeit nicht ermitteln,
+bleibt die Sitzung sichtbar. Die `.key`-Dateien daneben sind Schlüssel und werden nie geöffnet. Jeder Subagent hat neben seinem Transkript eine
 `agent-<id>.meta.json` mit Typ, Auftrag, Vorder- oder Hintergrund und Verschachtelungstiefe.
 Sein Ende steht im Transkript des Auftraggebers: im Vordergrund als `tool_result` zum Aufruf, im
 Hintergrund als `<task-notification>` mit Status. Gezählt werden nur echte Zustellungen, nicht
@@ -538,7 +550,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-315 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+321 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -590,12 +602,18 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - das laufende Werkzeug von Sitzung und Subagent, „denkt nach“ zwischen zwei Werkzeugen
 - Vordergrund-Agents enden mit ihrem Ergebnis, Hintergrund-Agents erst mit ihrer
   Abschlussmeldung, nicht schon mit dem sofortigen Start-Bescheid
-- Agents aus einem früheren Lauf der Sitzung gelten als abgebrochen; verschachtelte hängen an
-  ihrem Auftraggeber; beendete verschwinden nach der Anzeigedauer
-- Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung
+- Agents aus einem früheren Lauf der Sitzung gelten als abgebrochen, ebenso per Esc
+  abgebrochene; verschachtelte hängen an ihrem Auftraggeber; beendete verschwinden nach der
+  Anzeigedauer
+- eine neu vergebene Prozessnummer lässt keine Geist-Sitzung zurück; eine unbekannte Startzeit
+  versteckt keine echte
+- Abbruch per Esc und die Zusammenfassung nach `/compact` sind keine Nachricht von dir
+- Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung; ein 1M-Fenster wird
+  am größten Kontext erkannt
 
 **Tagesrückblick**
-- der Tag wird in der Anzeigezone geschnitten; ungültige oder künftige Tage fallen auf heute
+- der Tag wird in der Anzeigezone geschnitten; ungültige oder künftige Tage fallen auf heute,
+  lückenhafte (übersprungene oder aufgeräumte Transkripte) auf den ersten vollständigen
 - `meta.json` liefert Typ und Auftrag; Ids aus den Transkripten können keine Pfade bilden
 - Kommen, Arbeiten, Warten und Gehen je Zeitpunkt; Subagents laufen, werden fertig und gehen
 - Kosten laufen bis zum Zeitpunkt mit, gegangene Subagents eingeschlossen

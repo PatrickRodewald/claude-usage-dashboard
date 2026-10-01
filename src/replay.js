@@ -13,8 +13,12 @@ import path from 'node:path';
 import { projectNameFrom } from './parser.js';
 import { contextWindow } from './activity.js';
 
-/** Ids aus Transkripten landen in Dateipfaden - nur harmlose Zeichen zulassen. */
-const SAFE_ID = /^[\w-]{1,128}$/;
+/**
+ * Ids aus Transkripten landen in Dateipfaden - nur harmlose Zeichen zulassen.
+ * Lang genug fuer Projektordner tief verschachtelter Pfade: Claude Code kuerzt
+ * sie erst nach 200 Zeichen und haengt eine Pruefsumme an.
+ */
+const SAFE_ID = /^[\w-]{1,255}$/;
 
 /**
  * @param entries  iterierbare Eintraege (wie im Store)
@@ -48,14 +52,17 @@ export function buildTimeline(entries, { from, to, costOf, readMeta = () => null
   const strand = (raw) => {
     raw.sort((a, b) => a.ts - b.ts);
     let costKnown = true;
+    let maxContext = 0;
     const steps = raw.map((e) => {
       const c = costOf(e);
       if (!c.known) costKnown = false;
       const context = (e.input || 0) + (e.cacheRead || 0) + (e.cacheWrite5m || 0) + (e.cacheWrite1h || 0);
+      if (context > maxContext) maxContext = context;
       return [e.ts - from, e.tool ?? null, Math.round(c.cost * 1e5) / 1e5, context, e.output || 0];
     });
     const last = raw[raw.length - 1];
-    return { steps, costKnown, contextLimit: last ? contextWindow(last.model) : null };
+    // Der groesste Kontext verraet ein 1M-Fenster (contextWindow).
+    return { steps, costKnown, contextLimit: last ? contextWindow(last.model, maxContext) : null };
   };
 
   const out = [];

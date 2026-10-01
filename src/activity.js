@@ -20,6 +20,7 @@
  *  - nur das Dateiende: was eine Sitzung bzw. ein Agent GERADE tut.
  */
 
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -45,6 +46,18 @@ const RESUME_GRACE_MS = 3000;
 export const STALE_BUSY_MS = 30 * 60_000;
 /** So lange bleiben Lesestaende erhalten, wenn eine Datei kurz fehlt. */
 const KEEP_MS = 60_000;
+/**
+ * Startet der Prozess hinter einer Prozessnummer spaeter als das zuletzt in
+ * ihre Statusdatei geschrieben wurde, gehoert die Nummer einem anderen
+ * Programm. Etwas Spielraum fuer grobe Zeitstempel (ps: ganze Sekunden).
+ */
+const PID_START_SLACK_MS = 5000;
+/**
+ * So lange gilt eine gepruefte Prozessnummer. Danach wird erneut gefragt: stirbt
+ * eine Sitzung hart, kann ihre Nummer zwischen zwei Durchlaeufen neu vergeben
+ * werden, ohne dass der Prozess je als beendet auffiel.
+ */
+const PID_RECHECK_MS = 10 * 60_000;
 
 /**
  * Laeuft der Prozess noch? Signal 0 prueft nur die Existenz - auch unter
@@ -60,12 +73,104 @@ export function processAlive(pid) {
   }
 }
 
+/** Startzeit aus /proc/<pid>/stat (Linux), in ms. btime: Systemstart in s. */
+export function procStatStart(stat, btime, ticksPerSec = 100) {
+  // Der Programmname in Klammern kann Leerzeichen enthalten - erst danach zaehlen.
+  const s = String(stat);
+  const close = s.lastIndexOf(')');
+  if (close < 0) return null;
+  const fields = s.slice(close + 2).split(' ');
+  const ticks = Number(fields[19]); // Feld 22: starttime
+  if (!Number.isFinite(ticks) || !Number.isFinite(btime)) return null;
+  return Math.round((btime + ticks / ticksPerSec) * 1000);
+}
+
+/** Ausgabe von "ps -o pid=,lstart=" (macOS, BSD): "  123 Wed Oct  1 10:00:00 2026". */
+export function parsePsStarts(text) {
+  const out = new Map();
+  for (const line of String(text).split('\n')) {
+    const m = /^\s*(\d+)\s+(\S.*\S)\s*$/.exec(line);
+    const t = m ? Date.parse(m[2]) : NaN;
+    if (Number.isFinite(t)) out.set(Number(m[1]), t);
+  }
+  return out;
+}
+
+/** Ausgabe des PowerShell-Aufrufs unten: "<pid> <FILETIME UTC>" je Zeile. */
+export function parseWindowsStarts(text) {
+  const out = new Map();
+  for (const line of String(text).split(/\r?\n/)) {
+    const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(line);
+    // FILETIME: 100-ns-Schritte seit 1601
+    if (m) out.set(Number(m[1]), Math.round(Number(m[2]) / 10_000 - 11_644_473_600_000));
+  }
+  return out;
+}
+
+/** Ausgabe eines Programms, auch wenn es mit Fehlercode endet; nie ein Fehler. */
+function outputOf(cmd, args, opts = {}) {
+  return new Promise((resolve) => {
+    execFile(cmd, args, { windowsHide: true, timeout: 15_000, ...opts }, (_err, stdout) => resolve(String(stdout ?? '')));
+  });
+}
+
+/**
+ * Startzeitpunkte laufender Prozesse in ms - pid -> Zeit. Fehlt ein Eintrag,
+ * ist er unbekannt (anderer Benutzer, kein Zugriff, Werkzeug fehlt).
+ *
+ * Node selbst kennt nur die Existenz eines Prozesses. Linux liest /proc,
+ * macOS fragt ps, Windows Get-Process per PowerShell - dort der einzige Weg
+ * ohne zusaetzliche Abhaengigkeit. Ein Aufruf fuer alle Prozessnummern.
+ */
+export async function processStartTimes(pids, platform = process.platform) {
+  const list = [...new Set(pids)].filter((p) => Number.isInteger(p) && p > 0);
+  if (!list.length) return new Map();
+  if (platform === 'linux') {
+    const out = new Map();
+    try {
+      const btime = Number(/^btime\s+(\d+)/m.exec(await fs.promises.readFile('/proc/stat', 'utf8'))?.[1]);
+      for (const pid of list) {
+        try {
+          const t = procStatStart(await fs.promises.readFile(`/proc/${pid}/stat`, 'utf8'), btime);
+          if (t != null) out.set(pid, t);
+        } catch {
+          /* inzwischen beendet */
+        }
+      }
+    } catch {
+      /* kein /proc */
+    }
+    return out;
+  }
+  if (platform === 'win32') {
+    // Nur Zahlen gehen in den Befehl. Prozesse anderer Benutzer verweigern
+    // StartTime - sie bleiben unbekannt.
+    const script =
+      `foreach($i in ${list.join(',')}){try{$p=Get-Process -Id $i -ErrorAction Stop;` +
+      `'{0} {1}' -f $i,$p.StartTime.ToFileTimeUtc()}catch{}}`;
+    return parseWindowsStarts(await outputOf('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script]));
+  }
+  // macOS und BSD; das Datumsformat nur in der C-Locale verlaesslich.
+  return parsePsStarts(
+    await outputOf('ps', ['-o', 'pid=,lstart=', '-p', list.join(',')], { env: { ...process.env, LC_ALL: 'C', LANG: 'C' } }),
+  );
+}
+
 /**
  * Kontextfenster eines Modells in Tokens. Die aktuellen Modelle haben 1 Mio.,
  * Haiku und die 4.x-Generation bis 4.5 standardmaessig 200.000.
+ *
+ * Mit 1M-Kontext (in Claude Code etwa "sonnet[1m]") steht das Suffix nicht im
+ * Modellnamen der Transkripte - es geht als Beta-Header an die API. Verraten
+ * wird es nur durch die Groesse: mehr Kontext als das Standardfenster gibt es
+ * nur mit 1M. seen = groesster bisher beobachteter Kontext.
  */
-export function contextWindow(model) {
-  const m = String(model ?? '').toLowerCase();
+export function contextWindow(model, seen = 0) {
+  const base = defaultContextWindow(String(model ?? '').toLowerCase());
+  return seen > base ? 1_000_000 : base;
+}
+
+function defaultContextWindow(m) {
   if (m.endsWith('[1m]')) return 1_000_000;
   if (m.includes('haiku')) return 200_000;
   if (/claude-(?:opus|sonnet)-4(?:-[0-5])?(?:-\d{8})?$/.test(m) || /claude-(?:opus|sonnet)-4-[0-5]\b/.test(m)) return 200_000;
@@ -125,6 +230,20 @@ function notificationText(o) {
     return c.startsWith('<task-notification>') ? c : null;
   }
   return null;
+}
+
+/**
+ * Texte, mit denen Claude Code ein Werkzeug-Ergebnis ersetzt, wenn du es
+ * abbrichst (Esc) oder ablehnst. Das ist kein Fehler des Werkzeugs.
+ */
+const STOPPED_BY_USER = ['[Request interrupted by user', "The user doesn't want to proceed with this tool use"];
+
+/** Vom Nutzer abgebrochenes oder abgelehntes Werkzeug-Ergebnis? */
+export function stoppedByUser(result) {
+  if (result?.is_error !== true) return false;
+  const c = result.content;
+  const text = typeof c === 'string' ? c : Array.isArray(c) ? c.find((b) => b?.type === 'text')?.text : null;
+  return typeof text === 'string' && STOPPED_BY_USER.some((p) => text.trimStart().startsWith(p));
 }
 
 /**
@@ -194,6 +313,8 @@ export function absorbLines(marks, text) {
         marks.results.set(b.tool_use_id, {
           ts: timeOf(o),
           isError: b.is_error === true,
+          // Per Esc abgebrochen: "abgebrochen", nicht "fehlgeschlagen".
+          stopped: stoppedByUser(b),
           // Hintergrund-Start: die Antwort kommt sofort und heisst nur
           // "gestartet", nicht "fertig".
           async: o.toolUseResult?.isAsync === true || o.toolUseResult?.status === 'async_launched',
@@ -262,8 +383,15 @@ export function tailInfo(lines) {
     }
 
     // Eine Nachricht von dir: Text, kein Werkzeug-Ergebnis, nichts, was Claude
-    // Code selbst einspielt (Meta-Zeilen, Meldungen, Erinnerungen).
-    if (o?.type === 'user' && o.isMeta !== true && o.isSidechain !== true) {
+    // Code selbst einspielt (Meta-Zeilen, Meldungen, Erinnerungen, die
+    // Zusammenfassung nach einer Compaction, der Vermerk eines Abbruchs).
+    if (
+      o?.type === 'user' &&
+      o.isMeta !== true &&
+      o.isSidechain !== true &&
+      o.isCompactSummary !== true &&
+      o.isVisibleInTranscriptOnly !== true
+    ) {
       const c = o.message?.content;
       const text = typeof c === 'string' ? c : Array.isArray(c) ? c.find((b) => b?.type === 'text')?.text : null;
       const hasResult = Array.isArray(c) && c.some((b) => b?.type === 'tool_result');
@@ -298,7 +426,8 @@ export function tailInfo(lines) {
         if (kind && b.is_error !== true) {
           celebration = { id: b.tool_use_id, kind, at: timeOf(o) };
         }
-        if (b.is_error === true) error = { id: b.tool_use_id, kind: 'tool', at: timeOf(o) };
+        // Abgebrochen oder abgelehnt hast du - das ist kein Fehler.
+        if (b.is_error === true && !stoppedByUser(b)) error = { id: b.tool_use_id, kind: 'tool', at: timeOf(o) };
       }
     }
   }
@@ -315,7 +444,16 @@ export function tailInfo(lines) {
 }
 
 /** Texte, die Claude Code selbst als "user" einspielt - keine Nachricht von dir. */
-const INJECTED = ['<task-notification>', '<system-reminder>', '<local-command-stdout>', '<local-command-stderr>'];
+const INJECTED = [
+  '<task-notification>',
+  '<system-reminder>',
+  '<local-command-stdout>',
+  '<local-command-stderr>',
+  // Esc: vermerkt den Abbruch, ist aber nichts, was du geschrieben hast.
+  '[Request interrupted by user',
+  // Zusammenfassung nach einer Compaction, falls isCompactSummary fehlt.
+  'This session is being continued from a previous conversation',
+];
 
 /** Das gerade laufende Werkzeug (Kurzform von tailInfo). */
 export function pendingToolFromLines(lines) {
@@ -343,11 +481,15 @@ export function lastLineTime(lines) {
  * @param configDirs  liefert die Claude-Konfigurationsordner (mit sessions/
  *                    und projects/ darin)
  * @param isAlive     Prozesspruefung - nur fuer Tests austauschbar
+ * @param processStart  (pids) -> Promise<Map pid -> Startzeit> - ebenso; mit
+ *                    ausgetauschtem isAlive standardmaessig aus, denn die
+ *                    Prozessnummern der Testdaten gibt es nicht wirklich
  * @param pidDomain   Kennung dieses Rechners - ebenso
  */
 export function createActivityTracker({
   configDirs,
   isAlive = processAlive,
+  processStart = isAlive === processAlive ? processStartTimes : null,
   recentMs = DEFAULT_RECENT_MS,
   pidDomain = localPidDomain(),
 } = {}) {
@@ -357,6 +499,8 @@ export function createActivityTracker({
   const jsonCache = new Map();
   /** Auswertung des Dateiendes, solange sich die Datei nicht aendert: Pfad -> { size, mtimeMs, info, seenAt } */
   const tailCache = new Map();
+  /** Startzeit je Prozessnummer: pid -> { start: ms | null (unbekannt), checkedAt, seenAt } */
+  const startTimes = new Map();
   let state = { available: false, refreshedAt: null, sessions: [] };
   let inFlight = null;
 
@@ -428,7 +572,7 @@ export function createActivityTracker({
     } catch {
       return null;
     }
-    const out = [];
+    const found = [];
     for (const name of names) {
       // Nur die Statusdateien "<pid>.json"; erst pruefen, ob der Prozess
       // lebt - die Dateien beendeter Prozesse muessen gar nicht gelesen werden.
@@ -443,7 +587,8 @@ export function createActivityTracker({
       // Konfigurationsordner): dessen Prozessnummern sagen hier nichts.
       if (str(s.pidDomain) && s.pidDomain.toLowerCase() !== pidDomain) continue;
       const st = jsonCache.get(file)?.stat;
-      out.push({
+      found.push({
+        written: st?.mtimeMs ?? null,
         pid,
         sessionId: s.sessionId,
         cwd: s.cwd,
@@ -457,7 +602,45 @@ export function createActivityTracker({
         version: str(s.version),
       });
     }
-    return out;
+    return (await stillOwned(found, now)).map(({ written, ...s }) => s);
+  }
+
+  /**
+   * Statusdateien, deren Prozessnummer inzwischen ein anderes Programm hat,
+   * aussortieren. Eine hart beendete Sitzung (Fenster zu, Absturz) hinterlaesst
+   * ihre Datei, und Windows vergibt die Nummer bald neu - ohne diese Pruefung
+   * saesse sie dann als Geist im Buero. Der echte Besitzer hat die Datei nach
+   * seinem Start geschrieben; startete der Prozess erst danach, ist er fremd.
+   * Unbekannte Startzeiten zaehlen als Besitzer: lieber ein Geist als eine
+   * verschwundene Sitzung.
+   */
+  async function stillOwned(found, now) {
+    if (!processStart) return found;
+    const due = [];
+    for (const f of found) {
+      const c = startTimes.get(f.pid);
+      if (c) c.seenAt = now;
+      // Die Startzeit eines Prozesses aendert sich nicht; gefragt wird nur bei
+      // neuen Nummern und nach einer Weile erneut (PID_RECHECK_MS) - nicht bei
+      // jedem Statuswechsel, unter Windows kostet die Abfrage eine Sekunde.
+      if (!c || now - c.checkedAt >= PID_RECHECK_MS) due.push(f.pid);
+    }
+    if (due.length) {
+      let res = new Map();
+      try {
+        res = await processStart(due);
+      } catch {
+        /* unbekannt */
+      }
+      for (const pid of due) {
+        const start = res.get(pid);
+        startTimes.set(pid, { start: Number.isFinite(start) ? start : null, checkedAt: now, seenAt: now });
+      }
+    }
+    return found.filter((f) => {
+      const start = startTimes.get(f.pid)?.start;
+      return start == null || f.written == null || start <= f.written + PID_START_SLACK_MS;
+    });
   }
 
   /** Transkript-Ordner eines Arbeitsverzeichnisses. */
@@ -561,7 +744,13 @@ export function createActivityTracker({
       if (resumed) {
         // laeuft wieder
       } else if (end) {
-        stateName = task ? (TASK_STATE[task.status] ?? 'stopped') : result.isError ? 'failed' : 'completed';
+        stateName = task
+          ? (TASK_STATE[task.status] ?? 'stopped')
+          : result.stopped
+            ? 'stopped'
+            : result.isError
+              ? 'failed'
+              : 'completed';
         finishedAt = end.ts;
       } else if ((a.lastActivity ?? 0) < since) {
         // Kein Abschluss vermerkt, aber der Prozess wurde seitdem neu
@@ -689,6 +878,8 @@ export function createActivityTracker({
     for (const [file, t] of tracked) if (now - t.seenAt > KEEP_MS) tracked.delete(file);
     for (const [file, c] of jsonCache) if (now - c.seenAt > KEEP_MS) jsonCache.delete(file);
     for (const [file, c] of tailCache) if (now - c.seenAt > KEEP_MS) tailCache.delete(file);
+    // Eine Weile nicht lebend gesehen: beim naechsten Auftauchen neu fragen.
+    for (const [pid, c] of startTimes) if (now - c.seenAt > KEEP_MS) startTimes.delete(pid);
 
     // Dieselbe Sitzung zweimal (z. B. kurz waehrend eines Neustarts): die
     // juengere gewinnt.

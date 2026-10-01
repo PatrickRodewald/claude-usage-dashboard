@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createStore } from '../src/store.js';
+import { dayKey, startOfDay } from '../src/tz.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
@@ -217,6 +218,47 @@ test('junge Dateien werden immer vollstaendig gelesen - der Detailansichten wege
   await s2.scan();
   assert.equal(s2.stats.filesSkipped, 0);
   assert.equal(s2.size, 1, 'Eintrag liegt fuer Tagesverlauf und Sessions im Speicher');
+});
+
+// --- Rueckblick -------------------------------------------------------------
+
+test('der Rueckblick bietet nur Tage an, deren Transkripte alle gelesen sind', async () => {
+  // Ein altes, uebersprungenes Transkript fehlt seinen Tagen. Ein anderes,
+  // noch offenes reicht mit seinen Eintraegen bis dorthin zurueck - ohne
+  // Grenze saehe der alte Tag im Rueckblick fast leer aus.
+  const tz = 'Europe/Berlin';
+  const now = Date.now();
+  const ago = (days) => new Date(now - days * DAY).toISOString();
+  const sb = sandbox();
+  const old = sb.write('c--Projekte-alt', 'alt.jsonl', [line(ago(70), { id: 'msg_alt' })]);
+  sb.age(old, 60);
+  sb.write('c--Projekte-app', 'lang.jsonl', [
+    line(ago(70), { id: 'msg_a', requestId: 'req_a', sessionId: 'sess-2' }),
+    line(ago(1), { id: 'msg_b', requestId: 'req_b', sessionId: 'sess-2' }),
+  ]);
+  const oldDay = dayKey(now - 70 * DAY, tz);
+  // Erst der Tag nach dem juengsten Eintrag der fehlenden Datei ist vollstaendig.
+  const complete = dayKey(startOfDay(startOfDay(now - 70 * DAY, tz) + 30 * 3_600_000, tz), tz);
+
+  const s1 = makeStore(sb);
+  await s1.scan();
+  s1.flush();
+  assert.equal(s1.replay({ now }).firstDay, oldDay, 'alles gelesen: alles abspielbar');
+  assert.equal(s1.replay({ day: oldDay, now }).projects.length, 2);
+
+  const s2 = makeStore(sb);
+  await s2.scan();
+  assert.equal(s2.stats.filesSkipped, 1);
+  const r = s2.replay({ day: oldDay, now });
+  assert.equal(r.firstDay, complete);
+  assert.equal(r.day, complete, 'ein lueckenhafter Tag wird nicht abgespielt');
+  assert.equal(s2.replay({ day: dayKey(now - DAY, tz), now }).day, dayKey(now - DAY, tz), 'juengere Tage wie gehabt');
+
+  // Von Claude Code aufgeraeumt statt uebersprungen: dieselbe Grenze.
+  fs.rmSync(old);
+  const s3 = makeStore(sb);
+  await s3.scan();
+  assert.equal(s3.replay({ now }).firstDay, complete);
 });
 
 // --- Doppelzaehlung -------------------------------------------------------
