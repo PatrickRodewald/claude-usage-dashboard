@@ -234,14 +234,44 @@ export function tailInfo(lines) {
   let tools = [];
   const notable = new Map(); // toolUseId -> Commit/Push-Aufruf
   let celebration = null;
+  let prompt = null;
+  let error = null;
   for (const line of lines) {
-    if (!line.includes('"tool_use"') && !line.includes('"tool_result"')) continue;
+    const relevant =
+      line.includes('"tool_use"') ||
+      line.includes('"tool_result"') ||
+      line.includes('"type":"user"') ||
+      line.includes('"isApiErrorMessage":true') ||
+      line.includes('"subtype":"api_error"');
+    if (!relevant) continue;
     let o;
     try {
       o = JSON.parse(line);
     } catch {
       continue;
     }
+
+    // API-Fehler: Ablehnung durch Anthropic (429 = gedrosselt) oder Verbindung.
+    if (o?.type === 'assistant' && o.isApiErrorMessage === true) {
+      error = { id: o.uuid ?? `api-${o.timestamp}`, kind: Number(o.apiErrorStatus) === 429 ? 'rate' : 'api', at: timeOf(o) };
+      continue;
+    }
+    if (o?.type === 'system' && o.subtype === 'api_error') {
+      error = { id: o.uuid ?? `sys-${o.timestamp}`, kind: 'api', at: timeOf(o) };
+      continue;
+    }
+
+    // Eine Nachricht von dir: Text, kein Werkzeug-Ergebnis, nichts, was Claude
+    // Code selbst einspielt (Meta-Zeilen, Meldungen, Erinnerungen).
+    if (o?.type === 'user' && o.isMeta !== true && o.isSidechain !== true) {
+      const c = o.message?.content;
+      const text = typeof c === 'string' ? c : Array.isArray(c) ? c.find((b) => b?.type === 'text')?.text : null;
+      const hasResult = Array.isArray(c) && c.some((b) => b?.type === 'tool_result');
+      if (typeof text === 'string' && text.trim() && !hasResult && !INJECTED.some((p) => text.trimStart().startsWith(p))) {
+        prompt = { id: o.uuid ?? `prompt-${o.timestamp}`, at: timeOf(o) };
+      }
+    }
+
     const content = o?.message?.content;
     if (!Array.isArray(content)) continue;
     if (o.type === 'assistant') {
@@ -268,13 +298,24 @@ export function tailInfo(lines) {
         if (kind && b.is_error !== true) {
           celebration = { id: b.tool_use_id, kind, at: timeOf(o) };
         }
+        if (b.is_error === true) error = { id: b.tool_use_id, kind: 'tool', at: timeOf(o) };
       }
     }
   }
   const open = tools.filter((t) => !t.done);
   const p = open.length ? open[open.length - 1] : null;
-  return { pending: p ? { id: p.id, name: p.name, detail: p.detail, ts: p.ts } : null, celebration };
+  return {
+    pending: p ? { id: p.id, name: p.name, detail: p.detail, ts: p.ts } : null,
+    celebration,
+    // Juengste Nachricht von dir und juengster Fehler - das Buero zeigt sie
+    // einmal kurz, solange sie frisch sind.
+    prompt,
+    error,
+  };
 }
+
+/** Texte, die Claude Code selbst als "user" einspielt - keine Nachricht von dir. */
+const INJECTED = ['<task-notification>', '<system-reminder>', '<local-command-stdout>', '<local-command-stderr>'];
 
 /** Das gerade laufende Werkzeug (Kurzform von tailInfo). */
 export function pendingToolFromLines(lines) {
@@ -533,6 +574,7 @@ export function createActivityTracker({
       let tool = null;
       let toolDetail = null;
       let celebration = null;
+      let error = null;
       if ((a.lastActivity ?? 0) >= since) {
         const info = await tailOf(a.file, now);
         if (stateName === 'running' && info.pending) {
@@ -540,6 +582,7 @@ export function createActivityTracker({
           toolDetail = info.pending.detail;
         }
         celebration = info.celebration;
+        error = info.error;
       }
 
       agents.push({
@@ -556,6 +599,7 @@ export function createActivityTracker({
         tool,
         toolDetail,
         celebration,
+        error,
       });
     }
     // Stabil sortieren: die Reihenfolge bestimmt das Layout der Werkstatt,
@@ -586,6 +630,8 @@ export function createActivityTracker({
         let doing = null;
         let latestWrite = null;
         let celebration = null;
+        let prompt = null;
+        let error = null;
         if (projectDir) {
           const mainFile = path.join(projectDir, `${s.sessionId}.jsonl`);
           keep.add(mainFile);
@@ -596,6 +642,8 @@ export function createActivityTracker({
           if (res.latestWrite != null && (latestWrite == null || res.latestWrite > latestWrite)) latestWrite = res.latestWrite;
           const info = await tailOf(mainFile, now);
           celebration = info.celebration;
+          prompt = info.prompt;
+          error = info.error;
           if (s.status === 'busy') {
             const open = info.pending;
             doing = open
@@ -625,6 +673,8 @@ export function createActivityTracker({
           projectDir: projectDir ? path.basename(projectDir) : null,
           doing,
           celebration,
+          prompt,
+          error,
           agents,
         });
       }
@@ -692,6 +742,9 @@ export function createActivityTracker({
         doing: s.doing,
         // Juengster erfolgreicher Commit/Push - das Buero feiert ihn kurz.
         celebration: s.celebration ?? null,
+        // Juengste Nachricht von dir und juengster Fehler (einmal kurz gezeigt).
+        prompt: s.prompt ?? null,
+        error: s.error ?? null,
         cost: sessionUsage?.cost ?? null,
         costKnown: sessionUsage?.costKnown ?? true,
         requests: sessionUsage?.requests ?? 0,

@@ -152,6 +152,18 @@ Kaffeetasse:
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
   inzwischen neu vergeben hat.
 
+Kurze Momente zeigen, was gerade passiert. Jeder erscheint einmal und nur, solange er frisch
+ist. Beim Öffnen der Seite tauchen keine alten Ereignisse auf.
+
+- **Neue Nachricht von dir:** Ein Briefumschlag fliegt auf den Tisch der angesprochenen Sitzung.
+- **Fehler:** Über der Figur erscheint ein rotes Ausrufezeichen mit Funken, bei einer Drosselung
+  durch Anthropic (HTTP 429) „Gedrosselt!“. Das gilt für fehlgeschlagene Werkzeuge ebenso wie
+  für API-Fehler, auch bei Subagents.
+
+„Wartet auf deine Freigabe“ fehlt bewusst: Dieser Zustand steht nicht verlässlich in den Dateien.
+Claude Codes Hooks würden ihn melden, dafür müsste das Dashboard aber in der `settings.json`
+eingetragen werden.
+
 Drei Gegenstände zeigen echte Messwerte:
 
 - **Aktenstapel:** Die Höhe entspricht dem Kontext der letzten Anfrage im Verhältnis zum
@@ -478,7 +490,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-295 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+298 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

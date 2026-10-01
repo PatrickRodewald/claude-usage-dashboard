@@ -41,6 +41,8 @@ const ROW_H = 112;
 const BOARD_LINES = 3;
 /** Nur Commits/Pushes, die hoechstens so alt sind, werden gefeiert. */
 const CELEBRATE_FRESH_MS = 90_000;
+/** Nachrichten und Fehler: nur zeigen, wenn hoechstens so alt. */
+const EVENT_FRESH_MS = 60_000;
 
 /** Farbe je Agent-Typ. Unbekannte Typen bekommen stabil eine der uebrigen Farben. */
 const TYPE_COLOR = {
@@ -637,7 +639,38 @@ function thought(parent, x, y, s = 1) {
   return g;
 }
 
-/** Konfetti (Commit) und Rakete (Push) - nur kurz eingeblendet, siehe celebrate(). */
+/** Briefumschlag, der auf den Tisch fliegt: eine neue Nachricht von dir. */
+function mailFx(parent, x, deskTop) {
+  const g = el('g', { class: 'mail' }, parent);
+  el('rect', { x: x - 7, y: deskTop - 10, width: 14, height: 9, rx: 1, class: 'envelope' }, g);
+  el('path', { d: `M${x - 7} ${deskTop - 10}l7 5l7 -5`, class: 'envelope-flap' }, g);
+  return g;
+}
+
+/** Rotes Ausrufezeichen mit Funken - ein Fehler; bei 429 "Gedrosselt!". */
+function alarmFx(parent, x, y, s = 1) {
+  const g = el('g', { class: 'alarm', transform: `translate(${x} ${y}) scale(${s})` }, parent);
+  const sparks = el('g', { class: 'sparks' }, g);
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    el(
+      'path',
+      { d: `M${Math.cos(a) * 9} ${Math.sin(a) * 9}L${Math.cos(a) * 14} ${Math.sin(a) * 14}`, class: 'spark', style: `animation-delay:${(i % 3) * 0.12}s` },
+      sparks,
+    );
+  }
+  const mark = el('g', { class: 'alarm-mark' }, g);
+  el('circle', { cx: 0, cy: 0, r: 7, class: 'alarm-dot' }, mark);
+  el('path', { d: 'M0 -4v4.5', class: 'alarm-bang' }, mark);
+  el('circle', { cx: 0, cy: 3.4, r: 0.9, class: 'alarm-bang-dot' }, mark);
+  const rate = el('g', { class: 'alarm-rate' }, g);
+  el('rect', { x: 10, y: -7, width: 54, height: 14, rx: 7, class: 'alarm-rate-bg' }, rate);
+  const t = el('text', { x: 37, y: 3.5, 'text-anchor': 'middle', class: 'alarm-rate-text' }, rate);
+  t.textContent = 'Gedrosselt!';
+  return g;
+}
+
+/** Konfetti (Commit) und Rakete (Push) - nur kurz eingeblendet, siehe flash(). */
 function celebrationFx(parent, cx, y) {
   const g = el('g', { class: 'celebration' }, parent);
   const confetti = el('g', { class: 'confetti' }, g);
@@ -709,7 +742,9 @@ function mainFigure(parent, cx) {
   props(fig, cx, 88);
   const stack = paperStack(fig, cx + 49, 88, 16, 2.5, 13);
   const piggy = piggyBank(fig, cx - 8, 126);
+  mailFx(fig, cx - 30, 88);
   celebrationFx(fig, cx, 0);
+  alarmFx(fig, cx + 20, 26);
 
   // Schlafende Figur: aufsteigende z.
   const zzz = el('g', { class: 'zzz' }, fig);
@@ -751,6 +786,7 @@ function agentFigure(parent, cx, top, color) {
   props(fig, cx, top + 58, 0.62);
   const stack = paperStack(fig, cx + 25, top + 58, 10, 2, 9);
   celebrationFx(fig, cx, top - 4);
+  alarmFx(fig, cx + 13, top + 20, 0.75);
 
   // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich. Bewusst nicht im
   // (blass gestellten) Koerper; in die Pause geht es per CSS mit.
@@ -1122,21 +1158,33 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
   const data = new Map();
   /** Figur unter dem Mauszeiger - ihr Tooltip folgt den Aktualisierungen. */
   let hovered = null;
-  /** Bereits gefeierte Commits/Pushes - jeder nur einmal, und nur frische. */
-  const celebrated = new Set();
+  /** Bereits gezeigte Ereignisse - jedes nur einmal, und nur frische. */
+  const seen = new Set();
 
-  const celebrate = (st, figId, c) => {
-    if (!c?.id || celebrated.has(c.id)) return;
-    celebrated.add(c.id);
-    // Beim ersten Laden der Seite liegen aeltere Commits vor - die nicht.
-    if (c.at == null || Date.now() - c.at > CELEBRATE_FRESH_MS) return;
+  /**
+   * Kurzes Ereignis an einer Figur zeigen: setzt data-<attr> fuer ms
+   * Millisekunden. Beim ersten Laden der Seite liegen aeltere Ereignisse vor -
+   * die werden nur vermerkt, nicht gezeigt.
+   */
+  const flash = (st, figId, ev, attr, { ms, freshMs, value }) => {
+    if (!ev?.id) return;
+    const key = `${attr}:${ev.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (ev.at == null || Date.now() - ev.at > freshMs) return;
     const f = st.figs.get(figId);
     if (!f) return;
-    f.fig.dataset.celebrate = c.kind;
+    const v = value(ev);
+    f.fig.dataset[attr] = v;
     setTimeout(() => {
-      if (f.fig.dataset.celebrate === c.kind) delete f.fig.dataset.celebrate;
-    }, 3600);
+      if (f.fig.dataset[attr] === v) delete f.fig.dataset[attr];
+    }, ms);
   };
+  const celebrate = (st, figId, c) =>
+    flash(st, figId, c, 'celebrate', { ms: 3600, freshMs: CELEBRATE_FRESH_MS, value: (e) => e.kind });
+  const mail = (st, figId, p) => flash(st, figId, p, 'mail', { ms: 2600, freshMs: EVENT_FRESH_MS, value: () => '1' });
+  const alarm = (st, figId, e) =>
+    flash(st, figId, e, 'alarm', { ms: 6000, freshMs: EVENT_FRESH_MS, value: (x) => x.kind });
 
   // Im Hintergrund-Tab sieht niemand zu: Animationen anhalten (CSS ueber die
   // Klasse, die Papierflieger laufen per SMIL und brauchen pauseAnimations).
@@ -1220,7 +1268,12 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
       applyOffice(st, p, ctx, env);
       for (const s of p.sessions) {
         celebrate(st, s.sessionId, s.celebration);
-        for (const a of s.agents) celebrate(st, a.id, a.celebration);
+        mail(st, s.sessionId, s.prompt);
+        alarm(st, s.sessionId, s.error);
+        for (const a of s.agents) {
+          celebrate(st, a.id, a.celebration);
+          alarm(st, a.id, a.error);
+        }
       }
       wanted.push(st.root);
     }

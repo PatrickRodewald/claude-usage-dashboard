@@ -748,3 +748,60 @@ test('Kontext und Tempo: Sitzung nur Hauptstrang, Subagent fuer sich, Kosten zus
   assert.equal(a.context, 40_005);
   assert.equal(a.outputPerMin, 300);
 });
+
+// --- Ereignisse: Nachricht von dir, Fehler ----------------------------------------
+
+test('eine Nachricht von dir wird erkannt, Eingespieltes nicht', () => {
+  const now = Date.now();
+  const user = (content, extra = {}) =>
+    JSON.stringify({ type: 'user', uuid: `u-${Math.random()}`, timestamp: iso(now), message: { role: 'user', content }, ...extra });
+  const mine = tailInfo([user('Bitte baue das ein')]);
+  assert.ok(mine.prompt?.id, 'Klartext');
+  assert.equal(mine.prompt.at, now);
+  assert.ok(tailInfo([user([{ type: 'text', text: 'als Block' }])]).prompt, 'Text-Block');
+  for (const [name, line] of [
+    ['Meta-Zeile', user('Kontext', { isMeta: true })],
+    ['Meldung eines Agents', user('<task-notification>\n<task-id>x</task-id>')],
+    ['Erinnerung', user('<system-reminder>…</system-reminder>')],
+    ['Werkzeug-Ergebnis', user([{ type: 'tool_result', tool_use_id: 't', content: 'ok' }])],
+    ['Subagent-Auftrag', user('Recherchiere X', { isSidechain: true })],
+  ]) {
+    assert.equal(tailInfo([line]).prompt, null, name);
+  }
+});
+
+test('Fehler: Werkzeug, API und Drosselung', () => {
+  const now = Date.now();
+  const tool = tailInfo([JSON.stringify(toolResult(now, 't1', { isError: true }))]);
+  assert.deepEqual(tool.error, { id: 't1', kind: 'tool', at: now });
+
+  const rate = tailInfo([
+    JSON.stringify({ type: 'assistant', uuid: 'e1', timestamp: iso(now), isApiErrorMessage: true, apiErrorStatus: 429, message: { content: [] } }),
+  ]);
+  assert.deepEqual(rate.error, { id: 'e1', kind: 'rate', at: now });
+
+  const conn = tailInfo([JSON.stringify({ type: 'system', subtype: 'api_error', uuid: 'e2', timestamp: iso(now) })]);
+  assert.equal(conn.error.kind, 'api');
+
+  assert.equal(tailInfo([JSON.stringify(toolResult(now, 't1'))]).error, null, 'Erfolg ist kein Fehler');
+});
+
+test('der Tracker meldet Nachricht und Fehler je Figur', async () => {
+  const now = Date.now();
+  const sb = sandbox();
+  sb.session(101, { sessionId: 's-a', cwd: CWD, status: 'busy', startedAt: now - 10 * MIN, statusUpdatedAt: now });
+  sb.main(CWD, 's-a', [
+    { type: 'user', uuid: 'p1', timestamp: iso(now - 5000), message: { role: 'user', content: 'Los geht es' } },
+    toolUse(now - 4000, 'm1', ['tu-1', 'Agent']),
+  ]);
+  sb.agent(CWD, 's-a', 'a1', { agentType: 'Explore', toolUseId: 'tu-1' }, [
+    toolUse(now - 3000, 'x1', ['s1', 'Read']),
+    toolResult(now - 2000, 's1', { isError: true }),
+  ]);
+  const t = sb.tracker();
+  await t.refresh(now);
+  const s = t.snapshot().projects[0].sessions[0];
+  assert.deepEqual(s.prompt, { id: 'p1', at: now - 5000 });
+  assert.equal(s.error, null);
+  assert.deepEqual(s.agents[0].error, { id: 's1', kind: 'tool', at: now - 2000 });
+});
