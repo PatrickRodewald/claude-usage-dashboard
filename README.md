@@ -201,15 +201,21 @@ Stunden. Ändert sich die Zahl, fällt das alte Blatt ab. Der Tooltip nennt den 
 Subagents sitzen an kleineren Tischen davor, eingefärbt nach Typ (Explore, Plan,
 general-purpose, …). Solange sie laufen, fliegen Papierflieger mit Aufträgen vom Tisch des
 Auftraggebers zu ihnen. Verschachtelte Subagents bekommen ihre Aufträge von dem Subagent, der sie
-gestartet hat. Beendete Subagents bleiben noch eine Viertelstunde blass sitzen, mit Haken, Kreuz
-oder Strich (`activity.recentMs`). Der Tooltip einer Figur nennt Auftrag, Laufzeit, aktuelles
+gestartet hat. Wird ein Subagent fertig, fliegt sein Ergebnis als grüner Papierflieger zurück
+zum Auftraggeber. Danach bleibt er noch eine Viertelstunde blass sitzen, mit Haken, Kreuz oder
+Strich (`activity.recentMs`). Der Tooltip einer Figur nennt Auftrag, Laufzeit, aktuelles
 Werkzeug und die bisherigen Kosten.
+
+Jeder Raum hat eine Tür in der Rückwand. Ein neuer Subagent oder eine neu geöffnete Sitzung
+kommt durch die Tür herein und geht an den eigenen Tisch. Wer verschwindet, steht auf und geht
+hinaus. Geht die letzte Sitzung eines Projekts, schließt danach der ganze Raum. Beim Öffnen der
+Seite sitzen alle schon an ihren Plätzen.
 
 Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sitzungen auf diesem
 Gerät. Sie funktioniert im hellen wie im dunklen Design und kommt ohne externe Schriften aus: Die
 Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard unter macOS). Wer
-Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, und die
-Papierflieger bleiben am Boden. Liegt der Tab im Hintergrund, hält das Büro alle Animationen an.
+Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, die
+Papierflieger bleiben am Boden, und wer kommt oder geht, ist einfach da oder weg. Liegt der Tab im Hintergrund, hält das Büro alle Animationen an.
 
 ### Warnkanäle
 
@@ -501,7 +507,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-301 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+302 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

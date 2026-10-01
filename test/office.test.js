@@ -15,6 +15,7 @@ import {
   stackSheets,
   typeDuration,
   coinCount,
+  arrivals,
   isLongWork,
   roomAsleep,
   lookOffset,
@@ -134,4 +135,15 @@ test('der Blick geht zur fertigen Figur', () => {
   assert.equal(lookOffset(300, 100), -2);
   assert.equal(lookOffset(100, 102), 0, 'direkt davor: geradeaus');
   assert.equal(lookOffset(undefined, 100), 0);
+});
+
+test('arrivals: neue Figuren kommen, verschwundene gehen', () => {
+  assert.deepEqual(arrivals(['s1', 'a1', 'a2'], ['s1', 'a2', 'a3']), { entering: ['a3'], leaving: ['a1'] });
+  // Gleicher Stand: niemand bewegt sich, auch nicht bei anderer Reihenfolge.
+  assert.deepEqual(arrivals(['s1', 'a1'], ['a1', 's1']), { entering: [], leaving: [] });
+  // Neuer Raum: alle kommen herein; aufgeloester Raum: alle gehen.
+  assert.deepEqual(arrivals([], ['s1', 'a1']), { entering: ['s1', 'a1'], leaving: [] });
+  assert.deepEqual(arrivals(['s1'], []), { entering: [], leaving: ['s1'] });
+  // Iterierbare Eingaben (Map-Schluessel) gehen auch.
+  assert.deepEqual(arrivals(new Map([['x', 1]]).keys(), new Map([['y', 1]]).keys()), { entering: ['y'], leaving: ['x'] });
 });

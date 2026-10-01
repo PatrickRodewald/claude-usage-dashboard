@@ -1218,6 +1218,112 @@ td.name {
   display: none !important;
 }
 
+/* Kommen und Gehen: Tuer in der Rueckwand, neue Figuren kommen herein,
+   gehende laufen hinaus. */
+.door-frame {
+  fill: var(--wood-dark);
+}
+.door-opening {
+  fill: #141311;
+}
+.door-panel {
+  transform-box: fill-box;
+  transform-origin: left center;
+  transition: transform 0.45s ease-in-out;
+}
+.door-leaf {
+  fill: var(--wood);
+}
+.door-inset {
+  fill: none;
+  stroke: var(--wood-dark);
+  stroke-width: 1;
+}
+.door-knob {
+  fill: #d8b25a;
+}
+.station[data-door='open'] .door-panel {
+  transform: scaleX(0.18);
+}
+.fig[data-enter]:not([data-break]) .fig-body {
+  animation: cud-enter 1.8s ease-in-out both !important;
+}
+.fig[data-enter]:not([data-break]) .legs {
+  display: inline;
+}
+.fig[data-enter] .arm {
+  animation: none !important;
+}
+.fig[data-enter] .bubble,
+.fig[data-enter] .thought,
+.fig[data-enter] .waves,
+.fig[data-enter] .zzz,
+.fig[data-enter] .celebration,
+.fig[data-enter] .mail,
+.fig[data-enter] .alarm,
+.fig[data-enter] .badge {
+  display: none !important;
+}
+.ghost {
+  pointer-events: none;
+}
+.ghost .legs {
+  display: inline;
+}
+.ghost .fig-body {
+  animation: cud-leave 1.8s ease-in-out forwards;
+}
+/* Ein schliessender Raum: nur noch die Gehenden bewegen sich. */
+.station[data-closing] .fig .bubble,
+.station[data-closing] .fig .thought,
+.station[data-closing] .fig .waves,
+.station[data-closing] .fig .zzz,
+.station[data-closing] .fig .badge,
+.station[data-closing] .route {
+  display: none;
+}
+.station[data-closing] {
+  animation: cud-close 2s ease-in forwards;
+}
+/* Ergebnis auf dem Rueckweg: ein abgehakter, gruener Flieger. */
+.plane-body.result {
+  fill: #e7f4df;
+  stroke: var(--status-good);
+}
+@keyframes cud-enter {
+  0% {
+    transform: translate(var(--ex, 0), var(--ey, 0));
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes cud-leave {
+  0% {
+    transform: translate(0, 0);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--ex, 0), var(--ey, 0));
+    opacity: 0;
+  }
+}
+@keyframes cud-close {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Abreisskalender */
 .calendar-page {
   fill: #f7f5ee;
@@ -1740,6 +1846,16 @@ td.name {
     opacity: 1;
   }
   .fig[data-celebrate] .celebration {
+    display: none;
+  }
+  /* Kommen und Gehen ohne Weg: wer kommt, sitzt sofort; wer geht, ist weg. */
+  .ghost,
+  .plane-back,
+  .fig[data-enter] .legs {
+    display: none !important;
+  }
+  .station[data-closing] {
+    animation: none;
     display: none;
   }
 }

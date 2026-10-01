@@ -212,6 +212,19 @@ export function coinCount(cost, max = 8) {
   return Math.min(max, Math.max(1, Math.ceil(Math.log2(1 + cost))));
 }
 
+/**
+ * Wer zwischen zwei Staenden eines Raums dazukommt und wer geht.
+ * Reihenfolge wie in den Eingaben.
+ */
+export function arrivals(beforeIds, afterIds) {
+  const before = new Set(beforeIds);
+  const after = new Set(afterIds);
+  return {
+    entering: [...after].filter((id) => !before.has(id)),
+    leaving: [...before].filter((id) => !after.has(id)),
+  };
+}
+
 /* --- Taetigkeit je Werkzeug ---------------------------------------------------- */
 
 const TOOL_ACTIVITY = {
@@ -444,6 +457,21 @@ function drawCalendar(svg, cx, top) {
   el('rect', { x: cx - 13, y: top + 7, width: 26, height: 21, rx: 1, class: 'calendar-page' }, sheet);
   const sheetBig = el('text', { x: cx, y: top + 19, 'text-anchor': 'middle', class: 'calendar-big' }, sheet);
   return { g, title, big, small, sheetBig, last: null };
+}
+
+/** Tuer links an der Wand: hier kommen neue Figuren herein und gehen beendete hinaus. */
+const DOOR_X = 50;
+const DOOR_W = 26;
+function drawDoor(svg) {
+  const g = el('g', { class: 'door' }, svg);
+  el('rect', { x: DOOR_X - 3, y: WALL_H - 61, width: DOOR_W + 6, height: 63, rx: 2, class: 'door-frame' }, g);
+  el('rect', { x: DOOR_X, y: WALL_H - 58, width: DOOR_W, height: 58, class: 'door-opening' }, g);
+  const panel = el('g', { class: 'door-panel' }, g);
+  el('rect', { x: DOOR_X, y: WALL_H - 58, width: DOOR_W, height: 58, rx: 1, class: 'door-leaf' }, panel);
+  el('rect', { x: DOOR_X + 4, y: WALL_H - 52, width: DOOR_W - 8, height: 20, rx: 1, class: 'door-inset' }, panel);
+  el('rect', { x: DOOR_X + 4, y: WALL_H - 28, width: DOOR_W - 8, height: 22, rx: 1, class: 'door-inset' }, panel);
+  el('circle', { cx: DOOR_X + DOOR_W - 5, cy: WALL_H - 30, r: 1.6, class: 'door-knob' }, panel);
+  return g;
 }
 
 /** Kaffeeecke links an der Wand: Theke mit Maschine. Hierher geht es zur Zwangspause. */
@@ -864,6 +892,30 @@ function route(parent, from, to) {
   const motion = el('animateMotion', { dur, repeatCount: 'indefinite', rotate: 'auto' }, plane);
   el('mpath', { href: `#${id}` }, motion);
   el('animate', { attributeName: 'opacity', values: '0;1;1;0', keyTimes: '0;0.1;0.85;1', dur, repeatCount: 'indefinite' }, plane);
+
+  // Das Ergebnis fliegt einmal zurueck, wenn der Agent fertig wird
+  // (begin="indefinite", gestartet per beginElement in applyOffice).
+  const back = el('g', { class: 'plane-back', opacity: 0 }, g);
+  el('path', { d: 'M-7 -4.5L7 0L-7 4.5L-4 0z', class: 'plane-body result' }, back);
+  const backMotion = el(
+    'animateMotion',
+    { dur: '1.8s', begin: 'indefinite', rotate: 'auto', keyPoints: '1;0', keyTimes: '0;1', calcMode: 'linear', fill: 'freeze' },
+    back,
+  );
+  el('mpath', { href: `#${id}` }, backMotion);
+  const backFade = el(
+    'animate',
+    { attributeName: 'opacity', values: '0;1;1;0', keyTimes: '0;0.1;0.85;1', dur: '1.8s', begin: 'indefinite', fill: 'freeze' },
+    back,
+  );
+  g.sendBack = () => {
+    try {
+      backMotion.beginElement();
+      backFade.beginElement();
+    } catch {
+      /* SMIL nicht verfuegbar - dann eben ohne Rueckflug */
+    }
+  };
   return g;
 }
 
@@ -939,6 +991,7 @@ function buildOffice(project, ctx) {
   }
   drawPlant(svg, width - 20, WALL_H + 30);
   drawCoffeeCorner(svg);
+  drawDoor(svg);
 
   const figures = el('g', {}, svg);
   // Nach den Figuren: die Papierflieger fliegen vor Tischen und Robotern.
@@ -1010,6 +1063,9 @@ function buildOffice(project, ctx) {
       const feetY = WALL_H + 52 + qRow * 40;
       f.fig.style.setProperty('--bx', `${targetX - f.home.x}px`);
       f.fig.style.setProperty('--by', `${feetY - f.home.feet}px`);
+      // Weg von bzw. zur Tuer: Fuesse auf der Schwelle.
+      f.fig.style.setProperty('--ex', `${DOOR_X + DOOR_W / 2 - f.home.x}px`);
+      f.fig.style.setProperty('--ey', `${WALL_H + 2 - f.home.feet}px`);
       qx += span;
     }
   }
@@ -1216,6 +1272,8 @@ function applyOffice(st, project, ctx, env = {}) {
   for (const id of finished) {
     const target = st.figs.get(id);
     if (!target) continue;
+    // Das Ergebnis fliegt als Papierflieger zum Auftraggeber zurueck.
+    target.route?.sendBack?.();
     for (const [otherId, f] of st.figs) {
       if (otherId === id) continue;
       f.fig.style.setProperty('--look-x', `${lookOffset(f.home.x, target.home.x)}px`);
@@ -1352,6 +1410,56 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
   };
   let prevLimit;
 
+  /* --- Kommen und Gehen ---------------------------------------------------- */
+
+  /** Beim ersten Laden ist schon jeder da - erst danach wird gekommen und gegangen. */
+  let renderedOnce = false;
+  const WALK_MS = 1900;
+
+  const openDoor = (st) => {
+    st.root.dataset.door = 'open';
+    clearTimeout(st.doorTimer);
+    st.doorTimer = setTimeout(() => delete st.root.dataset.door, WALK_MS + 200);
+  };
+
+  /** Neue Figur kommt durch die Tuer und geht an ihren Platz. */
+  const enter = (st, id) => {
+    const f = st.figs.get(id);
+    if (!f) return;
+    f.fig.dataset.enter = '1';
+    setTimeout(() => delete f.fig.dataset.enter, WALK_MS);
+  };
+
+  /**
+   * Gehende Figuren: ihr Koerper wird aus dem alten Raum uebernommen und
+   * laeuft zur Tuer hinaus. Farbe und Weg stecken in den CSS-Variablen der
+   * alten Figur und werden mitgenommen.
+   */
+  const leave = (from, into, ids) => {
+    for (const id of ids) {
+      const f = from.figs.get(id);
+      const body = f?.fig.querySelector('.fig-body');
+      if (!body) continue;
+      const ghost = el('g', { class: 'ghost', style: f.fig.getAttribute('style') ?? '' });
+      if (f.kind === 'session') ghost.setAttribute('transform', `translate(0 ${MAIN_Y})`);
+      ghost.append(body);
+      into.svg.insertBefore(ghost, into.svg.querySelector('.dim'));
+      setTimeout(() => ghost.remove(), WALK_MS);
+    }
+  };
+
+  /** Raum ohne Sitzung: die Letzten gehen hinaus, dann schliesst er. */
+  const closeRoom = (st) => {
+    if (!renderedOnce || document.hidden || !st.figs.size) {
+      st.root.remove();
+      return;
+    }
+    st.root.dataset.closing = '1';
+    leave(st, st, [...st.figs.keys()]);
+    openDoor(st);
+    setTimeout(() => st.root.remove(), WALK_MS + 100);
+  };
+
   const ctx = { usd, hover, timeZone, sound: play };
 
   let empty = null;
@@ -1373,7 +1481,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
     }
 
     if (!projects.length) {
-      for (const st of stations.values()) st.root.remove();
+      for (const st of stations.values()) closeRoom(st);
       stations.clear();
       if (hovered) {
         hovered = null;
@@ -1385,6 +1493,7 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
         empty.textContent = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.';
       }
       if (empty.parentNode !== container) container.append(empty);
+      renderedOnce = true;
       return;
     }
     if (empty?.parentNode) empty.remove();
@@ -1404,12 +1513,19 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
       let st = stations.get(p.key);
       if (!st || st.sig !== sig) {
         const fresh = buildOffice(p, ctx);
+        const before = st ? [...st.figs.keys()] : [];
         if (st) {
           dropHover(st);
           // Wer vorher lief, bleibt bekannt - sonst ginge ein "gerade fertig"
           // verloren, wenn im selben Moment ein neuer Agent dazukommt.
           fresh.prevStates = st.prevStates;
           st.root.replaceWith(fresh.root);
+        }
+        if (renderedOnce) {
+          const { entering, leaving } = arrivals(before, fresh.figs.keys());
+          for (const id of entering) enter(fresh, id);
+          if (st) leave(st, fresh, leaving);
+          if (entering.length || leaving.length) openDoor(fresh);
         }
         st = fresh;
         stations.set(p.key, st);
@@ -1430,8 +1546,8 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
     for (const [key, st] of stations) {
       if (!projects.some((p) => p.key === key)) {
         dropHover(st);
-        st.root.remove();
         stations.delete(key);
+        closeRoom(st);
       }
     }
     // Der Tooltip der gezeigten Figur folgt dem neuen Stand.
@@ -1443,12 +1559,22 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
         tooltip.hide();
       }
     }
-    // Nur umhaengen, wenn sich die Reihenfolge wirklich geaendert hat: jedes
-    // Umhaengen startet die Animationen des Raums neu.
-    const current = [...container.children].filter((n) => n.classList.contains('station'));
-    if (current.length !== wanted.length || current.some((n, i) => n !== wanted[i])) {
-      for (const n of wanted) container.append(n);
+    // Nur Raeume umhaengen, die nicht schon an ihrer Stelle stehen: jedes
+    // Umhaengen startet die Animationen des Raums neu. Von hinten nach vorn,
+    // jeder Raum vor seinen Nachfolger; schliessende Raeume (die Letzten gehen
+    // gerade) zaehlen nicht mit.
+    const nextRoom = (n) => {
+      let x = n.nextSibling;
+      while (x?.dataset?.closing) x = x.nextSibling;
+      return x;
+    };
+    let ref = null;
+    for (let i = wanted.length - 1; i >= 0; i--) {
+      const n = wanted[i];
+      if (n.parentNode !== container || nextRoom(n) !== ref) container.insertBefore(n, ref);
+      ref = n;
     }
+    renderedOnce = true;
   }
 
   function tick() {
