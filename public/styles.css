@@ -365,6 +365,14 @@ main {
 .panel-head {
   margin-bottom: 10px;
 }
+/* Kopf mit Schalter rechts (Bereich "Gerade aktiv"). */
+.panel-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
 .panel-head h2 {
   margin: 0;
   font-size: 13px;
@@ -1343,6 +1351,80 @@ td.name {
   fill: #fff;
 }
 
+/* --- Ruhige Lebendigkeit ------------------------------------------------------ */
+
+/* Blinzeln im eigenen Takt (--blink-dur/-delay je Figur, agents.js). */
+.blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-blinkeyes var(--blink-dur, 5s) ease-in-out var(--blink-delay, 0s) infinite;
+}
+/* Kurz hinueberschauen, wenn nebenan jemand fertig wird. */
+.look {
+  transition: transform 0.35s ease-out;
+}
+.fig[data-look] .look {
+  transform: translateX(var(--look-x, 0));
+}
+/* Nach langer Arbeit zwischendurch strecken: Arme kurz hoch. */
+.arm-up {
+  opacity: 0;
+}
+.fig[data-long] .arm {
+  animation: cud-stretch-hide 15s ease-in-out infinite;
+}
+.fig[data-long][data-state='tool'] .arm {
+  animation:
+    cud-type var(--type-dur, 0.32s) ease-in-out infinite,
+    cud-stretch-hide 15s ease-in-out infinite;
+}
+.fig[data-long][data-state='tool'] .arm-r {
+  animation-delay: calc(var(--type-dur, 0.32s) / 2), 0s;
+}
+.fig[data-long] .arm-up {
+  animation: cud-stretch-show 15s ease-in-out infinite;
+}
+.fig[data-break] .arm-up {
+  display: none;
+}
+.fig[data-break] .arm {
+  animation: none !important;
+  opacity: 1;
+}
+/* Schreibtischlampe: abends und nachts an. */
+.lamp-part {
+  fill: #6b6b68;
+}
+.lamp-arm {
+  fill: none;
+  stroke: #6b6b68;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.lamp-light {
+  display: none;
+  fill: #ffe08a;
+  opacity: 0.25;
+}
+.station[data-sky='dusk'] .lamp-light,
+.station[data-sky='night'] .lamp-light {
+  display: inline;
+}
+/* Alle schlafen: Raum gedimmt. */
+.dim {
+  fill: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+.station[data-asleep] .dim {
+  opacity: 0.28;
+}
+#sound-toggle[data-on='1'] {
+  color: var(--status-good);
+  border-color: color-mix(in srgb, var(--status-good) 45%, transparent);
+}
+
 /* Hintergrund-Tab: alles anhalten. */
 .workshop.paused * {
   animation-play-state: paused !important;
@@ -1470,6 +1552,40 @@ td.name {
   100% {
     opacity: 0;
     transform: scale(1.3);
+  }
+}
+@keyframes cud-blinkeyes {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes cud-stretch-hide {
+  0%,
+  86%,
+  97%,
+  100% {
+    opacity: 1;
+  }
+  88%,
+  95% {
+    opacity: 0;
+  }
+}
+@keyframes cud-stretch-show {
+  0%,
+  86%,
+  97%,
+  100% {
+    opacity: 0;
+  }
+  88%,
+  95% {
+    opacity: 1;
   }
 }
 @keyframes cud-flip {

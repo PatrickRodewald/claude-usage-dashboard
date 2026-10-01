@@ -15,6 +15,10 @@ import {
   stackSheets,
   typeDuration,
   coinCount,
+  isLongWork,
+  roomAsleep,
+  lookOffset,
+  LONG_WORK_MS,
 } from '../public/agents.js';
 
 test('jedes Werkzeug bekommt eine passende Taetigkeit', () => {
@@ -105,4 +109,29 @@ test('Muenzen zeigen die Groessenordnung der Kosten', () => {
   assert.equal(coinCount(190), 8);
   assert.equal(coinCount(10_000), 8, 'gedeckelt');
   assert.equal(coinCount(null), 0);
+});
+
+test('wer lange am Stueck arbeitet, streckt sich', () => {
+  const now = Date.now();
+  assert.equal(isLongWork({ status: 'busy', statusSince: now - LONG_WORK_MS - 1 }, now), true);
+  assert.equal(isLongWork({ status: 'busy', statusSince: now - 60_000 }, now), false);
+  assert.equal(isLongWork({ status: 'idle', statusSince: now - 2 * LONG_WORK_MS }, now), false, 'nur wer arbeitet');
+  assert.equal(isLongWork({ status: 'busy' }, now), false);
+});
+
+test('ein Raum schlaeft erst, wenn wirklich niemand arbeitet', () => {
+  const room = (...sessions) => ({ sessions });
+  const s = (status, agents = []) => ({ status, agents });
+  assert.equal(roomAsleep(room(s('idle'), s('idle'))), true);
+  assert.equal(roomAsleep(room(s('idle'), s('busy'))), false);
+  assert.equal(roomAsleep(room(s('idle', [{ state: 'running' }]))), false, 'ein Hintergrund-Agent arbeitet noch');
+  assert.equal(roomAsleep(room(s('idle', [{ state: 'completed' }]))), true);
+  assert.equal(roomAsleep(room()), false);
+});
+
+test('der Blick geht zur fertigen Figur', () => {
+  assert.equal(lookOffset(100, 300), 2);
+  assert.equal(lookOffset(300, 100), -2);
+  assert.equal(lookOffset(100, 102), 0, 'direkt davor: geradeaus');
+  assert.equal(lookOffset(undefined, 100), 0);
 });

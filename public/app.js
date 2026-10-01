@@ -362,6 +362,37 @@ const workshop = createWorkshop($('workshop'), {
   timeZone: () => snapshot?.timezone,
 });
 
+// Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
+// bei einem Klick - ohne Nutzergeste laesst der Browser ihn nicht anlaufen.
+const soundBtn = $('sound-toggle');
+let soundOn = false;
+try {
+  soundOn = localStorage.getItem('cud-sound') === '1';
+} catch {
+  /* kein Speicher - dann eben aus */
+}
+const syncSoundButton = () => {
+  soundBtn.textContent = soundOn ? 'Töne an' : 'Töne aus';
+  soundBtn.dataset.on = soundOn ? '1' : '0';
+};
+syncSoundButton();
+if (soundOn) {
+  workshop.setSound(true);
+  // Gemerkt "an", aber ohne Klick bleibt der Kontext stumm: beim ersten
+  // Klick irgendwo auf der Seite aufwecken.
+  document.addEventListener('pointerdown', () => workshop.setSound(soundOn), { once: true });
+}
+soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  workshop.setSound(soundOn);
+  try {
+    localStorage.setItem('cud-sound', soundOn ? '1' : '0');
+  } catch {
+    /* egal */
+  }
+  syncSoundButton();
+});
+
 function renderActivity(s) {
   const act = s.activity;
   const section = $('live-section');

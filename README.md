@@ -152,6 +152,17 @@ Kaffeetasse:
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
   inzwischen neu vergeben hat.
 
+Dazu kommt etwas ruhige Lebendigkeit:
+
+- Jede wache Figur blinzelt im eigenen Takt.
+- Wer seit über 20 Minuten am Stück arbeitet, reckt zwischendurch die Arme hoch.
+- Wird ein Subagent fertig, schauen die anderen im Raum kurz zu ihm hinüber.
+- Abends und nachts gehen Schreibtischlampen an. Schlafen alle in einem Raum, wird er gedimmt.
+- Auf Wunsch gibt es Töne, einzuschalten über „Töne“ im Kopf des Bereichs, standardmäßig aus:
+  ein Gong, wenn ein Subagent fertig wird, und ein Warnton, wenn das Limit kritisch wird. Die
+  Töne werden per Web Audio synthetisiert, es gibt keine Dateien. Der Browser lässt sie erst nach
+  einem Klick auf der Seite zu.
+
 Kurze Momente zeigen, was gerade passiert. Jeder erscheint einmal und nur, solange er frisch
 ist. Beim Öffnen der Seite tauchen keine alten Ereignisse auf.
 
@@ -490,7 +501,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-298 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+301 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

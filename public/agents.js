@@ -162,6 +162,29 @@ function skyFor(h) {
   return 'night';
 }
 
+/* --- Ruhige Lebendigkeit -------------------------------------------------------- */
+
+/** Ab so langer ununterbrochener Arbeit streckt sich eine Figur zwischendurch. */
+export const LONG_WORK_MS = 20 * 60_000;
+
+export function isLongWork(s, now = Date.now()) {
+  return s?.status === 'busy' && Number.isFinite(s.statusSince) && now - s.statusSince >= LONG_WORK_MS;
+}
+
+/** Schlafen alle im Raum? Dann wird er gedimmt. */
+export function roomAsleep(project) {
+  const sessions = project?.sessions ?? [];
+  if (!sessions.length) return false;
+  return sessions.every((s) => s.status !== 'busy' && !s.agents.some((a) => a.state === 'running'));
+}
+
+/** Blickrichtung zu einer Figur: wenige Pixel nach links oder rechts. */
+export function lookOffset(fromX, toX, max = 2) {
+  if (!Number.isFinite(fromX) || !Number.isFinite(toX)) return 0;
+  const d = toX - fromX;
+  return Math.abs(d) < 4 ? 0 : Math.sign(d) * max;
+}
+
 /* --- Messwerte als Gegenstaende ------------------------------------------------ */
 
 /** Blaetter im Aktenstapel: Kontext der letzten Anfrage im Verhaeltnis zum Fenster. */
@@ -521,6 +544,16 @@ function piggyBank(parent, cx, floorY) {
   return { g, coins };
 }
 
+/** Schreibtischlampe; ihr Lichtkegel geht abends und nachts an (data-sky am Raum). */
+function deskLamp(parent, x, deskTop) {
+  const g = el('g', { class: 'desk-lamp' }, parent);
+  el('path', { d: `M${x + 7} ${deskTop - 19}l3 -1l14 18h-24z`, class: 'lamp-light' }, g);
+  el('rect', { x: x - 3, y: deskTop - 3, width: 9, height: 3, rx: 1, class: 'lamp-part' }, g);
+  el('path', { d: `M${x + 1} ${deskTop - 3}l3 -14l5 -2`, class: 'lamp-arm' }, g);
+  el('path', { d: `M${x + 6} ${deskTop - 21}l6 2l-2 5l-6 -2z`, class: 'lamp-part' }, g);
+  return g;
+}
+
 /** Kaffeetasse; dampft, solange gearbeitet wird. */
 function mug(parent, x, deskTop) {
   const g = el('g', { class: 'mug' }, parent);
@@ -715,14 +748,19 @@ function mainFigure(parent, cx) {
   el('rect', { x: cx - 17, y: 58, width: 34, height: 32, rx: 9, class: 'fig-fill' }, bodyG);
   el('circle', { cx, cy: 44, r: 13, class: 'fig-fill' }, bodyG);
   // Augen offen bzw. geschlossen - welche sichtbar sind, steuert data-state.
-  const open = el('g', { class: 'eyes-open' }, bodyG);
-  el('circle', { cx: cx - 5, cy: 43, r: 2.2, class: 'fig-eye' }, open);
-  el('circle', { cx: cx + 5, cy: 43, r: 2.2, class: 'fig-eye' }, open);
+  // Blick (aussen) und Blinzeln (innen) getrennt - beide setzen transform.
+  const open = el('g', { class: 'eyes-open look' }, bodyG);
+  const blink = el('g', { class: 'blink' }, open);
+  el('circle', { cx: cx - 5, cy: 43, r: 2.2, class: 'fig-eye' }, blink);
+  el('circle', { cx: cx + 5, cy: 43, r: 2.2, class: 'fig-eye' }, blink);
   const closed = el('g', { class: 'eyes-closed' }, bodyG);
   el('path', { d: `M${cx - 8} 44q3 2 6 0M${cx + 2} 44q3 2 6 0`, class: 'fig-eye-line' }, closed);
   // Arme zum Tisch; tippen, solange gearbeitet wird.
   el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, bodyG);
+  // Hochgereckte Arme fuers Strecken nach langer Arbeit (blenden nur kurz ein).
+  el('rect', { x: cx - 26, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up' }, bodyG);
+  el('rect', { x: cx + 19, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up' }, bodyG);
   // Nur in der Zwangspause sichtbar: Beine zum Stehen und eine Tasse in der Hand.
   const legs = el('g', { class: 'legs' }, bodyG);
   el('rect', { x: cx - 12, y: 88, width: 8, height: 24, rx: 3, class: 'fig-fill' }, legs);
@@ -735,6 +773,7 @@ function mainFigure(parent, cx) {
 
   // Schreibtisch, Laptop (Rueckseite mit leuchtendem Logo) und Tasse davor.
   drawDesk(fig, cx, 88, 118, 30);
+  deskLamp(fig, cx - 54, 88);
   el('path', { d: `M${cx - 18} 88l4 -16h28l4 16z`, class: 'laptop' }, fig);
   el('rect', { x: cx - 11, y: 75, width: 22, height: 10, rx: 1.5, class: 'laptop-screen' }, fig);
   screenFx(fig, cx - 11, 75, 22, 10);
@@ -766,11 +805,14 @@ function agentFigure(parent, cx, top, color) {
 
   const bodyG = el('g', { class: 'fig-body' }, fig);
   el('circle', { cx, cy: top + 33, r: 9, class: 'fig-fill' }, bodyG);
-  el('circle', { cx: cx - 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, bodyG);
-  el('circle', { cx: cx + 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, bodyG);
+  const eyes = el('g', { class: 'blink' }, el('g', { class: 'look' }, bodyG));
+  el('circle', { cx: cx - 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, eyes);
+  el('circle', { cx: cx + 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, eyes);
   el('rect', { x: cx - 11, y: top + 44, width: 22, height: 18, rx: 6, class: 'fig-fill' }, bodyG);
   el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
+  el('rect', { x: cx - 17, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up' }, bodyG);
+  el('rect', { x: cx + 12, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up' }, bodyG);
   const legs = el('g', { class: 'legs' }, bodyG);
   el('rect', { x: cx - 8, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
   el('rect', { x: cx + 2, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
@@ -972,7 +1014,14 @@ function buildOffice(project, ctx) {
     }
   }
 
-  // Roter Schimmer ueber dem ganzen Raum, solange das Limit kritisch ist.
+  // Jede Figur blinzelt im eigenen Takt - im Gleichschritt wirkte es mechanisch.
+  for (const f of figs.values()) {
+    f.fig.style.setProperty('--blink-delay', `${(Math.random() * 5).toFixed(2)}s`);
+    f.fig.style.setProperty('--blink-dur', `${(3.5 + Math.random() * 3.5).toFixed(2)}s`);
+  }
+
+  // Gedimmt, wenn alle schlafen; roter Schimmer, solange das Limit kritisch ist.
+  el('rect', { x: 0, y: 0, width, height, class: 'dim' }, svg);
   el('rect', { x: 0, y: 0, width, height, class: 'alarm-glow' }, svg);
 
   root.append(svg);
@@ -982,7 +1031,10 @@ function buildOffice(project, ctx) {
 /** Uhr und Fenster auf die aktuelle Zeit stellen. */
 function applyTime(st, timeZone) {
   const { h, m } = zonedTime(timeZone);
-  if (st.windowG) st.windowG.dataset.sky = skyFor(h);
+  const sky = skyFor(h);
+  if (st.windowG) st.windowG.dataset.sky = sky;
+  // Schreibtischlampen haengen am Raum, nicht am Fenster - kleine Raeume haben keins.
+  if (st.root.dataset.sky !== sky) st.root.dataset.sky = sky;
   if (st.clock) {
     const { cx, cy } = st.clock;
     st.clock.hour.setAttribute('transform', `rotate(${((h % 12) + m / 60) * 30} ${cx} ${cy})`);
@@ -1137,6 +1189,45 @@ function applyOffice(st, project, ctx, env = {}) {
       summary.push(`${a.type} ${as === 'tool' || as === 'thinking' ? 'läuft' : g.sub.textContent}`);
     }
   }
+  // Lange am Stueck gearbeitet: zwischendurch strecken.
+  const now = Date.now();
+  for (const s of project.sessions) {
+    const f = st.figs.get(s.sessionId);
+    if (!f) continue;
+    if (isLongWork(s, now)) f.fig.dataset.long = '1';
+    else if (f.fig.dataset.long) delete f.fig.dataset.long;
+  }
+
+  // Alle schlafen: Raum dimmen.
+  if (roomAsleep(project)) st.root.dataset.asleep = '1';
+  else if (st.root.dataset.asleep) delete st.root.dataset.asleep;
+
+  // Gerade fertig geworden? Die anderen schauen kurz hinueber. Erst ab dem
+  // zweiten Durchlauf - beim Laden ist niemand "gerade" fertig geworden.
+  const finished = [];
+  const states = new Map();
+  for (const s of project.sessions) for (const a of s.agents) states.set(a.id, a.state);
+  if (st.prevStates) {
+    for (const [id, state] of states) {
+      if (state !== 'running' && st.prevStates.get(id) === 'running') finished.push(id);
+    }
+  }
+  st.prevStates = states;
+  for (const id of finished) {
+    const target = st.figs.get(id);
+    if (!target) continue;
+    for (const [otherId, f] of st.figs) {
+      if (otherId === id) continue;
+      f.fig.style.setProperty('--look-x', `${lookOffset(f.home.x, target.home.x)}px`);
+      f.fig.dataset.look = id;
+      clearTimeout(f.lookTimer);
+      f.lookTimer = setTimeout(() => {
+        if (f.fig.dataset.look === id) delete f.fig.dataset.look;
+      }, 4000);
+    }
+  }
+  if (finished.length) ctx.sound?.('chime');
+
   if (onBreak) summary.unshift('Limit erreicht, Zwangspause');
   st.svg.setAttribute('aria-label', `Büro ${project.label}: ${summary.join(', ')}`);
   applyTime(st, ctx.timeZone());
@@ -1148,7 +1239,7 @@ function applyOffice(st, project, ctx, env = {}) {
 /**
  * @param container  Element, das die Raeume aufnimmt
  * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone() }
- * @returns {{ render(activity, env), tick() }}  env = { fiveHour, week } aus snapshot.live;
+ * @returns {{ render(activity, env), tick(), setSound(on) }}  env = { fiveHour, week } aus snapshot.live;
  *          tick() stellt Uhren, Fenster und Kalender
  */
 export function createWorkshop(container, { tooltip, usd, describe, timeZone = () => undefined }) {
@@ -1211,12 +1302,68 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
       tooltip.hide();
     });
   };
-  const ctx = { usd, hover, timeZone };
+  /*
+   * Toene: standardmaessig aus. Synthetisiert per Web Audio, keine Dateien.
+   * Jeder Ton wird zusaetzlich als Ereignis 'cud-sound' am Container gemeldet
+   * (auch stumm) - zum Nachvollziehen und fuer Tests.
+   */
+  let soundOn = false;
+  let audio = null;
+  let lastSoundAt = 0;
+  const play = (name) => {
+    container.dispatchEvent(new CustomEvent('cud-sound', { detail: { name, on: soundOn } }));
+    if (!soundOn || !audio) return;
+    // Mehrere Ereignisse im selben Moment ergeben einen Ton, keine Kakophonie.
+    const nowMs = performance.now();
+    if (nowMs - lastSoundAt < 800) return;
+    lastSoundAt = nowMs;
+    const t0 = audio.currentTime + 0.01;
+    const notes =
+      name === 'alarm'
+        ? [
+            [660, 0, 'square', 0.04],
+            [660, 0.28, 'square', 0.04],
+          ]
+        : [
+            [880, 0, 'sine', 0.08],
+            [1320, 0.16, 'sine', 0.07],
+          ];
+    for (const [freq, dt, type, vol] of notes) {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0 + dt);
+      gain.gain.exponentialRampToValueAtTime(vol, t0 + dt + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.4);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(t0 + dt);
+      osc.stop(t0 + dt + 0.45);
+    }
+  };
+  /** Toene ein/aus. Der Audio-Kontext entsteht hier - Browser verlangen dafuer einen Klick. */
+  const setSound = (on) => {
+    soundOn = Boolean(on);
+    if (soundOn && !audio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audio = new AC();
+    }
+    if (soundOn) audio?.resume?.().catch(() => {});
+  };
+  let prevLimit;
+
+  const ctx = { usd, hover, timeZone, sound: play };
 
   let empty = null;
 
   function render(activity, env = {}) {
     const projects = activity?.projects ?? [];
+    // Warnton, wenn das Limit kritisch wird oder erreicht ist - einmal je
+    // Wechsel, nicht beim Laden.
+    const limit = limitState(env.fiveHour);
+    const alarming = (l) => l === 'critical' || l === 'reached';
+    if (prevLimit !== undefined && alarming(limit) && !alarming(prevLimit)) play('alarm');
+    prevLimit = limit;
     data.clear();
     for (const p of projects) {
       for (const s of p.sessions) {
@@ -1259,6 +1406,9 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
         const fresh = buildOffice(p, ctx);
         if (st) {
           dropHover(st);
+          // Wer vorher lief, bleibt bekannt - sonst ginge ein "gerade fertig"
+          // verloren, wenn im selben Moment ein neuer Agent dazukommt.
+          fresh.prevStates = st.prevStates;
           st.root.replaceWith(fresh.root);
         }
         st = fresh;
@@ -1308,5 +1458,5 @@ export function createWorkshop(container, { tooltip, usd, describe, timeZone = (
     }
   }
 
-  return { render, tick };
+  return { render, tick, setSound };
 }

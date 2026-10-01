@@ -108,9 +108,14 @@
       <!-- Was gerade arbeitet -->
       <section class="panels" id="live-section" hidden>
         <article class="panel panel-wide">
-          <header class="panel-head">
-            <h2>Gerade aktiv</h2>
-            <p class="panel-sub" id="live-sub">–</p>
+          <header class="panel-head panel-head-row">
+            <div>
+              <h2>Gerade aktiv</h2>
+              <p class="panel-sub" id="live-sub">–</p>
+            </div>
+            <button type="button" id="sound-toggle" class="btn" title="Gong, wenn ein Subagent fertig wird; Warnton, wenn das Limit kritisch wird">
+              Töne aus
+            </button>
           </header>
           <div class="workshop" id="workshop"></div>
         </article>
