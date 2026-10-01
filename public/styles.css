@@ -736,7 +736,7 @@ td.name {
 .fig[data-state='tool'] .steam,
 .fig[data-state='thinking'] .steam,
 .fig[data-state='delegating'] .steam {
-  animation: cud-steam 2.2s ease-in-out infinite;
+  animation: cud-steam calc(var(--type-dur, 0.32s) * 7) ease-in-out infinite;
 }
 
 /* Wege der Auftraege; der Papierflieger fliegt nur, solange der Agent laeuft. */
@@ -832,10 +832,11 @@ td.name {
   animation: cud-blink 1s ease-in-out infinite;
 }
 .fig[data-state='tool'] .arm {
-  animation: cud-type 0.32s ease-in-out infinite;
+  /* Tempo folgt dem Output der letzten zwei Minuten (--type-dur, agents.js). */
+  animation: cud-type var(--type-dur, 0.32s) ease-in-out infinite;
 }
 .fig[data-state='tool'] .arm-r {
-  animation-delay: 0.16s;
+  animation-delay: calc(var(--type-dur, 0.32s) / 2);
 }
 .fig[data-state='thinking'] .fig-body,
 .fig[data-state='delegating'] .fig-body {
@@ -1202,6 +1203,7 @@ td.name {
 .fig[data-break] .zzz,
 .fig[data-break] .screen-fx,
 .fig[data-break] .mug,
+.fig[data-break] .stack,
 .fig[data-break] .celebration {
   display: none !important;
 }
@@ -1238,6 +1240,46 @@ td.name {
   transform-box: fill-box;
   transform-origin: top left;
   animation: cud-tear 1.2s ease-in forwards;
+}
+
+/* --- Messwerte: Aktenstapel (Kontext), Sparschwein (Kosten) ----------------- */
+
+.sheet {
+  fill: #f4f1e8;
+  stroke: #c9c4b6;
+  stroke-width: 0.5;
+}
+/* Kontext fast voll: der Stapel wackelt - eine Compaction steht bevor. */
+.stack[data-high] {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: cud-wobble 1.4s ease-in-out infinite;
+}
+.pig-body {
+  fill: #f2a7b5;
+}
+.pig-detail {
+  fill: #e48a9c;
+}
+.pig-eye {
+  fill: #3b3a37;
+}
+.pig-slot {
+  stroke: #a85d6e;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.coin {
+  fill: #e7b416;
+  stroke: #b88a0a;
+  stroke-width: 0.5;
+}
+.coin-drop {
+  display: none;
+}
+.piggy.drop .coin-drop {
+  display: inline;
+  animation: cud-coin 0.8s ease-in forwards;
 }
 
 /* Hintergrund-Tab: alles anhalten. */
@@ -1293,6 +1335,31 @@ td.name {
   100% {
     opacity: 0;
     transform: rotate(-35deg) translate(-6px, 34px);
+  }
+}
+@keyframes cud-wobble {
+  25% {
+    transform: rotate(-2.5deg);
+  }
+  75% {
+    transform: rotate(2.5deg);
+  }
+}
+@keyframes cud-coin {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(13px);
   }
 }
 @keyframes cud-flip {

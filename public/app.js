@@ -328,6 +328,10 @@ function describeFigure(kind, it) {
     if (it.cost != null) {
       lines.push(`bisher ${it.costKnown ? usd(it.cost) : 'Preis unbekannt'} in ${num(it.requests)} Requests`);
     }
+    if (it.context) {
+      lines.push(`Kontext (Aktenstapel): ${compact(it.context)} von ${compact(it.contextLimit)} Tokens · ${pct((it.context / it.contextLimit) * 100)}`);
+    }
+    if (it.outputPerMin) lines.push(`Tempo: ${num(it.outputPerMin)} Output-Tokens/Min.`);
     const running = it.agents.filter((a) => a.state === 'running').length;
     if (running) lines.push(`${running} ${running === 1 ? 'Subagent läuft' : 'Subagents laufen'}`);
   } else {
@@ -339,6 +343,8 @@ function describeFigure(kind, it) {
           (it.tool ? `gerade: ${it.tool}` : 'denkt nach bzw. schreibt'),
       );
       lines.push(`zuletzt aktiv vor ${since(it.lastActivity)}`);
+      if (it.context) lines.push(`Kontext: ${compact(it.context)} von ${compact(it.contextLimit)} Tokens`);
+      if (it.outputPerMin) lines.push(`Tempo: ${num(it.outputPerMin)} Output-Tokens/Min.`);
     } else {
       lines.push(`${AGENT_STATE_TEXT[it.state] ?? it.state} vor ${since(it.finishedAt)}`);
     }

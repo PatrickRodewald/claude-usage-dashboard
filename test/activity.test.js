@@ -18,6 +18,7 @@ import {
   STALE_BUSY_MS,
   commandKind,
   tailInfo,
+  contextWindow,
 } from '../src/activity.js';
 
 const MIN = 60_000;
@@ -685,4 +686,65 @@ test('der Tracker reicht Detail und Feier bis in den Snapshot durch', async () =
   const s = t.snapshot().projects[0].sessions[0];
   assert.deepEqual([s.doing.kind, s.doing.tool, s.doing.detail], ['tool', 'Bash', 'test']);
   assert.equal(s.celebration.kind, 'commit');
+});
+
+// --- Messwerte: Kontext und Tempo ----------------------------------------------
+
+test('Kontextfenster je Modell', () => {
+  assert.equal(contextWindow('claude-opus-5-5'), 1_000_000);
+  assert.equal(contextWindow('claude-sonnet-4-6'), 1_000_000);
+  assert.equal(contextWindow('claude-haiku-4-5-20251001'), 200_000);
+  assert.equal(contextWindow('claude-sonnet-4-5-20250929'), 200_000);
+  assert.equal(contextWindow('claude-opus-4-5[1m]'), 1_000_000, 'ausdruecklich 1M');
+  assert.equal(contextWindow(undefined), 1_000_000);
+});
+
+test('Kontext und Tempo: Sitzung nur Hauptstrang, Subagent fuer sich, Kosten zusammen', async () => {
+  const { createStore } = await import('../src/store.js');
+  const pricingTable = JSON.parse(fs.readFileSync(new URL('../pricing.json', import.meta.url), 'utf8'));
+  const now = Date.now();
+  const sb = sandbox();
+  sb.session(101, { sessionId: 's-a', cwd: CWD, status: 'busy', startedAt: now - 60 * MIN, statusUpdatedAt: now });
+  const line = (id, ts, usage, extra = {}) => ({
+    type: 'assistant',
+    timestamp: iso(ts),
+    sessionId: 's-a',
+    requestId: `r-${id}`,
+    message: { id, model: 'claude-opus-5', role: 'assistant', content: [], usage },
+    ...extra,
+  });
+  sb.main(CWD, 's-a', [
+    // aelter als zwei Minuten: zaehlt fuer Kosten, nicht fuers Tempo
+    line('m1', now - 10 * MIN, { input_tokens: 10, output_tokens: 9000, cache_read_input_tokens: 100_000 }),
+    // juengste Anfrage des Hauptstrangs: Kontext = 50 + 300.000 + 20.000
+    line('m2', now - 60_000, {
+      input_tokens: 50,
+      output_tokens: 1200,
+      cache_read_input_tokens: 300_000,
+      cache_creation_input_tokens: 20_000,
+    }),
+    toolUse(now - 30_000, 'm3', ['tu-1', 'Agent']),
+  ]);
+  sb.agent(CWD, 's-a', 'a1', { agentType: 'Explore', toolUseId: 'tu-1' }, [
+    // juenger als m2 - darf den Kontext der Sitzung trotzdem nicht ersetzen
+    line('x1', now - 10_000, { input_tokens: 5, output_tokens: 600, cache_read_input_tokens: 40_000 }, { agentId: 'a1' }),
+  ]);
+  const store = createStore({
+    pricingTable,
+    isAlive: (pid) => sb.alive.has(pid),
+    config: {
+      liveUsage: { enabled: false },
+      history: { enabled: false },
+      dataDirs: { only: [path.join(sb.base, 'projects')] },
+    },
+  });
+  await store.scan({ now });
+  const s = store.snapshot(now).activity.projects[0].sessions[0];
+  assert.equal(s.context, 320_050);
+  assert.equal(s.contextLimit, 1_000_000);
+  assert.equal(s.outputPerMin, 600, '1200 Output in zwei Minuten');
+  assert.equal(s.requests, 3, 'Kosten und Requests schliessen den Subagent ein');
+  const a = s.agents[0];
+  assert.equal(a.context, 40_005);
+  assert.equal(a.outputPerMin, 300);
 });

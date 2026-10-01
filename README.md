@@ -152,6 +152,17 @@ Kaffeetasse:
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
   inzwischen neu vergeben hat.
 
+Drei Gegenstände zeigen echte Messwerte:
+
+- **Aktenstapel:** Die Höhe entspricht dem Kontext der letzten Anfrage im Verhältnis zum
+  Kontextfenster des Modells. Ab 85 % wackelt der Stapel, eine Compaction steht bevor.
+- **Tempo:** Wie schnell eine Figur tippt und wie stark ihr Kaffee dampft, hängt an ihrem Output
+  der letzten zwei Minuten.
+- **Sparschwein** unter jedem Hauptschreibtisch: Der Münzstapel wächst logarithmisch mit dem
+  Kosten-Äquivalent der Sitzung, Subagents eingeschlossen (1 $ eine Münze, 255 $ acht). Steigen
+  die Kosten, fällt eine Münze hinein. Die genaue Summe steht unter dem Tisch, gemeint ist wie
+  überall das API-Preis-Äquivalent.
+
 Das Büro reagiert auf dein 5-Stunden-Limit, aber nur auf echte Werte von Anthropic. Eine lokale
 Schätzung kann weit danebenliegen und würde sonst grundlos Alarm schlagen.
 
@@ -467,7 +478,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-290 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+295 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

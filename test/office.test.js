@@ -7,7 +7,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { toolActivity, entrypointLabel, limitState, calendarFace } from '../public/agents.js';
+import {
+  toolActivity,
+  entrypointLabel,
+  limitState,
+  calendarFace,
+  stackSheets,
+  typeDuration,
+  coinCount,
+} from '../public/agents.js';
 
 test('jedes Werkzeug bekommt eine passende Taetigkeit', () => {
   const cases = {
@@ -69,4 +77,32 @@ test('der Kalender zaehlt volle Tage, am letzten Tag Stunden', () => {
   assert.deepEqual(calendarFace(in_(0.4), now), { big: '1', small: 'Stunde' });
   assert.deepEqual(calendarFace(in_(-1), now), { big: '0', small: 'Std.' });
   assert.equal(calendarFace(undefined, now), null);
+});
+
+test('der Aktenstapel waechst mit dem Kontext', () => {
+  assert.equal(stackSheets(0, 1_000_000), 0, 'kein Kontext, kein Stapel');
+  assert.equal(stackSheets(5_000, 1_000_000), 1, 'etwas Kontext ist mindestens ein Blatt');
+  assert.equal(stackSheets(500_000, 1_000_000), 8);
+  assert.equal(stackSheets(1_000_000, 1_000_000), 16);
+  assert.equal(stackSheets(3_000_000, 1_000_000), 16, 'nie ueber den Rand');
+  assert.equal(stackSheets(100_000, 200_000, 10), 5, 'Haiku: kleineres Fenster');
+  assert.equal(stackSheets(100, null), 0);
+});
+
+test('das Tipptempo folgt dem Output', () => {
+  assert.equal(typeDuration(0), 0.5, 'gemaechlich');
+  assert.equal(typeDuration(1500), 0.33);
+  assert.equal(typeDuration(3000), 0.16, 'Hoechsttempo');
+  assert.equal(typeDuration(99_999), 0.16);
+  assert.equal(typeDuration(undefined), 0.5);
+});
+
+test('Muenzen zeigen die Groessenordnung der Kosten', () => {
+  assert.equal(coinCount(0), 0);
+  assert.equal(coinCount(0.2), 1);
+  assert.equal(coinCount(3), 2);
+  assert.equal(coinCount(7), 3);
+  assert.equal(coinCount(190), 8);
+  assert.equal(coinCount(10_000), 8, 'gedeckelt');
+  assert.equal(coinCount(null), 0);
 });

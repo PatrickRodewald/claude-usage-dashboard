@@ -25,7 +25,7 @@ import {
 import { createPricing, weightedTokens, newTotals, addTokens } from './pricing.js';
 import { buildSnapshot } from './aggregate.js';
 import { fetchLiveUsage, HOUR_MS } from './liveUsage.js';
-import { createActivityTracker, DEFAULT_RECENT_MS } from './activity.js';
+import { createActivityTracker, DEFAULT_RECENT_MS, contextWindow } from './activity.js';
 import {
   loadArchive,
   saveArchive,
@@ -46,6 +46,8 @@ import {
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DAY_MS = 86_400_000;
+/** Zeitraum fuer den Output-Durchsatz einer Figur (Tipptempo im Buero). */
+const RATE_WINDOW_MS = 120_000;
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -667,32 +669,66 @@ export function createStore({
    * Einzeleintraegen. Subagent-Zeilen tragen die Sitzungs-Id des Auftraggebers
    * und zusaetzlich ihre eigene agentId.
    */
-  function activityUsage() {
+  function activityUsage(now = Date.now()) {
     const ids = activity.sessionIds();
     const sums = new Map();
     if (ids.size) {
-      const add = (key, e) => {
+      const slot = (key) => {
         let u = sums.get(key);
-        if (!u) sums.set(key, (u = { cost: 0, costKnown: true, requests: 0 }));
+        if (!u) {
+          sums.set(key, (u = { cost: 0, costKnown: true, requests: 0, lastTs: -1, context: null, contextLimit: null, recentOutput: 0 }));
+        }
+        return u;
+      };
+      const addCost = (u, e) => {
         const r = pricing.costFor(e, e.model, { speed: e.speed, timestampMs: e.ts });
         u.cost += r.cost;
         if (!r.known) u.costKnown = false;
         u.requests++;
       };
+      // Eigener Strang: Kontext der juengsten Anfrage und Output der letzten
+      // zwei Minuten - fuer die Sitzung nur der Hauptstrang, nicht ihre Agents.
+      const addOwn = (u, e) => {
+        if (e.ts > u.lastTs) {
+          u.lastTs = e.ts;
+          u.context = (e.input || 0) + (e.cacheRead || 0) + (e.cacheWrite5m || 0) + (e.cacheWrite1h || 0);
+          u.contextLimit = contextWindow(e.model);
+        }
+        if (now - e.ts <= RATE_WINDOW_MS && e.ts <= now) u.recentOutput += e.output || 0;
+      };
       for (const e of entries.values()) {
         if (!ids.has(e.sessionId)) continue;
-        add(e.sessionId, e);
-        if (e.agentId) add(`${e.sessionId}:${e.agentId}`, e);
+        // Kosten der Sitzung schliessen ihre Subagents ein.
+        const s = slot(e.sessionId);
+        addCost(s, e);
+        if (e.agentId) {
+          const a = slot(`${e.sessionId}:${e.agentId}`);
+          addCost(a, e);
+          addOwn(a, e);
+        } else {
+          addOwn(s, e);
+        }
       }
     }
-    return (sessionId, agentId) => sums.get(agentId ? `${sessionId}:${agentId}` : sessionId) ?? null;
+    return (sessionId, agentId) => {
+      const u = sums.get(agentId ? `${sessionId}:${agentId}` : sessionId);
+      if (!u) return null;
+      return {
+        cost: u.cost,
+        costKnown: u.costKnown,
+        requests: u.requests,
+        context: u.context,
+        contextLimit: u.contextLimit,
+        outputPerMin: Math.round(u.recentOutput / (RATE_WINDOW_MS / 60_000)),
+      };
+    };
   }
 
   function snapshot(now = Date.now()) {
     const buckets = historyEnabled ? archiveBuckets(archive) : null;
     return buildSnapshot([...entries.values()], {
       activity: activity
-        ? { ...activity.snapshot({ usage: activityUsage() }), error: stats.activityError ?? null }
+        ? { ...activity.snapshot({ usage: activityUsage(now) }), error: stats.activityError ?? null }
         : null,
       config: cfg,
       pricing,

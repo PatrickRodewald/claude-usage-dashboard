@@ -160,6 +160,33 @@ function skyFor(h) {
   return 'night';
 }
 
+/* --- Messwerte als Gegenstaende ------------------------------------------------ */
+
+/** Blaetter im Aktenstapel: Kontext der letzten Anfrage im Verhaeltnis zum Fenster. */
+export function stackSheets(context, limit, max = 16) {
+  if (!(context > 0) || !(limit > 0)) return 0;
+  return Math.max(1, Math.min(max, Math.round((context / limit) * max)));
+}
+
+/**
+ * Dauer eines Tippschlags in Sekunden: je mehr Output in den letzten zwei
+ * Minuten, desto schneller. Ab 3000 Tokens/Min. ist das Maximum erreicht.
+ */
+export function typeDuration(outputPerMin) {
+  const f = Math.min(1, Math.max(0, (outputPerMin || 0) / 3000));
+  return Math.round((0.5 - 0.34 * f) * 100) / 100;
+}
+
+/**
+ * Muenzen neben dem Sparschwein: logarithmisch mit dem Kosten-Aequivalent
+ * (1 $ -> 1, 3 $ -> 2, 7 $ -> 3 ... 255 $ -> 8). Die genaue Summe steht unter
+ * dem Tisch - die Muenzen zeigen nur die Groessenordnung.
+ */
+export function coinCount(cost, max = 8) {
+  if (!(cost > 0)) return 0;
+  return Math.min(max, Math.max(1, Math.ceil(Math.log2(1 + cost))));
+}
+
 /* --- Taetigkeit je Werkzeug ---------------------------------------------------- */
 
 const TOOL_ACTIVITY = {
@@ -462,6 +489,36 @@ function applyBubble(b, text) {
   }
 }
 
+/** Aktenstapel = Kontext. Alle Blaetter stehen bereit, sichtbar sind nur so viele wie noetig. */
+function paperStack(parent, x, deskTop, max, sheetH, w) {
+  const g = el('g', { class: 'stack' }, parent);
+  const sheets = [];
+  for (let i = 0; i < max; i++) {
+    // Leicht versetzt - ein echter Stapel ist nie ganz gerade.
+    const dx = ((i * 7) % 3) - 1;
+    sheets.push(el('rect', { x: x - w / 2 + dx, y: deskTop - (i + 1) * sheetH, width: w, height: sheetH, class: 'sheet' }, g));
+  }
+  return { g, sheets };
+}
+
+/** Sparschwein unter dem Tisch mit Muenzstapel und einer Muenze, die hineinfaellt. */
+function piggyBank(parent, cx, floorY) {
+  const g = el('g', { class: 'piggy' }, parent);
+  const coins = [];
+  for (let i = 0; i < 8; i++) {
+    coins.push(el('ellipse', { cx: cx + 24, cy: floorY - 1.5 - i * 2.6, rx: 5, ry: 1.8, class: 'coin' }, g));
+  }
+  el('rect', { x: cx - 8, y: floorY - 5, width: 3, height: 5, rx: 1, class: 'pig-detail' }, g);
+  el('rect', { x: cx + 5, y: floorY - 5, width: 3, height: 5, rx: 1, class: 'pig-detail' }, g);
+  el('ellipse', { cx, cy: floorY - 10, rx: 12, ry: 8, class: 'pig-body' }, g);
+  el('ellipse', { cx: cx + 12, cy: floorY - 10, rx: 3, ry: 3.5, class: 'pig-detail' }, g);
+  el('path', { d: `M${cx + 3} ${floorY - 18}l3 -4l2 5z`, class: 'pig-detail' }, g);
+  el('circle', { cx: cx + 7, cy: floorY - 12, r: 1, class: 'pig-eye' }, g);
+  el('path', { d: `M${cx - 4} ${floorY - 17.5}h6`, class: 'pig-slot' }, g);
+  el('ellipse', { cx: cx - 1, cy: floorY - 30, rx: 3.2, ry: 3.2, class: 'coin coin-drop' }, g);
+  return { g, coins };
+}
+
 /** Kaffeetasse; dampft, solange gearbeitet wird. */
 function mug(parent, x, deskTop) {
   const g = el('g', { class: 'mug' }, parent);
@@ -650,6 +707,8 @@ function mainFigure(parent, cx) {
   screenFx(fig, cx - 11, 75, 22, 10);
   mug(fig, cx + 30, 88);
   props(fig, cx, 88);
+  const stack = paperStack(fig, cx + 49, 88, 16, 2.5, 13);
+  const piggy = piggyBank(fig, cx - 8, 126);
   celebrationFx(fig, cx, 0);
 
   // Schlafende Figur: aufsteigende z.
@@ -662,7 +721,7 @@ function mainFigure(parent, cx) {
     const t = el('text', { x: cx + dx, y: dy, 'font-size': s }, zzz);
     t.textContent = 'z';
   }
-  return { fig, bubble: b };
+  return { fig, bubble: b, stack, piggy };
 }
 
 /** Kleinere Figur fuer einen Subagent, sitzend am eigenen Tisch. */
@@ -690,6 +749,7 @@ function agentFigure(parent, cx, top, color) {
   el('rect', { x: cx - 6, y: top + 50, width: 12, height: 6, rx: 1, class: 'laptop-screen' }, fig);
   screenFx(fig, cx - 6, top + 50, 12, 6);
   props(fig, cx, top + 58, 0.62);
+  const stack = paperStack(fig, cx + 25, top + 58, 10, 2, 9);
   celebrationFx(fig, cx, top - 4);
 
   // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich. Bewusst nicht im
@@ -699,7 +759,7 @@ function agentFigure(parent, cx, top, color) {
   el('path', { class: 'badge-ok', d: `M${cx + 7.5} ${top + 24}l2.5 2.5l4.5 -5` }, badge);
   el('path', { class: 'badge-fail', d: `M${cx + 8} ${top + 21}l6 6m0 -6l-6 6` }, badge);
   el('path', { class: 'badge-stop', d: `M${cx + 7.5} ${top + 24}h7` }, badge);
-  return { fig, bubble: b };
+  return { fig, bubble: b, stack };
 }
 
 /**
@@ -894,6 +954,40 @@ function applyTime(st, timeZone) {
   }
 }
 
+/** Aktenstapel auf die Kontextgroesse bringen; ab 85 % wackelt er. */
+function applyStack(stack, context, limit) {
+  if (!stack) return;
+  const n = stackSheets(context, limit, stack.sheets.length);
+  stack.sheets.forEach((r, i) => {
+    r.style.visibility = i < n ? '' : 'hidden';
+  });
+  if (context > 0 && limit > 0 && context / limit >= 0.85) stack.g.dataset.high = '1';
+  else if (stack.g.dataset.high) delete stack.g.dataset.high;
+}
+
+/** Muenzen nach Kosten; steigen sie, faellt eine Muenze ins Schwein. */
+function applyPiggy(f, cost) {
+  if (!f.piggy) return;
+  const k = coinCount(cost);
+  f.piggy.coins.forEach((c, i) => {
+    c.style.visibility = i < k ? '' : 'hidden';
+  });
+  if (f.lastCost != null && cost != null && cost > f.lastCost + 1e-6) {
+    const g = f.piggy.g;
+    g.classList.remove('drop');
+    g.getBoundingClientRect(); // Animation neu starten
+    g.classList.add('drop');
+    clearTimeout(f.dropTimer);
+    f.dropTimer = setTimeout(() => g.classList.remove('drop'), 900);
+  }
+  if (cost != null) f.lastCost = cost;
+}
+
+function setTempo(node, outputPerMin) {
+  const v = `${typeDuration(outputPerMin)}s`;
+  if (node.style.getPropertyValue('--type-dur') !== v) node.style.setProperty('--type-dur', v);
+}
+
 function setActivity(node, activity) {
   if (activity) {
     if (node.dataset.activity !== activity) node.dataset.activity = activity;
@@ -974,6 +1068,9 @@ function applyOffice(st, project, ctx, env = {}) {
     const state = sessionState(s);
     f.fig.dataset.state = state;
     setActivity(f.fig, sessionActivity(s, state));
+    setTempo(f.fig, s.outputPerMin);
+    applyStack(f.stack, s.context, s.contextLimit);
+    applyPiggy(f, s.cost);
     applyBubble(f.bubble, sessionBubble(s, state));
     f.label.textContent = clip(sessionLabel(s, project.label), 18);
     f.sub.textContent = s.cost != null && s.costKnown ? ctx.usd(s.cost) : entrypointLabel(s.entrypoint);
@@ -985,6 +1082,8 @@ function applyOffice(st, project, ctx, env = {}) {
       const as = agentState(a);
       g.fig.dataset.state = as;
       setActivity(g.fig, agentActivity(a, as));
+      setTempo(g.fig, a.outputPerMin);
+      applyStack(g.stack, a.context, a.contextLimit);
       applyBubble(g.bubble, agentBubble(a, as));
       g.label.textContent = clip(a.type, 14);
       // Teilkosten (ein Modell ohne Preis) nicht als exakte Summe ausgeben.

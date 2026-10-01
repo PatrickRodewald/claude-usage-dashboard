@@ -60,6 +60,19 @@ export function processAlive(pid) {
   }
 }
 
+/**
+ * Kontextfenster eines Modells in Tokens. Die aktuellen Modelle haben 1 Mio.,
+ * Haiku und die 4.x-Generation bis 4.5 standardmaessig 200.000.
+ */
+export function contextWindow(model) {
+  const m = String(model ?? '').toLowerCase();
+  if (m.endsWith('[1m]')) return 1_000_000;
+  if (m.includes('haiku')) return 200_000;
+  if (/claude-(?:opus|sonnet)-4(?:-[0-5])?(?:-\d{8})?$/.test(m) || /claude-(?:opus|sonnet)-4-[0-5]\b/.test(m)) return 200_000;
+  if (/claude-3/.test(m)) return 200_000;
+  return 1_000_000;
+}
+
 /** Kennung dieses Rechners, wie Claude Code sie als pidDomain schreibt. */
 export function localPidDomain() {
   return `${process.platform}:${os.hostname()}`.toLowerCase();
@@ -682,10 +695,22 @@ export function createActivityTracker({
         cost: sessionUsage?.cost ?? null,
         costKnown: sessionUsage?.costKnown ?? true,
         requests: sessionUsage?.requests ?? 0,
+        // Kontext der juengsten Anfrage und Output-Durchsatz des Hauptstrangs.
+        context: sessionUsage?.context ?? null,
+        contextLimit: sessionUsage?.contextLimit ?? null,
+        outputPerMin: sessionUsage?.outputPerMin ?? 0,
         agents: s.agents.map((a) => {
           if (a.state === 'running') agentsRunning++;
           const u = usage?.(s.sessionId, a.id) ?? null;
-          return { ...a, cost: u?.cost ?? null, costKnown: u?.costKnown ?? true, requests: u?.requests ?? 0 };
+          return {
+            ...a,
+            cost: u?.cost ?? null,
+            costKnown: u?.costKnown ?? true,
+            requests: u?.requests ?? 0,
+            context: u?.context ?? null,
+            contextLimit: u?.contextLimit ?? null,
+            outputPerMin: u?.outputPerMin ?? 0,
+          };
         }),
       });
     }
