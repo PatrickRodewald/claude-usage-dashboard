@@ -117,27 +117,37 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 
 ### Gerade aktiv
 
-Unter den Statuskacheln zeigt eine kleine Werkstatt, was gerade arbeitet. Jedes Projekt bekommt
-eine Station, und jede offene Claude-Code-Sitzung sitzt dort als Figur am Laptop:
+Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum.
 
-- **arbeitet:** Bildschirm an, Lampe blinkt, die Arme tippen. Die Sprechblase zeigt das gerade
-  laufende Werkzeug (`Bash`, `WebFetch`, …), „delegiert“ beim Warten auf einen Subagent und
-  „• • •“ beim Nachdenken oder Schreiben.
-- **wartet auf dich:** Augen zu, über der Figur steigen „z“ auf.
+- **An der Rückwand** hängt eine Tafel mit dem Projektnamen in Kreideschrift. Darunter stehen
+  die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen. Ohne
+  Subagents steht dort, was jede Sitzung gerade tut.
+- **Daneben:** ein Fenster, dessen Himmel der Ortszeit folgt (Morgen, Tag, Abend, Nacht mit Mond
+  und Sternen), eine Wanduhr mit der echten Uhrzeit und eine Topfpflanze.
+
+Jede offene Claude-Code-Sitzung sitzt als kleiner Roboter an einem Schreibtisch mit Laptop und
+Kaffeetasse:
+
+- **arbeitet:** Laptop an, Lampe blinkt, die Arme tippen, der Kaffee dampft. Die Sprechblase
+  zeigt das gerade laufende Werkzeug (`Bash`, `WebFetch`, …), „delegiert“ beim Warten auf einen
+  Subagent und „• • •“ beim Nachdenken oder Schreiben.
+- **wartet auf dich:** Augen zu, über dem Roboter steigen „z“ auf.
 - **kein Lebenszeichen:** blass mit „?“. Die Sitzung meldet „arbeitet“, hat aber seit 30 Minuten
   nichts geschrieben. Typisch für eine hart beendete Sitzung, deren Prozessnummer Windows
   inzwischen neu vergeben hat.
 
-Subagents stehen darunter, eingefärbt nach Typ (Explore, Plan, general-purpose, …). Sie hängen
-an einer Leitung zu ihrem Auftraggeber, in der Arbeit fließt, solange sie laufen. Verschachtelte
-Subagents hängen an dem Subagent, der sie gestartet hat. Beendete Subagents bleiben noch eine
-Viertelstunde blass stehen, mit Haken, Kreuz oder Strich für fertig, fehlgeschlagen oder
-abgebrochen (`activity.recentMs`). Der Tooltip einer Figur nennt Auftrag, Laufzeit, aktuelles
+Subagents sitzen an kleineren Tischen davor, eingefärbt nach Typ (Explore, Plan,
+general-purpose, …). Solange sie laufen, fliegen Papierflieger mit Aufträgen vom Tisch des
+Auftraggebers zu ihnen. Verschachtelte Subagents bekommen ihre Aufträge von dem Subagent, der sie
+gestartet hat. Beendete Subagents bleiben noch eine Viertelstunde blass sitzen, mit Haken, Kreuz
+oder Strich (`activity.recentMs`). Der Tooltip einer Figur nennt Auftrag, Laufzeit, aktuelles
 Werkzeug und die bisherigen Kosten.
 
-Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sitzungen auf
-diesem Gerät. Wer Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die
-Figuren still.
+Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sitzungen auf diesem
+Gerät. Sie funktioniert im hellen wie im dunklen Design und kommt ohne externe Schriften aus: Die
+Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard unter macOS). Wer
+Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, und die
+Papierflieger bleiben am Boden.
 
 ### Warnkanäle
 
@@ -415,7 +425,9 @@ Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergange
 nur dieser Bereich, das übrige Dashboard läuft weiter.
 
 **Aktualisierung.** `fs.watch` (rekursiv) mit Entprellung, plus Polling alle 20 s als Fallback.
-Beobachtet werden auch die Statusdateien unter `~/.claude/sessions`.
+Beobachtet werden auch die Statusdateien unter `~/.claude/sessions`, jeweils unter ihrem echten,
+langen Pfad. Bei einem Windows-Kurzpfad (`C:\Users\ABCDEF~1\…`) bricht libuv den Prozess sonst
+beim ersten Ereignis mit einer Assertion ab.
 Änderungen gehen per Server-Sent Events an den Browser; kein Neuladen nötig.
 
 **Robustheit.** Kaputte JSONL-Zeilen werden übersprungen und gezählt (in der Fußzeile
@@ -427,7 +439,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-279 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+280 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -533,7 +545,7 @@ src/
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
-  agents.js         Werkstatt mit Figuren für „Gerade aktiv"
+  agents.js         Büro mit Figuren für „Gerade aktiv"
 test/               Unit- und Integrationstests (node:test)
 ```
 

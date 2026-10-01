@@ -795,7 +795,12 @@ export function createWatcher(
 
   for (const dir of dirs) {
     try {
-      const w = fs.watch(dir, { recursive: true }, (_event, filename) => {
+      // Unter Windows den echten, langen Pfad beobachten: bei einem 8.3-
+      // Kurznamen ("C:\Users\PATRIC~1\...") meldet das System Aenderungen mit
+      // dem langen Namen, und libuv bricht den GANZEN Prozess mit einer
+      // Assertion ab (fs-event.c), statt einen Fehler zu liefern.
+      const real = fs.realpathSync.native(dir);
+      const w = fs.watch(real, { recursive: true }, (_event, filename) => {
         if (!filename || match(String(filename))) trigger();
       });
       w.on('error', () => {});

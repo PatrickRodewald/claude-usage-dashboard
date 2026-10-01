@@ -32,6 +32,16 @@
   --status-warning: #fab219;
   --status-critical: #d03b3b;
 
+  /* Buero in "Gerade aktiv": gedaempft, damit die Figuren die Farbe tragen. */
+  --office-wall: #24221f;
+  --office-wainscot: #2b2925;
+  --office-floor: #1b1a18;
+  --office-floorline: #23211e;
+  --office-baseboard: #34312c;
+  --office-window-frame: #4a4741;
+  --wood: #7a5a3c;
+  --wood-dark: #5b4330;
+
   --radius: 10px;
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -58,6 +68,15 @@
   --series-6: #008300;
   --series-7: #4a3aa7;
   --series-8: #e34948;
+
+  --office-wall: #ebe6da;
+  --office-wainscot: #e0d9c9;
+  --office-floor: #d8cfbd;
+  --office-floorline: #cdc3ae;
+  --office-baseboard: #c3b79f;
+  --office-window-frame: #fdfcf8;
+  --wood: #b98a5a;
+  --wood-dark: #94693f;
 }
 
 * {
@@ -527,29 +546,14 @@ td.name {
   gap: 12px;
   align-items: flex-start;
 }
+/* Ein Raum je Projekt; Wand und Boden fuellen die Karte bis an den Rand. */
 .station {
   flex: 0 1 auto;
   max-width: 100%;
-  background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px 4px;
-}
-.station-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: 12px;
-}
-.station-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.station-meta {
-  font-size: 11px;
-  color: var(--text-muted);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--office-floor);
 }
 /* Skaliert in schmalen Fenstern herunter, aber nie ueber die Naturgroesse. */
 .workshop-svg {
@@ -558,14 +562,210 @@ td.name {
   height: auto;
 }
 
-.workshop-svg .desk {
-  fill: var(--axis);
+/* Raum */
+.office-wall {
+  fill: var(--office-wall);
+}
+.office-wainscot {
+  fill: var(--office-wainscot);
+}
+.office-floor {
+  fill: var(--office-floor);
+}
+.office-floorline {
+  stroke: var(--office-floorline);
+  stroke-width: 1;
+}
+.office-baseboard {
+  fill: var(--office-baseboard);
+}
+
+/* Tafel: in beiden Themen dunkelgruen mit Kreide - eine Tafel ist eine Tafel. */
+.board {
+  fill: #23402f;
+}
+.board-frame {
+  fill: var(--wood-dark);
+}
+.chalk-piece {
+  fill: #efeee6;
+}
+.chalk-piece.alt {
+  fill: #f2c94c;
+}
+.chalk {
+  fill: #eef2ea;
+  font-family: 'Segoe Print', 'Chalkboard SE', 'Bradley Hand', 'Comic Sans MS', cursive;
+}
+.chalk-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.chalk-item {
+  font-size: 10.5px;
+  opacity: 0.88;
+}
+.chalk-line {
+  fill: none;
+  stroke: #eef2ea;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+/* Fenster: Himmel nach Tageszeit (data-sky) */
+.window-frame {
+  fill: var(--office-window-frame);
+}
+.window-cross {
+  stroke: var(--office-window-frame);
+  stroke-width: 3;
+}
+.window .sky {
+  fill: #8cc4ee;
+}
+.window[data-sky='dawn'] .sky {
+  fill: #f2b48a;
+}
+.window[data-sky='dusk'] .sky {
+  fill: #b57a9e;
+}
+.window[data-sky='night'] .sky {
+  fill: #172341;
+}
+.window .sun {
+  fill: #ffd447;
+}
+.window .moon {
+  fill: #f1ecd3;
+}
+.window .star {
+  fill: #fff;
+}
+.window .cloud {
+  fill: #fff;
+  opacity: 0.85;
+}
+.window .moon,
+.window .star,
+.window[data-sky='night'] .sun,
+.window[data-sky='night'] .cloud,
+.window[data-sky='dusk'] .cloud {
+  display: none;
+}
+.window[data-sky='night'] .moon,
+.window[data-sky='night'] .star {
+  display: inline;
+}
+.window[data-sky='dawn'] .sun,
+.window[data-sky='dusk'] .sun {
+  fill: #ff9a3c;
+}
+
+/* Wanduhr */
+.clock-rim {
+  fill: var(--wood-dark);
+}
+.clock-face {
+  fill: #f7f5ee;
+}
+.clock-tick {
+  stroke: #6b6b68;
+  stroke-width: 1;
+}
+.clock-hand {
+  stroke: #262624;
+  stroke-linecap: round;
+}
+.clock-hand.hour {
+  stroke-width: 2;
+}
+.clock-hand.minute {
+  stroke-width: 1.4;
+}
+.clock-pin {
+  fill: #d03b3b;
+}
+
+/* Pflanze */
+.plant .leaf {
+  fill: #2f8f55;
+}
+.plant .leaf:nth-child(odd) {
+  fill: #3aa865;
+}
+.plant .pot {
+  fill: #b5603a;
+}
+.plant .pot-rim {
+  fill: #9a4f2f;
+}
+
+/* Schreibtische, Laptops, Tassen */
+.desk-top {
+  fill: var(--wood);
+}
+.desk-edge {
+  fill: var(--wood-dark);
+}
+.desk-leg {
+  fill: var(--wood-dark);
 }
 .workshop-svg .laptop {
-  fill: var(--text-muted);
+  fill: #8d8c88;
 }
 .workshop-svg .laptop-screen {
-  fill: var(--grid);
+  fill: #4a4946;
+}
+.mug-body {
+  fill: #e8e4da;
+}
+.mug-handle {
+  fill: none;
+  stroke: #e8e4da;
+  stroke-width: 1.6;
+}
+.steam {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.fig[data-state='tool'] .steam,
+.fig[data-state='thinking'] .steam,
+.fig[data-state='delegating'] .steam {
+  animation: cud-steam 2.2s ease-in-out infinite;
+}
+
+/* Wege der Auftraege; der Papierflieger fliegt nur, solange der Agent laeuft. */
+.route-path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  opacity: 0.35;
+}
+.route[data-state='flow'] .route-path {
+  stroke: var(--series-1);
+  opacity: 0.6;
+}
+.plane {
+  display: none;
+}
+.route[data-state='flow'] .plane {
+  display: inline;
+}
+.plane-body {
+  fill: #f7f5ee;
+  stroke: #8d8c88;
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+.plane-fold {
+  stroke: #b9b7af;
+  stroke-width: 0.8;
 }
 .fig-fill {
   fill: var(--fig);
@@ -595,7 +795,7 @@ td.name {
 .fig-label,
 .fig-sublabel {
   paint-order: stroke;
-  stroke: var(--surface-2);
+  stroke: var(--office-floor);
   stroke-width: 4px;
   stroke-linejoin: round;
 }
@@ -707,21 +907,24 @@ td.name {
   display: inline;
 }
 
-/* Leitung zum Auftraggeber: Arbeit fliesst, solange der Agent laeuft. */
-.link {
-  fill: none;
-  stroke: var(--axis);
-  stroke-width: 1.5;
-}
-.link[data-state='flow'] {
-  stroke: var(--series-1);
-  stroke-dasharray: 4 5;
-  animation: cud-flow 0.9s linear infinite;
-}
-.link[data-state='done'] {
-  stroke-dasharray: 2 4;
+/* Der Weg eines laufenden Auftrags wandert mit. */
+.route[data-state='flow'] .route-path {
+  animation: cud-flow 1.4s linear infinite;
 }
 
+@keyframes cud-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
 @keyframes cud-type {
   50% {
     transform: translateY(-3px);
@@ -752,7 +955,7 @@ td.name {
 }
 @keyframes cud-flow {
   to {
-    stroke-dashoffset: -18;
+    stroke-dashoffset: -14;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -761,6 +964,10 @@ td.name {
   }
   .zzz text {
     opacity: 1;
+  }
+  /* Die Flieger laufen per SMIL - CSS haelt sie nicht an, also ausblenden. */
+  .route[data-state='flow'] .plane {
+    display: none;
   }
 }
 

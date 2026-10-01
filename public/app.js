@@ -349,7 +349,12 @@ function describeFigure(kind, it) {
   return lines.join('\n');
 }
 
-const renderWorkshop = createWorkshop($('workshop'), { tooltip, usd, describe: describeFigure });
+const workshop = createWorkshop($('workshop'), {
+  tooltip,
+  usd,
+  describe: describeFigure,
+  timeZone: () => snapshot?.timezone,
+});
 
 function renderActivity(s) {
   const act = s.activity;
@@ -373,7 +378,7 @@ function renderActivity(s) {
   if (!c.sessions) parts.splice(0, parts.length, 'live von diesem Gerät');
   if (act.error) parts.push(`gestört: ${act.error}`);
   $('live-sub').textContent = parts.join(' · ');
-  renderWorkshop(act);
+  workshop.render(act);
 }
 
 function costCell(row) {
@@ -1083,9 +1088,10 @@ if (typeof ResizeObserver === 'function') {
   window.addEventListener('resize', scheduleRerender);
 }
 
-// Restlaufzeiten laufen zwischen den Snapshots weiter.
+// Restlaufzeiten, Uhren und Fenster im Buero laufen zwischen den Snapshots weiter.
 setInterval(() => {
   if (!snapshot) return;
+  workshop.tick();
   const w = snapshot.live.fiveHour;
   if (w.idle) return;
   const left = Math.max(0, w.end - Date.now());

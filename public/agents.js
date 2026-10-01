@@ -1,12 +1,15 @@
 /**
- * "Werkstatt": was gerade arbeitet, als kleine Figuren.
+ * "Gerade aktiv" als Buero: was arbeitet, als kleine Figuren.
  *
- * Je Projekt eine Station. Jede laufende Claude-Code-Sitzung sitzt als Figur
- * am Laptop, ihre Subagents stehen darunter und haengen an einer Leitung, in
- * der Arbeit fliesst, solange sie laufen. Sprechblasen zeigen das gerade
+ * Je Projekt ein Raum. An der Rueckwand haengt eine Tafel mit dem
+ * Projektnamen und den Auftraegen der Subagents, daneben ein Fenster (der
+ * Himmel folgt der Ortszeit) und eine Uhr. Jede laufende Claude-Code-Sitzung
+ * sitzt als Figur an einem Schreibtisch mit Laptop und Kaffeetasse, ihre
+ * Subagents an kleineren Tischen davor. Laufen sie, fliegen Papierflieger
+ * mit Auftraegen vom Auftraggeber zu ihnen. Sprechblasen zeigen das gerade
  * benutzte Werkzeug.
  *
- * Die Figuren werden nur neu aufgebaut, wenn sich die Besetzung aendert (neue
+ * Die Raeume werden nur neu aufgebaut, wenn sich die Besetzung aendert (neue
  * Sitzung, neuer Agent). Ein Status- oder Werkzeugwechsel setzt lediglich
  * Attribute - sonst wuerden die Animationen bei jeder Aktualisierung neu
  * beginnen und die Szene ruckeln.
@@ -25,12 +28,17 @@ function el(name, attrs = {}, parent) {
 
 /* --- Masse ----------------------------------------------------------------- */
 
-const PAD = 12;
-const MAIN_SLOT = 128; // Breite je Sitzung am Tisch
-const AGENT_SLOT = 78; // Breite je Subagent
+const SIDE = 40; // Rand links/rechts (Platz fuer Pflanze und Fenster)
+const MIN_W = 340;
+const WALL_H = 140; // Rueckwand; darunter beginnt der Boden
+const MAIN_SLOT = 150; // Breite je Sitzung
+const AGENT_SLOT = 92; // Breite je Subagent
 const AGENTS_PER_ROW = 4;
-const MAIN_H = 162; // Hoehe des Tischbereichs inkl. Platz fuer die Leitung nach unten
-const ROW_H = 104; // Hoehe je Subagent-Reihe
+const MAIN_Y = 100; // Verschiebung der Hauptfigur (lokales y=0 -> global 100)
+const MAIN_DESK_Y = MAIN_Y + 88; // Tischplatte der Hauptsitzungen, global
+const ROWS_TOP = 264; // erste Subagent-Reihe
+const ROW_H = 112;
+const BOARD_LINES = 3;
 
 /** Farbe je Agent-Typ. Unbekannte Typen bekommen stabil eine der uebrigen Farben. */
 const TYPE_COLOR = {
@@ -50,14 +58,17 @@ function typeColor(type) {
 
 function clip(text, max) {
   const s = String(text ?? '');
-  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+  return s.length > max ? `${s.slice(0, Math.max(1, max - 1))}…` : s;
 }
+
+/** Eindeutige Ids fuer die Flugbahnen der Papierflieger (mpath braucht eine). */
+let routeSeq = 0;
 
 /**
  * Beschriftung einer Sitzung. Claude Code leitet den Namen aus dem Ordner ab
- * ("antropicusagedashboard-d3") - der Projektteil steht schon ueber der
- * Station, unterscheidend ist nur das Kuerzel dahinter. Selbst vergebene
- * Namen bleiben, wie sie sind.
+ * ("antropicusagedashboard-d3") - der Projektteil steht schon an der Tafel,
+ * unterscheidend ist nur das Kuerzel dahinter. Selbst vergebene Namen
+ * bleiben, wie sie sind.
  */
 function sessionLabel(s, projectLabel) {
   const name = s.name ?? s.sessionId.slice(0, 8);
@@ -77,6 +88,31 @@ const ENTRYPOINT = {
 };
 export function entrypointLabel(e) {
   return ENTRYPOINT[e] ?? (e ? String(e) : 'unbekannt');
+}
+
+/* --- Zeit fuer Uhr und Fenster ------------------------------------------------ */
+
+function zonedTime(timeZone) {
+  const now = new Date();
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hourCycle: 'h23',
+    }).formatToParts(now);
+    const get = (t) => Number(parts.find((p) => p.type === t)?.value);
+    return { h: get('hour'), m: get('minute') };
+  } catch {
+    return { h: now.getHours(), m: now.getMinutes() };
+  }
+}
+
+function skyFor(h) {
+  if (h >= 7 && h < 18) return 'day';
+  if (h >= 5 && h < 7) return 'dawn';
+  if (h >= 18 && h < 21) return 'dusk';
+  return 'night';
 }
 
 /* --- Zustand je Figur -------------------------------------------------------- */
@@ -109,6 +145,154 @@ function agentBubble(a, state) {
   return null; // Beendete tragen ein Abzeichen statt einer Blase.
 }
 
+const MARK = { running: '▸', completed: '✓', failed: '✗', stopped: '–' };
+const SESSION_DOING = {
+  tool: (s) => s.doing.tool,
+  delegating: () => 'delegiert',
+  thinking: () => 'denkt nach',
+  idle: () => 'Pause',
+  stale: () => 'kein Lebenszeichen',
+};
+
+/**
+ * Was an der Tafel steht: die Auftraege der Subagents (laufende zuerst),
+ * ohne Subagents, was jede Sitzung gerade tut.
+ */
+function boardLines(project) {
+  const agents = project.sessions.flatMap((s) => s.agents);
+  if (agents.length) {
+    const sorted = [...agents].sort(
+      (a, b) => (a.state === 'running' ? 0 : 1) - (b.state === 'running' ? 0 : 1) || (b.finishedAt ?? 0) - (a.finishedAt ?? 0),
+    );
+    const lines = sorted.map((a) => `${MARK[a.state] ?? '•'} ${a.description ?? a.type}`);
+    if (lines.length > BOARD_LINES) return [...lines.slice(0, BOARD_LINES - 1), `+ ${lines.length - BOARD_LINES + 1} weitere`];
+    return lines;
+  }
+  return project.sessions
+    .slice(0, BOARD_LINES)
+    .map((s) => `${sessionLabel(s, project.label)}: ${(SESSION_DOING[sessionState(s)] ?? (() => s.status))(s)}`);
+}
+
+/* --- Einrichtung ---------------------------------------------------------------- */
+
+/** Rueckwand, Sockelleiste und Dielenboden. */
+function drawRoom(svg, w, h) {
+  el('rect', { x: 0, y: 0, width: w, height: WALL_H, class: 'office-wall' }, svg);
+  // Wandvertaefelung unten an der Wand
+  el('rect', { x: 0, y: WALL_H - 34, width: w, height: 34, class: 'office-wainscot' }, svg);
+  el('rect', { x: 0, y: WALL_H, width: w, height: h - WALL_H, class: 'office-floor' }, svg);
+  for (let y = WALL_H + 16; y < h; y += 20) {
+    el('line', { x1: 0, y1: y, x2: w, y2: y, class: 'office-floorline' }, svg);
+  }
+  el('rect', { x: 0, y: WALL_H - 4, width: w, height: 6, class: 'office-baseboard' }, svg);
+}
+
+/** Tafel an der Rueckwand: Rahmen, Schreibflaeche, Kreideablage, Schrift. */
+function drawBoard(svg, w) {
+  const bw = Math.max(170, Math.min(320, w - 200));
+  const bx = (w - bw) / 2;
+  const by = 12;
+  const bh = 80;
+  el('rect', { x: bx - 5, y: by - 5, width: bw + 10, height: bh + 10, rx: 4, class: 'board-frame' }, svg);
+  el('rect', { x: bx, y: by, width: bw, height: bh, rx: 2, class: 'board' }, svg);
+  // Kreideablage mit zwei Stuecken Kreide
+  el('rect', { x: bx + 10, y: by + bh + 5, width: bw - 20, height: 4, rx: 1.5, class: 'board-frame' }, svg);
+  el('rect', { x: bx + bw - 44, y: by + bh + 2, width: 12, height: 3, rx: 1.5, class: 'chalk-piece' }, svg);
+  el('rect', { x: bx + bw - 28, y: by + bh + 2, width: 8, height: 3, rx: 1.5, class: 'chalk-piece alt' }, svg);
+
+  const title = el('text', { x: bx + 12, y: by + 22, class: 'chalk chalk-title' }, svg);
+  // Kreidestrich unter dem Titel
+  el('path', { d: `M${bx + 12} ${by + 29}q${bw * 0.3} 3 ${bw * 0.55} -1`, class: 'chalk-line' }, svg);
+  const lines = [];
+  for (let i = 0; i < BOARD_LINES; i++) {
+    lines.push(el('text', { x: bx + 14, y: by + 45 + i * 14, class: 'chalk chalk-item' }, svg));
+  }
+  return {
+    title,
+    lines,
+    // Zeichen pro Zeile grob nach Breite - die Kreideschrift ist breit.
+    titleChars: Math.floor((bw - 24) / 8.6),
+    lineChars: Math.floor((bw - 28) / 6.4),
+    sideRoom: bx - 10,
+  };
+}
+
+/** Fenster mit Himmel je Tageszeit (Sonne, Mond, Sterne). */
+function drawWindow(svg, x, y) {
+  const g = el('g', { class: 'window', 'data-sky': 'day' }, svg);
+  el('rect', { x: x - 3, y: y - 3, width: 62, height: 58, rx: 3, class: 'window-frame' }, g);
+  el('rect', { x, y, width: 56, height: 52, class: 'sky' }, g);
+  el('circle', { cx: x + 40, cy: y + 15, r: 7, class: 'sun' }, g);
+  el('circle', { cx: x + 38, cy: y + 14, r: 6, class: 'moon' }, g);
+  for (const [sx, sy] of [
+    [10, 10],
+    [22, 22],
+    [14, 36],
+    [46, 34],
+  ]) {
+    el('circle', { cx: x + sx, cy: y + sy, r: 1.1, class: 'star' }, g);
+  }
+  // Ein paar Wolken, nur am Tag
+  el('path', { d: `M${x + 8} ${y + 40}h18a5 5 0 0 0 -6 -6a7 7 0 0 0 -12 6z`, class: 'cloud' }, g);
+  // Fensterkreuz
+  el('path', { d: `M${x + 28} ${y}v52M${x} ${y + 26}h56`, class: 'window-cross' }, g);
+  el('rect', { x: x - 6, y: y + 52, width: 68, height: 4, rx: 1.5, class: 'window-frame' }, g);
+  return g;
+}
+
+/** Wanduhr mit echter Uhrzeit. */
+function drawClock(svg, cx, cy) {
+  const g = el('g', { class: 'clock' }, svg);
+  el('circle', { cx, cy, r: 17, class: 'clock-rim' }, g);
+  el('circle', { cx, cy, r: 14.5, class: 'clock-face' }, g);
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6;
+    const r1 = i % 3 === 0 ? 10.5 : 12;
+    el(
+      'line',
+      {
+        x1: cx + Math.sin(a) * r1,
+        y1: cy - Math.cos(a) * r1,
+        x2: cx + Math.sin(a) * 13.2,
+        y2: cy - Math.cos(a) * 13.2,
+        class: 'clock-tick',
+      },
+      g,
+    );
+  }
+  const hour = el('line', { x1: cx, y1: cy, x2: cx, y2: cy - 7.5, class: 'clock-hand hour' }, g);
+  const minute = el('line', { x1: cx, y1: cy, x2: cx, y2: cy - 11, class: 'clock-hand minute' }, g);
+  el('circle', { cx, cy, r: 1.4, class: 'clock-pin' }, g);
+  return { hour, minute, cx, cy };
+}
+
+/** Topfpflanze an der Wand. */
+function drawPlant(svg, x, floorY) {
+  const g = el('g', { class: 'plant' }, svg);
+  for (const [dx, dy, rot, rx, ry] of [
+    [-7, -40, -28, 5, 13],
+    [7, -42, 26, 5, 13],
+    [0, -52, 0, 5, 15],
+    [-11, -26, -55, 4, 11],
+    [11, -27, 52, 4, 11],
+  ]) {
+    el('ellipse', { cx: x + dx, cy: floorY + dy, rx, ry, transform: `rotate(${rot} ${x + dx} ${floorY + dy})`, class: 'leaf' }, g);
+  }
+  el('path', { d: `M${x - 12} ${floorY - 20}h24l-3 20h-18z`, class: 'pot' }, g);
+  el('rect', { x: x - 13, y: floorY - 23, width: 26, height: 5, rx: 1.5, class: 'pot-rim' }, g);
+  return g;
+}
+
+/** Schreibtisch in Frontansicht: Platte, Vorderkante, zwei Beine. */
+function drawDesk(parent, cx, top, width, legs) {
+  const g = el('g', { class: 'desk' }, parent);
+  el('rect', { x: cx - width / 2 + 4, y: top + 8, width: 4, height: legs, class: 'desk-leg' }, g);
+  el('rect', { x: cx + width / 2 - 8, y: top + 8, width: 4, height: legs, class: 'desk-leg' }, g);
+  el('rect', { x: cx - width / 2, y: top, width, height: 5, rx: 2, class: 'desk-top' }, g);
+  el('rect', { x: cx - width / 2 + 1, y: top + 5, width: width - 2, height: 4, class: 'desk-edge' }, g);
+  return g;
+}
+
 /* --- Figuren ------------------------------------------------------------------ */
 
 /** Sprechblase; Breite folgt dem Text (applyBubble). */
@@ -136,10 +320,19 @@ function applyBubble(b, text) {
   }
 }
 
+/** Kaffeetasse; dampft, solange gearbeitet wird. */
+function mug(parent, x, deskTop) {
+  const g = el('g', { class: 'mug' }, parent);
+  el('path', { d: `M${x + 3} ${deskTop - 5}q2 -3 0 -6M${x + 7} ${deskTop - 5}q2 -3 0 -6`, class: 'steam' }, g);
+  el('rect', { x, y: deskTop - 9, width: 10, height: 9, rx: 2, class: 'mug-body' }, g);
+  el('path', { d: `M${x + 10} ${deskTop - 7}a3 3 0 0 1 0 5`, class: 'mug-handle' }, g);
+  return g;
+}
+
 /**
- * Hauptfigur am Tisch. Aufbau: aussen die Position (transform-Attribut),
- * innen die Animation (CSS) - beides auf demselben Element wuerde sich
- * gegenseitig ueberschreiben.
+ * Hauptfigur am Schreibtisch, in lokalen Koordinaten (Tischplatte bei y=88).
+ * Aussen die Position (transform-Attribut), innen die Animation (CSS) -
+ * beides auf demselben Element wuerde sich gegenseitig ueberschreiben.
  */
 function mainFigure(parent, cx) {
   const fig = el('g', { class: 'fig fig-main', style: '--fig: var(--series-1)' }, parent);
@@ -161,9 +354,11 @@ function mainFigure(parent, cx) {
   el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, bodyG);
   el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, bodyG);
 
-  // Laptop und Tischplatte vor der Figur.
+  // Schreibtisch, Laptop (Rueckseite mit leuchtendem Logo) und Tasse davor.
+  drawDesk(fig, cx, 88, 118, 30);
   el('path', { d: `M${cx - 18} 88l4 -16h28l4 16z`, class: 'laptop' }, fig);
   el('rect', { x: cx - 11, y: 75, width: 22, height: 10, rx: 1.5, class: 'laptop-screen' }, fig);
+  mug(fig, cx + 30, 88);
 
   // Schlafende Figur: aufsteigende z.
   const zzz = el('g', { class: 'zzz' }, fig);
@@ -178,35 +373,64 @@ function mainFigure(parent, cx) {
   return { fig, bubble: b };
 }
 
-/** Kleinere, stehende Figur fuer einen Subagent. */
+/** Kleinere Figur fuer einen Subagent, sitzend am eigenen Tisch. */
 function agentFigure(parent, cx, top, color) {
   const fig = el('g', { class: 'fig fig-agent', style: `--fig: ${color}` }, parent);
   const b = bubble(fig, cx, top);
 
   const bodyG = el('g', { class: 'fig-body' }, fig);
-  el('circle', { cx, cy: top + 31, r: 9, class: 'fig-fill' }, bodyG);
-  el('circle', { cx: cx - 3.4, cy: top + 30.5, r: 1.6, class: 'fig-eye' }, bodyG);
-  el('circle', { cx: cx + 3.4, cy: top + 30.5, r: 1.6, class: 'fig-eye' }, bodyG);
-  el('rect', { x: cx - 11, y: top + 42, width: 22, height: 20, rx: 6, class: 'fig-fill' }, bodyG);
-  el('rect', { x: cx - 16, y: top + 45, width: 5, height: 13, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
-  el('rect', { x: cx + 11, y: top + 45, width: 5, height: 13, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
-  el('rect', { x: cx - 8, y: top + 61, width: 6, height: 9, rx: 2, class: 'fig-fill' }, bodyG);
-  el('rect', { x: cx + 2, y: top + 61, width: 6, height: 9, rx: 2, class: 'fig-fill' }, bodyG);
+  el('circle', { cx, cy: top + 33, r: 9, class: 'fig-fill' }, bodyG);
+  el('circle', { cx: cx - 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, bodyG);
+  el('circle', { cx: cx + 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, bodyG);
+  el('rect', { x: cx - 11, y: top + 44, width: 22, height: 18, rx: 6, class: 'fig-fill' }, bodyG);
+  el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
+  el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
+
+  drawDesk(fig, cx, top + 58, 70, 20);
+  el('path', { d: `M${cx - 10} ${top + 58}l3 -10h14l3 10z`, class: 'laptop' }, fig);
+  el('rect', { x: cx - 6, y: top + 50, width: 12, height: 6, rx: 1, class: 'laptop-screen' }, fig);
 
   // Abzeichen fuer beendete Agents: Haken, Kreuz oder Strich.
   const badge = el('g', { class: 'badge' }, fig);
-  el('circle', { cx: cx + 10, cy: top + 22, r: 7 }, badge);
-  el('path', { class: 'badge-ok', d: `M${cx + 6.5} ${top + 22}l2.5 2.5l4.5 -5` }, badge);
-  el('path', { class: 'badge-fail', d: `M${cx + 7} ${top + 19}l6 6m0 -6l-6 6` }, badge);
-  el('path', { class: 'badge-stop', d: `M${cx + 6.5} ${top + 22}h7` }, badge);
+  el('circle', { cx: cx + 11, cy: top + 24, r: 7 }, badge);
+  el('path', { class: 'badge-ok', d: `M${cx + 7.5} ${top + 24}l2.5 2.5l4.5 -5` }, badge);
+  el('path', { class: 'badge-fail', d: `M${cx + 8} ${top + 21}l6 6m0 -6l-6 6` }, badge);
+  el('path', { class: 'badge-stop', d: `M${cx + 7.5} ${top + 24}h7` }, badge);
   return { fig, bubble: b };
+}
+
+/**
+ * Weg eines Auftrags vom Tisch des Auftraggebers zum Tisch des Subagents,
+ * mit Papierflieger. Der Flieger ist nur sichtbar, solange der Agent laeuft.
+ */
+function route(parent, from, to) {
+  const id = `cud-route-${++routeSeq}`;
+  const g = el('g', { class: 'route' }, parent);
+  const lift = Math.min(70, Math.abs(to.y - from.y) * 0.6 + 20);
+  el(
+    'path',
+    {
+      id,
+      d: `M${from.x} ${from.y}C${from.x} ${from.y - lift} ${to.x} ${to.y - lift} ${to.x} ${to.y}`,
+      class: 'route-path',
+    },
+    g,
+  );
+  const plane = el('g', { class: 'plane' }, g);
+  el('path', { d: 'M-7 -4.5L7 0L-7 4.5L-4 0z', class: 'plane-body' }, plane);
+  el('path', { d: 'M-4 0L7 0', class: 'plane-fold' }, plane);
+  const dur = `${(2.2 + (routeSeq % 5) * 0.25).toFixed(2)}s`;
+  const motion = el('animateMotion', { dur, repeatCount: 'indefinite', rotate: 'auto' }, plane);
+  el('mpath', { href: `#${id}` }, motion);
+  el('animate', { attributeName: 'opacity', values: '0;1;1;0', keyTimes: '0;0.1;0.85;1', dur, repeatCount: 'indefinite' }, plane);
+  return g;
 }
 
 /* --- Layout ------------------------------------------------------------------- */
 
 /**
  * Agents einer Sitzung in Anzeigereihenfolge: verschachtelte direkt hinter
- * ihrem Auftraggeber, damit ihre Leitung kurz bleibt.
+ * ihrem Auftraggeber, damit ihr Weg kurz bleibt.
  */
 function orderAgents(agents) {
   const byParent = new Map();
@@ -237,31 +461,21 @@ function layoutSignature(project) {
   );
 }
 
-/* --- Station ------------------------------------------------------------------ */
+/* --- Raum ---------------------------------------------------------------------- */
 
-function buildStation(project, ctx) {
+function buildOffice(project, ctx) {
   const root = document.createElement('div');
-  root.className = 'station';
+  root.className = 'station office';
 
-  const head = document.createElement('div');
-  head.className = 'station-head';
-  const name = document.createElement('span');
-  name.className = 'station-name';
-  const meta = document.createElement('span');
-  meta.className = 'station-meta';
-  head.append(name, meta);
-  root.append(head);
-
-  // Bloecke je Sitzung: so breit wie die breiteste Agent-Reihe darunter.
+  // Bereiche je Sitzung: so breit wie die breiteste Agent-Reihe davor.
   const blocks = project.sessions.map((s) => {
     const agents = orderAgents(s.agents);
     const cols = Math.min(AGENTS_PER_ROW, Math.max(1, agents.length));
     return { s, agents, width: Math.max(MAIN_SLOT, cols * AGENT_SLOT), rows: Math.ceil(agents.length / AGENTS_PER_ROW) };
   });
-  const width = PAD * 2 + blocks.reduce((a, b) => a + b.width, 0);
+  const width = Math.max(MIN_W, SIDE * 2 + blocks.reduce((a, b) => a + b.width, 0));
   const rows = Math.max(0, ...blocks.map((b) => b.rows));
-  // Ohne Subagents endet die Station unter der Beschriftung.
-  const height = rows ? MAIN_H + rows * ROW_H + 4 : 136;
+  const height = rows ? ROWS_TOP + rows * ROW_H : MAIN_DESK_Y + 66;
 
   const svg = el('svg', {
     viewBox: `0 0 ${width} ${height}`,
@@ -271,71 +485,85 @@ function buildStation(project, ctx) {
     role: 'img',
   });
   svg.style.maxWidth = `${width}px`;
-  const links = el('g', { class: 'links' }, svg);
+
+  drawRoom(svg, width, height);
+  const board = drawBoard(svg, width);
+  let windowG = null;
+  let clock = null;
+  if (board.sideRoom >= 74) {
+    windowG = drawWindow(svg, Math.max(14, board.sideRoom / 2 - 28), 24);
+    clock = drawClock(svg, width - Math.max(30, board.sideRoom / 2), 52);
+  }
+  drawPlant(svg, width - 20, WALL_H + 30);
+
   const figures = el('g', {}, svg);
+  // Nach den Figuren: die Papierflieger fliegen vor Tischen und Robotern.
+  const routes = el('g', { class: 'routes' }, svg);
 
   const figs = new Map();
-  let x0 = PAD;
+  // Etwas Abstand zur Pflanze rechts: der Inhalt wird mittig verteilt.
+  const content = blocks.reduce((a, b) => a + b.width, 0);
+  let x0 = (width - content) / 2;
   for (const block of blocks) {
     const cx = x0 + block.width / 2;
-    // Tischplatte je Sitzung.
-    el('rect', { x: cx - 52, y: 88, width: 104, height: 7, rx: 3.5, class: 'desk' }, figures);
-    const main = mainFigure(figures, cx);
-    const label = el('text', { x: cx, y: 113, 'text-anchor': 'middle', class: 'fig-label' }, figures);
-    const sub = el('text', { x: cx, y: 127, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
-    // Leitungen beginnen unter der Beschriftung, nicht mitten hindurch.
-    figs.set(block.s.sessionId, { ...main, label, sub, kind: 'session', anchor: { x: cx, y: 133 } });
+    const pos = el('g', { transform: `translate(0 ${MAIN_Y})` }, figures);
+    const main = mainFigure(pos, cx);
+    const label = el('text', { x: cx, y: MAIN_DESK_Y + 46, 'text-anchor': 'middle', class: 'fig-label' }, figures);
+    const sub = el('text', { x: cx, y: MAIN_DESK_Y + 59, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
+    figs.set(block.s.sessionId, { ...main, label, sub, kind: 'session', desk: { x: cx - 26, y: MAIN_DESK_Y + 2 } });
     ctx.hover(main.fig, block.s.sessionId);
 
     block.agents.forEach((a, i) => {
       const row = Math.floor(i / AGENTS_PER_ROW);
       const inRow = Math.min(AGENTS_PER_ROW, block.agents.length - row * AGENTS_PER_ROW);
-      const rowWidth = inRow * AGENT_SLOT;
-      const ax = cx - rowWidth / 2 + AGENT_SLOT / 2 + (i % AGENTS_PER_ROW) * AGENT_SLOT;
-      const top = MAIN_H + row * ROW_H;
+      const ax = cx - (inRow * AGENT_SLOT) / 2 + AGENT_SLOT / 2 + (i % AGENTS_PER_ROW) * AGENT_SLOT;
+      const top = ROWS_TOP + row * ROW_H;
       const fig = agentFigure(figures, ax, top, typeColor(a.type));
-      const label = el('text', { x: ax, y: top + 84, 'text-anchor': 'middle', class: 'fig-label' }, figures);
-      const sub = el('text', { x: ax, y: top + 97, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
-      // Leitung endet ueber der Sprechblase, nicht hinter ihr.
-      figs.set(a.id, { ...fig, label, sub, kind: 'agent', anchor: { x: ax, y: top + 101 }, head: { x: ax, y: top - 2 } });
+      const label = el('text', { x: ax, y: top + 93, 'text-anchor': 'middle', class: 'fig-label' }, figures);
+      const sub = el('text', { x: ax, y: top + 105, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
+      figs.set(a.id, { ...fig, label, sub, kind: 'agent', desk: { x: ax - 20, y: top + 60 } });
       ctx.hover(fig.fig, a.id);
     });
     x0 += block.width;
   }
 
-  // Leitungen erst, wenn alle Figuren stehen: ein Auftraggeber kann in der
+  // Wege erst, wenn alle Tische stehen: ein Auftraggeber kann in der
   // Reihenfolge nach seinem Subagent kommen.
   for (const block of blocks) {
     for (const a of block.agents) {
-      const from = figs.get(a.parentId ?? block.s.sessionId)?.anchor ?? figs.get(block.s.sessionId).anchor;
-      const to = figs.get(a.id).head;
-      const midY = (from.y + to.y) / 2;
-      const path = el(
-        'path',
-        { d: `M${from.x} ${from.y}C${from.x} ${midY} ${to.x} ${midY} ${to.x} ${to.y}`, class: 'link' },
-        links,
-      );
-      figs.get(a.id).link = path;
+      const from = (figs.get(a.parentId ?? block.s.sessionId) ?? figs.get(block.s.sessionId)).desk;
+      const to = figs.get(a.id).desk;
+      figs.get(a.id).route = route(routes, from, to);
     }
   }
 
   root.append(svg);
-  return { root, name, meta, svg, figs, sig: layoutSignature(project) };
+  return { root, svg, figs, board, windowG, clock, sig: layoutSignature(project) };
 }
 
-/** Zustand auf eine bestehende Station uebertragen - ohne Neuaufbau. */
-function applyStation(st, project, ctx) {
-  st.name.textContent = project.label;
-  st.name.title = project.cwd;
-  const busy = project.sessions.filter((s) => s.status === 'busy').length;
-  const running = project.sessions.reduce((n, s) => n + s.agents.filter((a) => a.state === 'running').length, 0);
-  st.meta.textContent = [
-    `${project.sessions.length} ${project.sessions.length === 1 ? 'Sitzung' : 'Sitzungen'}`,
-    busy ? `${busy} arbeitet` : 'ruht',
-    running ? `${running} ${running === 1 ? 'Subagent läuft' : 'Subagents laufen'}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+/** Uhr und Fenster auf die aktuelle Zeit stellen. */
+function applyTime(st, timeZone) {
+  const { h, m } = zonedTime(timeZone);
+  if (st.windowG) st.windowG.dataset.sky = skyFor(h);
+  if (st.clock) {
+    const { cx, cy } = st.clock;
+    st.clock.hour.setAttribute('transform', `rotate(${((h % 12) + m / 60) * 30} ${cx} ${cy})`);
+    st.clock.minute.setAttribute('transform', `rotate(${m * 6} ${cx} ${cy})`);
+  }
+}
+
+/** Zustand auf einen bestehenden Raum uebertragen - ohne Neuaufbau. */
+function applyOffice(st, project, ctx) {
+  // Lange Namen lieber kleiner schreiben als abschneiden - erst ab 11 px wird
+  // gekuerzt. titleChars gilt fuer die volle Groesse von 15 px.
+  const len = project.label.length;
+  const size = len > st.board.titleChars ? Math.max(11, (15 * st.board.titleChars) / len) : 15;
+  st.board.title.style.fontSize = `${size.toFixed(1)}px`;
+  st.board.title.textContent = clip(project.label, Math.floor((st.board.titleChars * 15) / size));
+  const lines = boardLines(project);
+  st.board.lines.forEach((t, i) => {
+    t.textContent = lines[i] ? clip(lines[i], st.board.lineChars) : '';
+  });
 
   const summary = [];
   for (const s of project.sessions) {
@@ -366,22 +594,23 @@ function applyStation(st, project, ctx) {
               : a.cost != null && a.costKnown
                 ? ctx.usd(a.cost)
                 : 'läuft';
-      if (g.link) g.link.dataset.state = a.state === 'running' ? 'flow' : 'done';
+      if (g.route) g.route.dataset.state = a.state === 'running' ? 'flow' : 'done';
       summary.push(`${a.type} ${as === 'tool' || as === 'thinking' ? 'läuft' : g.sub.textContent}`);
     }
   }
-  st.svg.setAttribute('aria-label', `${project.label}: ${summary.join(', ')}`);
+  st.svg.setAttribute('aria-label', `Büro ${project.label}: ${summary.join(', ')}`);
+  applyTime(st, ctx.timeZone());
 }
 
 /* --- Einstieg ------------------------------------------------------------------ */
 
 /**
- * @param container  Element, das die Stationen aufnimmt
- * @param activity   snapshot.activity
- * @param ctx        { tooltip, usd(n), describe(kind, data) -> string }
+ * @param container  Element, das die Raeume aufnimmt
+ * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone() }
+ * @returns {{ render(activity), tick() }}  tick() stellt Uhren und Fenster
  */
-export function createWorkshop(container, { tooltip, usd, describe }) {
-  /** Stationen je Projekt: key -> { root, figs, sig, ... } */
+export function createWorkshop(container, { tooltip, usd, describe, timeZone = () => undefined }) {
+  /** Raeume je Projekt: key -> { root, figs, sig, ... } */
   const stations = new Map();
   /** Aktuelle Daten je Figur fuer den Tooltip (zum Zeitpunkt des Zeigens). */
   const data = new Map();
@@ -401,11 +630,11 @@ export function createWorkshop(container, { tooltip, usd, describe }) {
       tooltip.hide();
     });
   };
-  const ctx = { usd, hover };
+  const ctx = { usd, hover, timeZone };
 
   let empty = null;
 
-  return function render(activity) {
+  function render(activity) {
     const projects = activity?.projects ?? [];
     data.clear();
     for (const p of projects) {
@@ -425,7 +654,7 @@ export function createWorkshop(container, { tooltip, usd, describe }) {
       if (!empty) {
         empty = document.createElement('p');
         empty.className = 'chart-empty';
-        empty.textContent = 'Gerade ist keine Claude-Code-Sitzung offen.';
+        empty.textContent = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.';
       }
       if (empty.parentNode !== container) container.append(empty);
       return;
@@ -446,7 +675,7 @@ export function createWorkshop(container, { tooltip, usd, describe }) {
       const sig = layoutSignature(p);
       let st = stations.get(p.key);
       if (!st || st.sig !== sig) {
-        const fresh = buildStation(p, ctx);
+        const fresh = buildOffice(p, ctx);
         if (st) {
           dropHover(st);
           st.root.replaceWith(fresh.root);
@@ -454,7 +683,7 @@ export function createWorkshop(container, { tooltip, usd, describe }) {
         st = fresh;
         stations.set(p.key, st);
       }
-      applyStation(st, p, ctx);
+      applyOffice(st, p, ctx);
       wanted.push(st.root);
     }
     for (const [key, st] of stations) {
@@ -474,10 +703,16 @@ export function createWorkshop(container, { tooltip, usd, describe }) {
       }
     }
     // Nur umhaengen, wenn sich die Reihenfolge wirklich geaendert hat: jedes
-    // Umhaengen startet die Animationen der Station neu.
+    // Umhaengen startet die Animationen des Raums neu.
     const current = [...container.children].filter((n) => n.classList.contains('station'));
     if (current.length !== wanted.length || current.some((n, i) => n !== wanted[i])) {
       for (const n of wanted) container.append(n);
     }
-  };
+  }
+
+  function tick() {
+    for (const st of stations.values()) applyTime(st, timeZone());
+  }
+
+  return { render, tick };
 }

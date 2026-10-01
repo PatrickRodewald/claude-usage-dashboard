@@ -677,3 +677,24 @@ test('nachgerechnet wird nur bis zum damaligen Messzeitpunkt', async () => {
   await s2.scan();
   assert.equal(s2.archive.calibration.fiveHour[0].w, 1000);
 });
+
+// --- Datei-Watcher --------------------------------------------------------
+
+test('der Watcher meldet Aenderungen - auch unter einem Kurzpfad', async () => {
+  // os.tmpdir() ist unter Windows oft ein 8.3-Kurzpfad ("C:\Users\ABCDEF~1\...").
+  // Ohne Aufloesung auf den langen Pfad bricht libuv beim ersten Ereignis den
+  // ganzen Prozess per Assertion ab - dieser Test wuerde dann gar nicht enden.
+  const { createWatcher } = await import('../src/store.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-watch-'));
+  let fired = 0;
+  const w = createWatcher([dir], () => fired++, { debounceMs: 30, match: (f) => f.endsWith('.json') });
+  try {
+    if (!w.active) return; // Kein rekursives Watching auf diesem System
+    fs.writeFileSync(path.join(dir, '123.json'), '{}');
+    for (let i = 0; i < 60 && !fired; i++) await new Promise((r) => setTimeout(r, 50));
+    assert.ok(fired >= 1, 'Aenderung wurde gemeldet');
+  } finally {
+    w.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
