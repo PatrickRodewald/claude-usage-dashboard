@@ -12,11 +12,14 @@ import {
   saveArchive,
   newRecord,
   applyEntries,
+  applyDelta,
   archiveBuckets,
   hashesExcept,
   pruneArchive,
   mergeForeign,
   addSample,
+  addAnchor,
+  effectivePercent,
   fitRatio,
   calibrationSummary,
   HISTORY_VERSION,
@@ -330,7 +333,7 @@ test('Kalibrierung greift erst ab genug Punkten aus genug Fenstern', () => {
 test('gemessenes Limit ergibt sich aus der Steigung mal 100', () => {
   const a = emptyArchive();
   for (let i = 0; i < 9; i++) {
-    a.calibration.fiveHour.push({ t: i * 4e5, e: 100 + i, p: 10, w: 8800, c: 4, n: 3 });
+    a.calibration.fiveHour.push({ t: i * 4e5, e: (i + 1) * 5 * 3600_000, p: 10, w: 8800, c: 4, n: 3 });
   }
   const s = calibrationSummary(a, 'fiveHour', { minSamples: 8, minWindows: 3 });
   assert.equal(s.ok, true);
@@ -379,4 +382,88 @@ test('ohne Messpunkte meldet die Zusammenfassung ehrlich null', () => {
   assert.equal(s.samples, 0);
   assert.equal(s.tokensPerPercent, null);
   assert.equal(s.limit, null);
+});
+
+// --- Nachgereichte Staende ------------------------------------------------
+
+test('ein Nachtrag erhoeht die Tokens, aber nicht die Requestzahl', () => {
+  const rec = newRecord({ project: 'p' });
+  const e = entry('2026-09-29T10:00:00Z', { output: 1, tag: 'a' });
+  applyEntries(rec, [e]);
+  applyDelta(rec, e, { output: 382 });
+  const [b] = archiveBuckets({ files: { x: rec } });
+  assert.equal(b.tokens.output, 383);
+  assert.equal(b.count, 1, 'derselbe Request');
+  assert.equal(rec.keys.length, 1, 'kein zweiter Schluessel-Hash');
+});
+
+test('der Auswertungsstand ueberlebt Schreiben und Lesen', () => {
+  const file = tmpFile();
+  const a = emptyArchive();
+  assert.equal(a.readerRev, 1, 'neues Archiv startet beim Ausgangsstand');
+  a.readerRev = 2;
+  saveArchive(file, a);
+  assert.equal(loadArchive(file).readerRev, 2);
+
+  // Archiv von vor der Einfuehrung des Feldes.
+  fs.writeFileSync(file, JSON.stringify({ version: HISTORY_VERSION, files: {}, calibration: {} }));
+  assert.equal(loadArchive(file).readerRev, 1);
+});
+
+// --- Limit-Treffer und Bereichsanteil -------------------------------------
+
+const H5 = 5 * 3600_000;
+
+test('ein Limit-Treffer wird pro Fenster nur einmal aufgenommen', () => {
+  const a = emptyArchive();
+  const hit = { t: 1000, e: 10 * H5, p: 100, w: 9000, c: 3, n: 4 };
+  assert.equal(addAnchor(a, 'fiveHour', hit), true);
+  assert.equal(addAnchor(a, 'fiveHour', { ...hit, t: 1026 }), false, 'erneuter Versuch, selbes Fenster');
+  // Die API meldet dasselbe Fensterende mit Sekundenbruchteilen.
+  assert.equal(addAnchor(a, 'fiveHour', { ...hit, e: 10 * H5 - 169 }), false);
+  assert.equal(a.calibration.fiveHour.length, 1);
+  assert.equal(a.calibration.fiveHour[0].src, 'limit');
+});
+
+test('ein aelterer Limit-Treffer wird chronologisch einsortiert', () => {
+  const a = emptyArchive();
+  addSample(a, 'fiveHour', { t: 100, e: H5, p: 10, w: 1, c: 1, n: 1 });
+  addSample(a, 'fiveHour', { t: 300, e: 2 * H5, p: 10, w: 1, c: 1, n: 1 });
+  addAnchor(a, 'fiveHour', { t: 200, e: 3 * H5, p: 100, w: 9, c: 9, n: 9 });
+  assert.deepEqual(a.calibration.fiveHour.map((s) => s.t), [100, 200, 300]);
+});
+
+test('Fenster werden auf die Minute genau gezaehlt', () => {
+  const a = emptyArchive();
+  addSample(a, 'fiveHour', { t: 1, e: 10 * H5 - 169, p: 50, w: 500, c: 1, n: 1 });
+  addAnchor(a, 'fiveHour', { t: 2, e: 10 * H5, p: 100, w: 1000, c: 2, n: 2 });
+  assert.equal(calibrationSummary(a, 'fiveHour').windows, 1, 'API-Wert und Treffer sind dasselbe Fenster');
+  assert.equal(calibrationSummary(a, 'fiveHour').anchors, 1);
+});
+
+test('der Anteil ausserhalb von Claude Code wird herausgerechnet', () => {
+  assert.equal(effectivePercent({ p: 20, cc: 0.88 }), 20 * 0.88);
+  assert.equal(effectivePercent({ p: 20 }), 20, 'ohne Angabe zaehlt der volle Wert');
+  assert.equal(effectivePercent({ p: 20, cc: 7 }), 20, 'unsinniger Anteil wird ignoriert');
+
+  // 1 % Claude-Code-Auslastung = 1000 Tokens. Gemeldet werden aber 20 % bei
+  // 12 % Cowork-Anteil - unbereinigt laege das Limit um 12 % zu niedrig.
+  const a = emptyArchive();
+  for (let i = 0; i < 9; i++) {
+    a.calibration.week.push({ t: i, e: (i + 1) * 7 * 24 * 3600_000, p: 20, cc: 0.88, w: 17_600, c: 1, n: 1 });
+  }
+  const s = calibrationSummary(a, 'week', { minSamples: 8, minWindows: 3 });
+  assert.ok(Math.abs(s.tokensPerPercent - 1000) < 1e-9);
+  assert.ok(Math.abs(s.limit - 100_000) < 1e-6);
+  assert.equal(s.adjusted, 9);
+  assert.equal(s.lastShare, 0.88);
+});
+
+test('Punkte mit und ohne Anteil lassen sich mischen', () => {
+  const a = emptyArchive();
+  a.calibration.week.push({ t: 1, e: 1e9, p: 10, w: 10_000, c: 1, n: 1 });
+  a.calibration.week.push({ t: 2, e: 2e9, p: 20, cc: 0.5, w: 10_000, c: 1, n: 1 });
+  const fit = fitRatio(a.calibration.week, (s) => s.w);
+  assert.ok(Math.abs(fit.perPercent - 1000) < 1e-9, 'beide Punkte: 10 % Claude Code = 10.000 Tokens');
+  assert.equal(fit.cv, 0);
 });

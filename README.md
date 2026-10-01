@@ -92,8 +92,14 @@ unter `~/Library/LaunchAgents/` ein (macOS). Beides braucht keine Admin-Rechte.
 ![Dashboard im Dark Mode](docs/dashboard-dark.png)
 
 Oben fünf Statuskacheln (5h-Fenster, Woche, Kosten heute, Burn-Rate, Abo-Gegenwert), darunter
-der 30-Tage-Verlauf, der heutige Tagesverlauf, die Token-Zusammensetzung, die Auslastung je
-abgeschlossenem 5-Stunden-Block sowie Aufschlüsselungen nach Projekt, Modell und Session.
+der 30-Tage-Verlauf, der heutige Tagesverlauf, die Token-Zusammensetzung (samt Thinking-Anteil
+am Output), die Auslastung je abgeschlossenem 5-Stunden-Block sowie Aufschlüsselungen nach
+Projekt, Modell, Agent, Skill, Effort und Session.
+
+Die Wochenkachel zeigt zusätzlich, wie sich die Auslastung auf die Bereiche verteilt
+(„Davon Claude Code 88 % · Cowork 12 %"). Agent, Skill, Effort und Sessions stammen nur aus den
+noch vorhandenen Transkripten, das Archiv führt diese Merkmale nicht. Der Zeitraum steht deshalb
+jeweils dabei.
 
 Das `LIVE`-Abzeichen an einer Kachel heißt: dieser Wert kommt von Anthropic.
 
@@ -164,6 +170,13 @@ Abo — auch für Arbeit an einem anderen Rechner. Die Aufschlüsselungen darunt
 Transkripte *dieses* Geräts. Das Dashboard schreibt diesen Unterschied in die Fußzeile;
 zusammenführen lässt er sich über [mehrere Geräte](#mehrere-geräte).
 
+**5. Nicht alles, was gegen das Limit zählt, steht in den Transkripten.** Chats und Cowork
+zählen gegen dasselbe Wochenlimit, Claude-Code-Transkripte kennen sie aber nicht. Anthropic
+meldet die Aufteilung der Woche nach Bereich mit. Das Dashboard zeigt sie an und rechnet sie aus
+der [Kalibrierung](#kalibrierung) heraus. Für das 5-Stunden-Fenster gibt es diese Aufteilung
+nicht. Auch Claude Codes eigene Hintergrundanfragen erscheinen nicht einzeln in den
+Transkripten, etwa Titel-Erzeugung mit Haiku.
+
 ## Kalibrierung
 
 Anthropic veröffentlicht die Token-Budgets von Pro/Max nicht. Statt zu raten, misst das
@@ -183,7 +196,24 @@ Das bringt drei Dinge:
 
 Voraussetzung sind standardmäßig 8 Messpunkte aus 3 **verschiedenen** Fenstern — zwanzig
 Messungen aus einer einzigen Sitzung sind keine zwanzig Belege. Pro Fenster wird höchstens alle
-5 Minuten gemessen.
+5 Minuten gemessen. Fenster werden auf die Minute genau verglichen: Anthropic meldet das
+Fensterende von Abruf zu Abruf mit wechselnden Sekundenbruchteilen. Exakt verglichen zählte
+früher fast jeder Messpunkt als eigenes Fenster, in echten Daten 159 statt 4.
+
+Drei Dinge machen die Messung genauer:
+
+- **Erreichte Limits sind exakte Punkte.** Lehnt Anthropic einen Request wegen des Limits ab,
+  schreibt Claude Code das samt Fenster und Reset-Zeit ins Transkript. In diesem Moment lag die
+  Auslastung bei genau 100 %, ohne Rundung und ohne Abruf. Daraus wird ein Messpunkt, pro
+  Fenster höchstens einer.
+- **Chats und Cowork werden herausgerechnet.** Für die Woche meldet Anthropic, welcher Anteil
+  der Auslastung auf Claude Code entfällt. Jeder Wochen-Messpunkt merkt sich diesen Anteil, und
+  die Regression vergleicht die lokalen Tokens nur mit diesem Teil.
+- **Ändert sich die Zählung, werden die Punkte nachgerechnet.** Zählt eine neue Version mehr,
+  etwa die früher übersehenen Subagents, rechnet der nächste Start jeden Messpunkt neu, dessen
+  Fenster noch in vorhandenen Transkripten liegt. Die übrigen werden verworfen. In echten Daten
+  lagen die alten Punkte um den Faktor 2–2,5 zu niedrig, beigemischt hätten sie Blöcke mit über
+  400 % gezeigt.
 
 > Die Messung ist eine **untere Schranke**: Arbeit an einem anderen Gerät zählt gegen dasselbe
 > Limit, taucht in den lokalen Transkripten aber nicht auf und drückt den ermittelten Wert nach
@@ -288,24 +318,37 @@ Einführungspreise bleiben an ihr Datum gebunden.
 `~/.claude/.credentials.json` (Header `Authorization: Bearer …` plus
 `anthropic-beta: oauth-2025-04-20`). Die Antwort liefert `five_hour`/`seven_day` mit
 `utilization` und `resets_at` sowie ein `limits[]`-Array mit `severity` und modellspezifischen
-Wochenkontingenten. Aus `resets_at` minus Fensterlänge ergibt sich der Fensterstart — damit
+Wochenkontingenten. `seven_day_breakdown` teilt die Wochenauslastung auf Claude Code, Chats und
+Cowork auf. Aus `resets_at` minus Fensterlänge ergibt sich der Fensterstart — damit
 lassen sich die lokalen Transkripte auf **exakt dasselbe Fenster** summieren.
 
 Das Token wird bei jedem Abruf frisch von der Platte gelesen: Claude Code rotiert es selbst,
 und wir erneuern nichts, um dessen Sitzung nicht zu stören. Läuft es ab, sagt das Dashboard
-das und rechnet lokal weiter. Der Abruf ist auf 60 s gedrosselt, damit das 20-Sekunden-Polling
-nicht zu 20-Sekunden-API-Aufrufen führt.
+das und rechnet lokal weiter. Der Abruf ist standardmäßig auf 5 Minuten gedrosselt
+(`liveUsage.minIntervalMs`), damit das 20-Sekunden-Polling nicht zu 20-Sekunden-API-Aufrufen
+führt.
 
 **Aufschlüsselungen** kommen aus den JSONL-Transkripten unter
-`~/.claude/projects/<projekt>/<session>.jsonl` (zusätzlich werden `$CLAUDE_CONFIG_DIR` und
-`~/.config/claude` geprüft).
+`~/.claude/projects/<projekt>/<session>.jsonl` **und** den Subagent-Transkripten unter
+`~/.claude/projects/<projekt>/<session>/subagents/agent-*.jsonl`. Zusätzlich werden
+`$CLAUDE_CONFIG_DIR` und `~/.config/claude` geprüft. Bis Version 1.2.1 wurden die
+Subagent-Dateien übersehen. In echten Daten fehlten dadurch 28 % der Requests und etwa ein
+Siebtel des Kosten-Äquivalents. Ein Archiv aus älterer Version wird beim ersten Start einmal
+vollständig neu eingelesen. Bereits von Claude Code gelöschte Subagent-Transkripte lassen sich
+nicht nachholen.
 
 **Deduplizierung — der wichtigste Teil.** Claude Code schreibt **eine Zeile pro Content-Block**
-(text, tool_use, thinking) und hängt an *jede* das vollständige, identische `usage`-Objekt.
+(text, tool_use, thinking) und hängt an *jede* ein `usage`-Objekt.
 Beim Test standen 3.288 Zeilen für nur 1.715 echte Requests. Ohne Deduplizierung über
 `message.id` + `requestId` werden Output-Tokens um den Faktor **2,3** und Cache-Reads um
 **1,7** überzählt. Fehlt ausnahmsweise die `requestId`, wird auf `uuid` zurückgefallen — sonst
 kollabieren diese Einträge auf einen gemeinsamen Schlüssel und verschwinden.
+
+Die `usage`-Objekte sind aber **nicht immer identisch**. In Subagent-Transkripten tragen die
+frühen Zeilen eines Requests einen vorläufigen Output-Stand von 1–4 Tokens, erst die letzte den
+endgültigen. Je Zähler gilt deshalb das Maximum aller Zeilen, und das Archiv wird um den
+Zuwachs nachgebucht. Wer die erste Zeile behält, verliert dort den Großteil des Outputs. Die
+Fußzeile zeigt, wie viele Requests so korrigiert wurden.
 
 **Cache-Writes nach TTL getrennt.** `cache_creation` schlüsselt in `ephemeral_5m` und
 `ephemeral_1h` auf; die kosten 1,25× bzw. 2,0× Input. In echten Daten ist praktisch alles 1h.
@@ -322,7 +365,9 @@ Ablauf des Fensters beginnt ein neuer Block. Das entspricht der Konvention von `
 **Inkrementelles Einlesen.** Pro Datei wird der Byte-Offset gemerkt; ein Rescan liest nur den
 angehängten Teil (typisch wenige KB statt 31 MB). Eine unvollständige letzte Zeile — Claude
 Code schreibt ja gerade weiter — wird nicht konsumiert, sondern beim nächsten Lauf komplett
-verarbeitet. Schrumpft eine Datei, wird sie vollständig neu gelesen.
+verarbeitet. Schrumpft eine Datei, wird sie vollständig neu gelesen. Gelesen wird in Blöcken
+von 32 MB: Subagent-Transkripte erreichen über 500 MB, mehr als Node in einem einzigen String
+fassen kann.
 
 **Junge Dateien werden trotz Archiv immer ganz gelesen.** Tagesverlauf, Sessions und
 5-Stunden-Blöcke brauchen die einzelnen Einträge mit Zeitstempel, nicht nur Tagessummen. Erst
@@ -340,7 +385,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-201 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+244 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -357,8 +402,13 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Parsing und Kosten**
 - drei Content-Blöcke desselben Requests ergeben **einen** Eintrag
+- Subagent-Requests zählen mit dem endgültigen Output der letzten Zeile, auch wenn sie erst
+  in einem späteren Lesedurchgang ankommt; Cache-Writes werden dabei als Paar übernommen
+- Subagent-Transkripte in `<session>/subagents/` werden gefunden und dem Projekt zugeordnet
 - fehlende `requestId` kollabiert Einträge nicht
 - unvollständige letzte Zeile wird nicht konsumiert; Mehrbyte-UTF-8 überlebt die Offset-Grenze
+- blockweises Lesen liefert dasselbe wie das Lesen am Stück, auch mitten in Mehrbyte-Zeichen;
+  eine überlange Einzelzeile wird übersprungen statt den Speicher zu sprengen
 - 1h-Cache-Write kostet exakt das 1,6-fache eines 5m-Writes
 - Einführungspreis gilt vor dem Stichtag und danach nicht mehr
 
@@ -375,6 +425,12 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - ein beschädigtes oder fremdformatiges Archiv wird verworfen statt falsch gelesen
 - die Regression trifft die Steigung exakt und meldet, ob Tokens oder Kosten besser erklären;
   bei ähnlicher Güte bleibt sie ausdrücklich ohne Aussage
+- ein erreichtes Limit wird zum exakten 100-%-Punkt, nur mit dem Verbrauch im Fenster, und
+  weder Neueinlesen noch Neustart verdoppeln ihn
+- der Claude-Code-Anteil wird je Wochenpunkt gemerkt und herausgerechnet, aber nie aus einer
+  anderen Woche übertragen
+- nach einer geänderten Zählung werden Messpunkte bis zum damaligen Messzeitpunkt nachgerechnet,
+  nicht mehr belegbare verworfen, und das nur einmal
 
 **HTTP-Schicht**
 - `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet

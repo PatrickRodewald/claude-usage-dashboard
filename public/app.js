@@ -352,6 +352,22 @@ function render() {
     scopedEl.hidden = true;
   }
 
+  // Aufteilung der Wochenauslastung nach Bereich. Erklaert auch, warum lokale
+  // Tokens und echte Auslastung auseinanderliegen koennen: Chats und Cowork
+  // zaehlen gegen dasselbe Limit, tauchen in den Transkripten aber nicht auf.
+  const bdEl = $('wk-breakdown');
+  const bdRows = (s.live.breakdown?.rows ?? [])
+    .filter((r) => r.percent > 0)
+    .sort((a, b) => b.percent - a.percent);
+  if (bdRows.length) {
+    bdEl.hidden = false;
+    bdEl.textContent = 'Davon ' + bdRows.map((r) => `${r.label} ${nf0.format(r.percent)} %`).join(' · ');
+    bdEl.title =
+      'Anteile an der Wochenauslastung laut Anthropic. Lokal gezählt wird nur Claude Code auf diesem Gerät.';
+  } else {
+    bdEl.hidden = true;
+  }
+
   // Herkunfts-Hinweis in der Kopfzeile
   const srcEl = $('src-note');
   const tier = s.live.rateLimitTier ?? s.live.subscriptionType ?? '';
@@ -519,6 +535,20 @@ function render() {
     legend.append(li);
   }
 
+  // Thinking steckt im Output und laesst sich nur aus den Einzeleintraegen
+  // herauslesen - deshalb mit eigenem Bezugszeitraum.
+  const since = s.detailFrom ? `seit ${dayMonth(s.detailFrom, tz)}` : null;
+  const thinkEl = $('mix-thinking');
+  const th = s.thinking;
+  if (th?.share != null) {
+    thinkEl.hidden = false;
+    thinkEl.textContent =
+      `Davon Thinking: ${pct(th.share * 100)} des Outputs ` +
+      `(${num(th.requests)} von ${num(th.ofRequests)} Requests melden den Wert${since ? `, ${since}` : ''}).`;
+  } else {
+    thinkEl.hidden = true;
+  }
+
   // --- Tabellen
   // Schmale Panels: nur Name / Tokens / Kosten. Requests wandern in den
   // Zeilen-Tooltip - sonst wird die Kostenspalte abgeschnitten.
@@ -548,6 +578,35 @@ function render() {
     maxBarValue: Math.max(0, ...s.byModel.map((m) => m.cost)),
   });
 
+  // Agent, Skill, Effort: nur aus den vorhandenen Transkripten, das Archiv
+  // fuehrt diese Merkmale nicht. Der Zeitraum steht deshalb dabei.
+  const detailSub = `aus den vorhandenen Transkripten${since ? ` · ${since}` : ''}`;
+  const detailTable = (id, subId, nameTitle, rows, extraCols = []) => {
+    $(subId).textContent = detailSub;
+    const cols = compactCols(nameTitle);
+    cols.splice(2, 0, ...extraCols);
+    buildTable($(id), {
+      columns: cols,
+      rows: rows.map((r) => ({
+        ...r,
+        barValue: r.cost,
+        rowTitle: `${num(r.count)} Requests · ${num(r.total)} Tokens`,
+      })),
+      maxBarValue: Math.max(0, ...rows.map((r) => r.cost)),
+    });
+  };
+  detailTable('tbl-agents', 'agents-sub', 'Agent', s.byAgent ?? []);
+  detailTable('tbl-skills', 'skills-sub', 'Skill', s.bySkill ?? []);
+  detailTable('tbl-effort', 'effort-sub', 'Effort', s.byEffort ?? [], [
+    {
+      title: 'Thinking',
+      get: (r) => ({
+        text: r.thinkingShare == null ? '–' : pct(r.thinkingShare * 100),
+        title: 'Anteil der Thinking-Tokens am Output',
+      }),
+    },
+  ]);
+
   buildTable($('tbl-sessions'), {
     columns: [
       { title: 'Projekt', get: (r) => r.projects[0] ?? '–' },
@@ -567,7 +626,9 @@ function render() {
     `${num(sc.files)} Transkripte` +
     (sc.filesSkipped ? ` (${num(sc.filesSkipped)} bereits archiviert, nicht erneut gelesen)` : '') +
     ` · ${num(sc.uniqueRequests)} eindeutige Requests ` +
-    `(${num(sc.duplicatesSkipped)} Duplikate übersprungen, ${num(sc.brokenLines)} defekte Zeilen) · ` +
+    `(${num(sc.duplicatesSkipped)} Duplikate übersprungen` +
+    (sc.lateUsage ? `, davon ${num(sc.lateUsage)} mit nachgereichtem Output-Stand übernommen` : '') +
+    `, ${num(sc.brokenLines)} defekte Zeilen) · ` +
     `zuletzt eingelesen ${clock(sc.lastScanMs, tz)} in ${num(sc.lastScanDurationMs)} ms`;
 
   const h = s.history;
@@ -582,6 +643,11 @@ function render() {
       h.merged ? `${num(h.merged)} weiteres Gerät eingebunden` : null,
       h.bytes != null ? `${nf1.format(h.bytes / 1024)} KB` : null,
       h.note,
+      // Nur im Lauf direkt nach einer geaenderten Zaehlung gesetzt.
+      sc.recalibrated
+        ? `Messpunkte mit der neuen Zählung nachgerechnet: ${num(sc.recalibrated.kept)} übernommen, ` +
+          `${num(sc.recalibrated.dropped)} ohne vorhandene Transkripte verworfen`
+        : null,
     ].filter(Boolean);
     histEl.hidden = false;
     histEl.textContent = parts.join(' · ');
@@ -595,26 +661,43 @@ function render() {
   // Auslastung besser? Diese Frage ist offen, solange Anthropic nichts sagt.
   const calEl = $('calib-info');
   const cal = s.calibration?.fiveHour;
+  const calWeek = s.calibration?.week;
   if (cal && cal.samples > 0) {
     calEl.hidden = false;
+    const parts = [];
     if (cal.ok) {
       const better =
         cal.better === 'tokens'
-          ? ' Die Auslastung folgt den gewichteten Tokens enger als den Kosten.'
+          ? 'Die Auslastung folgt den gewichteten Tokens enger als den Kosten.'
           : cal.better === 'cost'
-            ? ' Die Auslastung folgt den Kosten enger als den Tokens – das Limit dürfte kostenbasiert sein.'
-            : ' Tokens und Kosten erklären sie bisher gleich gut.';
-      calEl.textContent =
+            ? 'Die Auslastung folgt den Kosten enger als den Tokens – das Limit dürfte kostenbasiert sein.'
+            : 'Tokens und Kosten erklären sie bisher gleich gut.';
+      parts.push(
         `Gemessen aus ${num(cal.samples)} Vergleichen in ${num(cal.windows)} Fenstern: ` +
-        `1 % des 5h-Limits ≈ ${compact(cal.tokensPerPercent)} gewichtete Tokens ` +
-        `bzw. ${usd(cal.costPerPercent)}. Volles Fenster ≈ ${compact(cal.limit)} Tokens.` +
-        better;
+          `1 % des 5h-Limits ≈ ${compact(cal.tokensPerPercent)} gewichtete Tokens ` +
+          `bzw. ${usd(cal.costPerPercent)}. Volles Fenster ≈ ${compact(cal.limit)} Tokens.`,
+        better,
+      );
     } else {
-      calEl.textContent =
+      parts.push(
         `Kalibrierung sammelt: ${num(cal.samples)} von ${num(cal.minSamples)} Messpunkten aus ` +
-        `${num(cal.windows)} von ${num(cal.minWindows)} verschiedenen Fenstern. ` +
-        'Danach steht das Limit auf gemessenen Zahlen statt auf einer Schätzung.';
+          `${num(cal.windows)} von ${num(cal.minWindows)} verschiedenen Fenstern. ` +
+          'Danach steht das Limit auf gemessenen Zahlen statt auf einer Schätzung.',
+      );
     }
+    // Exakte Punkte: hier wurde das Limit tatsaechlich erreicht, die
+    // Auslastung lag also bei genau 100 % - kein gerundeter Abrufwert.
+    const anchors = (cal.anchors ?? 0) + (calWeek?.anchors ?? 0);
+    if (anchors) {
+      parts.push(`${num(anchors)} ${anchors === 1 ? 'Punkt stammt' : 'Punkte stammen'} aus erreichten Limits (exakt 100 %).`);
+    }
+    if (calWeek?.adjusted && Number.isFinite(calWeek.lastShare)) {
+      parts.push(
+        'Wochen-Messpunkte sind um Chats und Cowork bereinigt – zuletzt entfielen darauf ' +
+          `${pct((1 - calWeek.lastShare) * 100)} der Auslastung.`,
+      );
+    }
+    calEl.textContent = parts.join(' ');
   } else {
     calEl.hidden = true;
   }

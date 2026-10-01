@@ -68,6 +68,7 @@ function makeStore(sb, over = {}) {
   return createStore({
     historyFile: sb.history,
     pricingTable,
+    fetchUsage: over.fetchUsage,
     config: {
       timezone: 'Europe/Berlin',
       plan: 'max5x',
@@ -391,4 +392,288 @@ test('defekte Zeilen werden gezaehlt, nicht verschluckt', async () => {
   await s.scan();
   assert.equal(s.stats.brokenLines, 1);
   assert.equal(s.snapshot().totals.tokens.output, 5);
+});
+
+// --- Nachgereichter Subagent-Output ---------------------------------------
+
+/** Drei Zeilen EINES Subagent-Requests: Zwischenstaende, dann der Endstand. */
+function subagentLines(isoTs, final = 383) {
+  return [
+    line(isoTs, { id: 'msg_sub', requestId: 'req_sub', output: 1 }),
+    line(isoTs, { id: 'msg_sub', requestId: 'req_sub', output: 1 }),
+    line(isoTs, { id: 'msg_sub', requestId: 'req_sub', output: final }),
+  ];
+}
+
+test('Subagent-Requests zaehlen mit ihrem endgueltigen Output', async () => {
+  // Ablage wie bei Claude Code: <Projekt>/<Session>/subagents/agent-*.jsonl
+  const sb = sandbox();
+  sb.write('c--Projekte-app', 'sess-1.jsonl', [line('2026-09-28T08:00:00Z', { id: 'm0', requestId: 'r0', output: 17 })]);
+  sb.write(path.join('c--Projekte-app', 'sess-1', 'subagents'), 'agent-a1.jsonl', subagentLines('2026-09-28T09:00:00Z'));
+
+  const s = makeStore(sb);
+  await s.scan();
+  const snap = s.snapshot();
+  assert.equal(snap.totals.tokens.output, 17 + 383, 'Subagent mitgezaehlt, und nicht mit 1 aus der ersten Zeile');
+  assert.equal(snap.totals.requests, 2);
+  assert.equal(snap.scan.lateUsage, 1);
+  assert.deepEqual(snap.byProject.map((p) => p.id), ['c--Projekte-app'], 'gehoert zum Projekt, nicht zu einem eigenen');
+  s.flush();
+
+  const s2 = makeStore(sb);
+  await s2.scan();
+  assert.equal(s2.snapshot().totals.tokens.output, 17 + 383, 'auch das Archiv stimmt nach dem Neustart');
+});
+
+test('ein spaeter angehaengter Endstand korrigiert Eintrag und Archiv', async () => {
+  // Der Normalfall waehrend einer laufenden Sitzung: Zwischenstand und
+  // Endstand landen in verschiedenen Lesedurchgaengen.
+  const sb = sandbox();
+  const [first, , last] = subagentLines('2026-09-28T09:00:00Z');
+  const file = sb.write('c--Projekte-app', 'agent-a1.jsonl', [first]);
+
+  const s = makeStore(sb);
+  await s.scan();
+  assert.equal(s.snapshot().totals.tokens.output, 1);
+
+  fs.appendFileSync(file, JSON.stringify(last) + '\n');
+  await s.scan();
+  const snap = s.snapshot();
+  assert.equal(snap.totals.tokens.output, 383, 'Archiv-Summen');
+  assert.equal(snap.totals.requests, 1);
+  assert.equal(snap.bySession[0].tokens.output, 383, 'Einzeleintraege');
+});
+
+test('ein Archiv aus aelterem Auswertungsstand wird einmal neu gelesen', async () => {
+  const sb = sandbox();
+  const file = sb.write('c--Projekte-app', 'agent-a1.jsonl', subagentLines('2026-07-01T09:00:00Z'));
+  const s1 = makeStore(sb);
+  await s1.scan();
+  s1.flush();
+
+  // Archiv so zuruecksetzen, wie es die alte Version geschrieben haette: der
+  // Zwischenstand von 1 Token, Stand 1. Die Datei ist alt genug, um sonst als
+  // "fertig archiviert" uebersprungen zu werden.
+  const raw = JSON.parse(fs.readFileSync(sb.history, 'utf8'));
+  for (const rec of Object.values(raw.files)) {
+    for (const byModel of Object.values(rec.days)) for (const v of Object.values(byModel)) v[1] = 1;
+  }
+  raw.readerRev = 1;
+  fs.writeFileSync(sb.history, JSON.stringify(raw));
+  sb.age(file, 60);
+  const st = fs.statSync(file);
+  for (const rec of Object.values(raw.files)) rec.mtimeMs = st.mtimeMs;
+  fs.writeFileSync(sb.history, JSON.stringify(raw));
+
+  const s2 = makeStore(sb);
+  await s2.scan();
+  assert.equal(s2.stats.filesSkipped, 0, 'trotz Alter nicht uebersprungen');
+  assert.equal(s2.snapshot().totals.tokens.output, 383);
+  s2.flush();
+  assert.equal(JSON.parse(fs.readFileSync(sb.history, 'utf8')).readerRev, 2);
+
+  const s3 = makeStore(sb);
+  await s3.scan();
+  assert.equal(s3.stats.filesSkipped, 1, 'danach greift das Ueberspringen wieder');
+  assert.equal(s3.snapshot().totals.tokens.output, 383);
+});
+
+// --- Limit-Treffer --------------------------------------------------------
+
+function rejectionLine(isoTs, resetsAtIso, type = 'five_hour') {
+  return {
+    type: 'assistant',
+    timestamp: isoTs,
+    sessionId: 'sess-1',
+    requestId: `req-err-${isoTs}`,
+    uuid: `u-err-${isoTs}`,
+    apiErrorStatus: 429,
+    quotaLimits: {
+      status: 'rejected',
+      resetsAt: Date.parse(resetsAtIso) / 1000,
+      rateLimitType: type,
+    },
+    message: {
+      id: `msg-err-${isoTs}`,
+      model: '<synthetic>',
+      content: [{ type: 'text', text: "You've hit your session limit" }],
+      usage: { input_tokens: 0, output_tokens: 0 },
+    },
+  };
+}
+
+test('ein erreichtes Limit wird zum exakten Messpunkt', async () => {
+  const sb = sandbox();
+  sb.write('c--Projekte-app', 'a.jsonl', [
+    line('2026-09-29T05:00:00Z', { output: 9999 }), // vor dem Fenster
+    line('2026-09-29T08:00:00Z', { id: 'm2', requestId: 'r2', output: 6000 }),
+    line('2026-09-29T10:00:00Z', { id: 'm3', requestId: 'r3', output: 4000 }),
+    rejectionLine('2026-09-29T10:51:00Z', '2026-09-29T12:30:00Z'),
+    rejectionLine('2026-09-29T10:51:26Z', '2026-09-29T12:30:00Z'), // erneuter Versuch
+  ]);
+
+  const s = makeStore(sb);
+  await s.scan();
+  const samples = s.archive.calibration.fiveHour;
+  assert.equal(samples.length, 1, 'ein Fenster, ein Punkt');
+  assert.equal(samples[0].p, 100);
+  assert.equal(samples[0].src, 'limit');
+  assert.equal(samples[0].w, 10_000, 'nur der Verbrauch im Fenster 07:30-12:30');
+  assert.equal(samples[0].n, 2);
+  assert.equal(s.calibration().fiveHour.anchors, 1);
+
+  await s.scan({ force: true });
+  s.flush();
+  const s2 = makeStore(sb);
+  await s2.scan();
+  assert.equal(s2.archive.calibration.fiveHour.length, 1, 'weder Neueinlesen noch Neustart verdoppeln');
+});
+
+// --- Bereichsanteil -------------------------------------------------------
+
+test('Wochen-Messpunkte merken sich den Claude-Code-Anteil', async () => {
+  const sb = sandbox();
+  const now = Date.parse('2026-10-01T08:00:00Z');
+  sb.write('c--Projekte-app', 'a.jsonl', [line('2026-09-30T09:00:00Z', { output: 1000 })]);
+  const weekEnd = Date.parse('2026-10-05T20:59:59.831Z');
+  const fetchUsage = async () => ({
+    ok: true,
+    fetchedAt: now,
+    fiveHour: null,
+    week: { percent: 20, end: weekEnd, start: weekEnd - 7 * DAY },
+    breakdown: { claudeCodeShare: 0.88, rows: [] },
+  });
+  const s = makeStore(sb, { fetchUsage, config: { liveUsage: { enabled: true, minIntervalMs: 0 } } });
+  await s.scan();
+  await s.refreshLiveUsage({ now });
+  const [sample] = s.archive.calibration.week;
+  assert.equal(sample.p, 20, 'Rohwert bleibt erhalten');
+  assert.equal(sample.cc, 0.88);
+});
+
+test('ohne gemeldete Aufteilung bleibt der Messpunkt unbereinigt', async () => {
+  const sb = sandbox();
+  const now = Date.parse('2026-10-01T08:00:00Z');
+  sb.write('c--Projekte-app', 'a.jsonl', [line('2026-09-30T09:00:00Z', { output: 1000 })]);
+  const weekEnd = Date.parse('2026-10-05T20:59:59.831Z');
+  const s = makeStore(sb, {
+    fetchUsage: async () => ({
+      ok: true,
+      fetchedAt: now,
+      fiveHour: null,
+      week: { percent: 20, end: weekEnd, start: weekEnd - 7 * DAY },
+      breakdown: null,
+    }),
+    config: { liveUsage: { enabled: true, minIntervalMs: 0 } },
+  });
+  await s.scan();
+  await s.refreshLiveUsage({ now });
+  assert.equal(s.archive.calibration.week[0].cc, undefined);
+});
+
+test('ein Wochen-Limit-Treffer uebernimmt den Anteil nur aus derselben Woche', async () => {
+  const now = Date.parse('2026-10-01T08:00:00Z');
+  const weekEnd = Date.parse('2026-10-05T20:59:59.831Z');
+  const run = async (liveWeekEnd) => {
+    const sb = sandbox();
+    sb.write('c--Projekte-app', 'a.jsonl', [
+      line('2026-09-30T09:00:00Z', { output: 1000 }),
+      rejectionLine('2026-09-30T10:00:00Z', '2026-10-05T21:00:00Z', 'seven_day'),
+    ]);
+    const s = makeStore(sb, {
+      fetchUsage: async () => ({
+        ok: true,
+        fetchedAt: now,
+        fiveHour: null,
+        week: { percent: 1, end: liveWeekEnd, start: liveWeekEnd - 7 * DAY },
+        breakdown: { claudeCodeShare: 0.88, rows: [] },
+      }),
+      // minPercent hoch, damit nur der Treffer einen Wochenpunkt setzt.
+      config: {
+        liveUsage: { enabled: true, minIntervalMs: 0 },
+        calibration: { enabled: true, minPercent: 50, sampleIntervalMs: 0 },
+      },
+    });
+    await s.refreshLiveUsage({ now });
+    await s.scan();
+    return s.archive.calibration.week;
+  };
+
+  const same = await run(weekEnd);
+  assert.equal(same.length, 1);
+  assert.equal(same[0].src, 'limit');
+  assert.equal(same[0].cc, 0.88, 'Fensterende auf die Sekunde gerundet - dieselbe Woche');
+
+  const other = await run(weekEnd + 7 * DAY);
+  assert.equal(other.length, 1);
+  assert.equal(other[0].cc, undefined, 'Anteil einer anderen Woche sagt ueber diese nichts');
+});
+
+// --- Messpunkte nach geaenderter Zaehlung ---------------------------------
+
+test('alte Messpunkte werden mit der neuen Zaehlung nachgerechnet oder verworfen', async () => {
+  const sb = sandbox();
+  // Haupt-Transkript plus Subagent, den die alte Version nicht gelesen hat.
+  sb.write('c--Projekte-app', 'sess-1.jsonl', [line('2026-09-28T09:00:00Z', { id: 'm0', requestId: 'r0', output: 1000 })]);
+  sb.write(path.join('c--Projekte-app', 'sess-1', 'subagents'), 'agent-a1.jsonl', subagentLines('2026-09-28T09:30:00Z', 3000));
+  const s1 = makeStore(sb);
+  await s1.scan();
+  s1.flush();
+
+  // Zustand, wie ihn die alte Version hinterlassen haette: Stand 1, ein
+  // Messpunkt ohne den Subagent (w = 1000), und einer aus einer Zeit, deren
+  // Transkript inzwischen geloescht ist.
+  const raw = JSON.parse(fs.readFileSync(sb.history, 'utf8'));
+  raw.readerRev = 1;
+  raw.files['c--Projekte-alt/weg.jsonl'] = {
+    path: null,
+    project: 'c--Projekte-alt',
+    lastTs: Date.parse('2026-09-20T12:00:00Z'),
+    days: { '2026-09-20': { 'claude-opus-5|std': [0, 500, 0, 0, 0, 1] } },
+    keys: [],
+  };
+  const fiveHourEnd = Date.parse('2026-09-28T13:00:00Z');
+  raw.calibration.fiveHour = [
+    { t: Date.parse('2026-09-20T11:00:00Z'), e: Date.parse('2026-09-20T13:00:00Z'), p: 5, w: 500, c: 0.01, n: 1 },
+    { t: Date.parse('2026-09-28T10:00:00Z'), e: fiveHourEnd, p: 10, w: 1000, c: 0.025, n: 1 },
+  ];
+  fs.writeFileSync(sb.history, JSON.stringify(raw));
+
+  const s2 = makeStore(sb);
+  await s2.scan();
+  const samples = s2.archive.calibration.fiveHour;
+  assert.equal(samples.length, 1, 'der Punkt ohne vorhandene Transkripte faellt weg');
+  assert.equal(samples[0].e, fiveHourEnd);
+  assert.equal(samples[0].p, 10, 'die echte Auslastung bleibt, wie sie gemessen wurde');
+  assert.equal(samples[0].w, 1000 + 3000, 'jetzt mit dem Subagent');
+  assert.equal(samples[0].n, 2);
+  assert.deepEqual(s2.snapshot().scan.recalibrated, { kept: 1, dropped: 1 });
+
+  // Nur einmal: der naechste Start rechnet nichts mehr um.
+  s2.flush();
+  const s3 = makeStore(sb);
+  await s3.scan();
+  assert.equal(s3.snapshot().scan.recalibrated, null);
+  assert.deepEqual(s3.archive.calibration.fiveHour.map((s) => s.w), [4000]);
+});
+
+test('nachgerechnet wird nur bis zum damaligen Messzeitpunkt', async () => {
+  const sb = sandbox();
+  sb.write('c--Projekte-app', 'a.jsonl', [
+    line('2026-09-28T09:00:00Z', { id: 'm1', requestId: 'r1', output: 1000 }),
+    line('2026-09-28T11:00:00Z', { id: 'm2', requestId: 'r2', output: 7000 }), // nach der Messung
+  ]);
+  const s1 = makeStore(sb);
+  await s1.scan();
+  s1.flush();
+  const raw = JSON.parse(fs.readFileSync(sb.history, 'utf8'));
+  raw.readerRev = 1;
+  raw.calibration.fiveHour = [
+    { t: Date.parse('2026-09-28T10:00:00Z'), e: Date.parse('2026-09-28T13:00:00Z'), p: 10, w: 1, c: 0, n: 1 },
+  ];
+  fs.writeFileSync(sb.history, JSON.stringify(raw));
+
+  const s2 = makeStore(sb);
+  await s2.scan();
+  assert.equal(s2.archive.calibration.fiveHour[0].w, 1000);
 });

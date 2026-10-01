@@ -66,6 +66,10 @@ export function emptyArchive() {
   return {
     version: HISTORY_VERSION,
     updatedAt: 0,
+    // Stand der Transkript-Auswertung, mit dem die Datensaetze entstanden sind
+    // (READER_REV in parser.js). Fehlt er, stammt das Archiv von vor der
+    // Einfuehrung - also Stand 1.
+    readerRev: 1,
     files: {},
     calibration: { fiveHour: [], week: [] },
   };
@@ -92,6 +96,7 @@ export function loadArchive(file) {
   }
   const a = emptyArchive();
   a.updatedAt = Number(obj.updatedAt) || 0;
+  a.readerRev = Number(obj.readerRev) || 1;
   if (obj.files && typeof obj.files === 'object') {
     for (const [id, rec] of Object.entries(obj.files)) {
       if (rec && typeof rec === 'object' && rec.days && typeof rec.days === 'object') {
@@ -120,6 +125,7 @@ export function saveArchive(file, archive, { now = Date.now() } = {}) {
   const out = {
     version: HISTORY_VERSION,
     updatedAt: now,
+    readerRev: archive.readerRev ?? 1,
     files: archive.files,
     calibration: archive.calibration,
   };
@@ -152,15 +158,21 @@ export function newRecord({ project = null, path: filePath = null } = {}) {
  * Wird beim vollstaendigen Neulesen mit einem frischen Datensatz aufgerufen,
  * beim inkrementellen Nachlesen mit dem bestehenden.
  */
+/** Tagesbucket eines Eintrags im Datensatz, bei Bedarf angelegt. */
+function bucketFor(record, e, timeZone) {
+  const day = dayKey(e.ts, timeZone);
+  let byModel = record.days[day];
+  if (!byModel) byModel = record.days[day] = {};
+  const mk = `${e.model}|${e.speed === 'fast' ? 'fast' : 'std'}`;
+  // [input, output, cacheWrite5m, cacheWrite1h, cacheRead, count]
+  let v = byModel[mk];
+  if (!v) v = byModel[mk] = [0, 0, 0, 0, 0, 0];
+  return v;
+}
+
 export function applyEntries(record, entries, { timeZone = 'Europe/Berlin' } = {}) {
   for (const e of entries) {
-    const day = dayKey(e.ts, timeZone);
-    let byModel = record.days[day];
-    if (!byModel) byModel = record.days[day] = {};
-    const mk = `${e.model}|${e.speed === 'fast' ? 'fast' : 'std'}`;
-    // [input, output, cacheWrite5m, cacheWrite1h, cacheRead, count]
-    let v = byModel[mk];
-    if (!v) v = byModel[mk] = [0, 0, 0, 0, 0, 0];
+    const v = bucketFor(record, e, timeZone);
     v[0] += e.input || 0;
     v[1] += e.output || 0;
     v[2] += e.cacheWrite5m || 0;
@@ -182,6 +194,24 @@ export function applyEntries(record, entries, { timeZone = 'Europe/Berlin' } = {
       }
     }
   }
+  return record;
+}
+
+/**
+ * Nachgereichte Tokens eines bereits verbuchten Requests nachtragen.
+ *
+ * Der Fall: die erste Zeile eines Requests trug einen vorlaeufigen Stand und
+ * ist schon im Datensatz, die endgueltige kommt erst spaeter (siehe
+ * mergeDuplicate in parser.js). Gezaehlt wird dabei weder ein weiterer Request
+ * noch ein weiterer Schluessel-Hash - es ist derselbe Request.
+ */
+export function applyDelta(record, entry, delta, { timeZone = 'Europe/Berlin' } = {}) {
+  const v = bucketFor(record, entry, timeZone);
+  v[0] += delta.input || 0;
+  v[1] += delta.output || 0;
+  v[2] += delta.cacheWrite5m || 0;
+  v[3] += delta.cacheWrite1h || 0;
+  v[4] += delta.cacheRead || 0;
   return record;
 }
 
@@ -299,7 +329,10 @@ export function mergeForeign(archive, foreign) {
  * Messpunkt aufnehmen: echte Auslastung gegen lokal gezaehlten Verbrauch.
  *
  * Gespeichert wird bewusst wenig: Zeitpunkt, Fensterende (identifiziert das
- * Fenster), Prozentwert, gewichtete Tokens, Kosten, Requestzahl.
+ * Fenster), Prozentwert, gewichtete Tokens, Kosten, Requestzahl. Optional:
+ *  - cc:  Anteil von Claude Code an der Auslastung (0..1), sofern Anthropic
+ *         ihn fuer das Fenster meldet - siehe effectivePercent.
+ *  - src: 'limit' fuer einen Limit-Treffer aus den Transkripten (addAnchor).
  */
 export function addSample(archive, kind, sample, { maxSamples = 500, minGapMs = 300_000 } = {}) {
   const list = archive.calibration[kind];
@@ -312,6 +345,50 @@ export function addSample(archive, kind, sample, { maxSamples = 500, minGapMs = 
   list.push(sample);
   if (list.length > maxSamples) list.splice(0, list.length - maxSamples);
   return true;
+}
+
+/**
+ * Messpunkt aus einem Limit-Treffer aufnehmen (p = 100, src = 'limit').
+ *
+ * Pro Fenster hoechstens einer - Claude Code schreibt die Ablehnung bei jedem
+ * erneuten Versuch, und die Transkripte werden bei jedem Kaltstart neu
+ * gelesen. Weil der Treffer aelter sein kann als die zuletzt gesammelten
+ * Punkte, wird er chronologisch einsortiert statt angehaengt.
+ */
+export function addAnchor(archive, kind, sample, { maxSamples = 500 } = {}) {
+  const list = archive.calibration[kind];
+  if (!Array.isArray(list)) return false;
+  if (list.some((s) => s.src === 'limit' && sameWindow(s.e, sample.e))) return false;
+  let i = list.length;
+  while (i > 0 && list[i - 1].t > sample.t) i--;
+  list.splice(i, 0, { ...sample, src: 'limit' });
+  if (list.length > maxSamples) list.splice(0, list.length - maxSamples);
+  return true;
+}
+
+/**
+ * Fensterenden auf die Minute genau vergleichen. Die API meldet sie mit
+ * Sekundenbruchteilen (12:29:59.831), ein Limit-Treffer in ganzen Sekunden
+ * (12:30:00) - gemeint ist dasselbe Fenster.
+ */
+function windowKey(e) {
+  return Math.round(e / 60_000);
+}
+
+function sameWindow(a, b) {
+  return windowKey(a) === windowKey(b);
+}
+
+/**
+ * Auslastung, die auf Claude Code entfaellt.
+ *
+ * Die echte Auslastung umfasst alles, was gegen das Abo zaehlt - auch Chats
+ * und Cowork. Lokal gezaehlt werden aber nur Claude-Code-Tokens. Meldet
+ * Anthropic den Anteil (seven_day_breakdown), wird er herausgerechnet; ohne
+ * Angabe zaehlt der volle Wert wie bisher.
+ */
+export function effectivePercent(s) {
+  return Number.isFinite(s.cc) && s.cc >= 0 && s.cc <= 1 ? s.p * s.cc : s.p;
 }
 
 /**
@@ -331,7 +408,7 @@ export function fitRatio(samples, pick) {
   let sxy = 0;
   const ratios = [];
   for (const s of samples) {
-    const x = s.p;
+    const x = effectivePercent(s);
     const y = pick(s);
     if (!(x > 0) || !(y > 0)) continue;
     sxx += x * x;
@@ -354,7 +431,7 @@ export function fitRatio(samples, pick) {
  */
 export function calibrationSummary(archive, kind, { minSamples = 8, minWindows = 3, cvGap = 0.15 } = {}) {
   const samples = archive.calibration?.[kind] ?? [];
-  const windows = new Set(samples.map((s) => s.e)).size;
+  const windows = new Set(samples.map((s) => windowKey(s.e))).size;
   const tokens = fitRatio(samples, (s) => s.w);
   const cost = fitRatio(samples, (s) => s.c);
   const ok = samples.length >= minSamples && windows >= minWindows && tokens != null;
@@ -386,6 +463,11 @@ export function calibrationSummary(archive, kind, { minSamples = 8, minWindows =
     costPerPercent: cost?.perPercent ?? null,
     costCv: cost?.cv ?? null,
     better,
+    // Exakte Punkte aus Limit-Treffern, und wie viele Punkte um den Anteil
+    // ausserhalb von Claude Code bereinigt sind (zuletzt gemeldeter Anteil).
+    anchors: samples.filter((s) => s.src === 'limit').length,
+    adjusted: samples.filter((s) => Number.isFinite(s.cc)).length,
+    lastShare: [...samples].reverse().find((s) => Number.isFinite(s.cc))?.cc ?? null,
     // 100 % des Limits, ausgedrueckt in gewichteten Tokens.
     limit: ok ? tokens.perPercent * 100 : null,
     costAtLimit: ok && cost ? cost.perPercent * 100 : null,

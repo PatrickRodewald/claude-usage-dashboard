@@ -15,16 +15,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { discoverDataDirs, listTranscripts, readIncremental } from './parser.js';
+import {
+  discoverDataDirs,
+  listTranscripts,
+  readIncremental,
+  mergeDuplicate,
+  READER_REV,
+} from './parser.js';
 import { createPricing, weightedTokens, newTotals, addTokens } from './pricing.js';
 import { buildSnapshot } from './aggregate.js';
-import { fetchLiveUsage } from './liveUsage.js';
+import { fetchLiveUsage, HOUR_MS } from './liveUsage.js';
 import {
   loadArchive,
   saveArchive,
   emptyArchive,
   newRecord,
   applyEntries,
+  applyDelta,
+  addAnchor,
   archiveBuckets,
   transcriptId,
   hashesExcept,
@@ -73,6 +81,8 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
   const fileStates = new Map();
   /** Datei-Ids, die dieser Prozess selbst gelesen hat. */
   const readIds = new Set();
+  /** Bereits verarbeitete Limit-Treffer (Fenster), siehe recordLimitHit. */
+  const seenLimitHits = new Set();
 
   let archive = emptyArchive();
   let archiveDirty = false;
@@ -110,6 +120,11 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     filesSkipped: 0,
     rawEntries: 0,
     duplicatesSkipped: 0,
+    // Doppelte Zeilen, die einen hoeheren Stand nachgereicht haben (Subagents).
+    lateUsage: 0,
+    limitHits: 0,
+    // Ergebnis der einmaligen Neuberechnung nach geaenderter Zaehlung.
+    recalibrated: null,
     archiveDuplicates: 0,
     brokenLines: 0,
     lastScanMs: null,
@@ -144,8 +159,11 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
       entries.clear();
       fileStates.clear();
       readIds.clear();
+      seenLimitHits.clear();
       stats.rawEntries = 0;
       stats.duplicatesSkipped = 0;
+      stats.lateUsage = 0;
+      stats.limitHits = 0;
       stats.archiveDuplicates = 0;
       stats.brokenLines = 0;
       stats.fullRescans++;
@@ -159,6 +177,11 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     // was das Dashboard im Detail zeigt (Tagesverlauf, Sessions, Bloecke).
     const detailDays = histCfg.detailDays ?? 45;
     const detailCutoff = now - detailDays * DAY_MS;
+    // Hat sich die Auswertung seit dem Entstehen des Archivs geaendert, sind
+    // dessen Summen fuer noch vorhandene Dateien veraltet. Dann wird einmal
+    // alles neu gelesen - bereits geloeschte Transkripte lassen sich nicht
+    // mehr korrigieren und behalten ihre Zahlen.
+    const rereadAll = historyEnabled && (archive.readerRev ?? 1) < READER_REV;
 
     const plan = [];
     const seenIds = new Set();
@@ -178,6 +201,7 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
       const fullyArchived =
         historyEnabled &&
         !force &&
+        !rereadAll &&
         !readIds.has(id) &&
         rec &&
         rec.path &&
@@ -205,6 +229,7 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     }
 
     let changed = 0;
+    const limitEvents = [];
     for (const { file, projectDir, id, from } of plan) {
       const result = await readIncremental(file, from, {
         fallbackDirName: projectDir,
@@ -233,12 +258,24 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
       }
 
       const accepted = [];
+      // Schluessel, die in DIESEM Durchgang neu sind: ihre Werte gehen erst
+      // nach der Schleife ins Archiv, ein Nachtrag darf sie also nicht noch
+      // einmal gesondert verbuchen.
+      const pending = new Set();
       for (const entry of result.entries) {
         stats.rawEntries++;
-        if (entries.has(entry.key)) {
+        const prev = entries.get(entry.key);
+        if (prev) {
           // Erwarteter Normalfall: Claude Code schreibt eine Zeile pro
-          // Content-Block, jede mit demselben usage-Objekt.
+          // Content-Block. Meist mit identischem usage-Objekt - in
+          // Subagent-Transkripten aber mit wachsendem Output, die letzte Zeile
+          // traegt den endgueltigen Stand.
           stats.duplicatesSkipped++;
+          const delta = mergeDuplicate(prev, entry);
+          if (delta) {
+            stats.lateUsage++;
+            if (rec && !pending.has(entry.key)) applyDelta(rec, prev, delta, { timeZone: tz });
+          }
           continue;
         }
         if (historyEnabled && foreignHashes.has(keyHash(entry.key))) {
@@ -248,7 +285,9 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
         }
         entries.set(entry.key, entry);
         accepted.push(entry);
+        pending.add(entry.key);
       }
+      limitEvents.push(...(result.events ?? []));
 
       if (rec) {
         applyEntries(rec, accepted, { timeZone: tz });
@@ -275,7 +314,16 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
           archiveDirty = true;
         }
       }
+      if (rereadAll) {
+        stats.recalibrated = recalibrate();
+        archive.readerRev = READER_REV;
+        archiveDirty = true;
+      }
     }
+
+    // Erst nach dem Einlesen ALLER Dateien: das Fenster eines Limit-Treffers
+    // kann Requests aus mehreren Transkripten umfassen.
+    for (const ev of limitEvents) recordLimitHit(ev);
 
     stats.filesRead = readIds.size;
     stats.lastScanMs = Date.now();
@@ -321,9 +369,46 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
    * gewichtete Tokens einem Prozent des Limits entsprechen - und ob Tokens die
    * Auslastung ueberhaupt besser erklaeren als die Kosten.
    */
+  function calibrating() {
+    return historyEnabled && cfg.calibration?.enabled !== false;
+  }
+
+  /**
+   * Lokal gezaehlter Verbrauch in [start, end) als Messwert-Rumpf.
+   * null, wenn nichts da ist oder ein Modell keinen Preis hat - ein Punkt mit
+   * unvollstaendigen Kosten wuerde den Kostenvergleich verzerren.
+   */
+  function windowMeasure(start, end) {
+    const tokens = newTotals();
+    let cost = 0;
+    let count = 0;
+    for (const e of entries.values()) {
+      if (e.ts < start || e.ts >= end) continue;
+      addTokens(tokens, e);
+      const r = pricing.costFor(e, e.model, { speed: e.speed, timestampMs: e.ts });
+      if (!r.known) return null;
+      cost += r.cost;
+      count++;
+    }
+    if (count === 0) return null;
+    return { w: Math.round(weightedTokens(tokens, weights)), c: Number(cost.toFixed(4)), n: count };
+  }
+
+  /**
+   * Claude-Code-Anteil an der Wochenauslastung, sofern Anthropic ihn fuer
+   * GENAU dieses Fenster gemeldet hat. Ein Anteil aus einer anderen Woche
+   * sagt ueber diese nichts.
+   */
+  function claudeCodeShare(live, weekEnd) {
+    const b = live?.breakdown;
+    if (!b || !Number.isFinite(b.claudeCodeShare)) return null;
+    const winEnd = live.week?.end;
+    if (!Number.isFinite(winEnd) || Math.abs(winEnd - weekEnd) > 60_000) return null;
+    return Number(b.claudeCodeShare.toFixed(4));
+  }
+
   function sampleCalibration(result, now) {
-    if (!historyEnabled || cfg.calibration?.enabled === false) return;
-    if (!result?.ok) return;
+    if (!calibrating() || !result?.ok) return;
     const minPercent = cfg.calibration?.minPercent ?? 3;
     const maxSamples = cfg.calibration?.maxSamples ?? 500;
     const minGapMs = cfg.calibration?.sampleIntervalMs ?? 300_000;
@@ -331,38 +416,89 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
     for (const kind of ['fiveHour', 'week']) {
       const win = result[kind];
       if (!win || !Number.isFinite(win.percent) || win.percent < minPercent) continue;
-      const tokens = newTotals();
-      let cost = 0;
-      let count = 0;
-      let known = true;
-      for (const e of entries.values()) {
-        if (e.ts < win.start || e.ts >= win.end) continue;
-        addTokens(tokens, e);
-        const r = pricing.costFor(e, e.model, { speed: e.speed, timestampMs: e.ts });
-        cost += r.cost;
-        if (!r.known) known = false;
-        count++;
+      const m = windowMeasure(win.start, win.end);
+      if (!m) continue;
+      const sample = { t: now, e: win.end, p: win.percent, ...m };
+      // Die Aufteilung nach Bereich meldet Anthropic nur fuer die Woche. Fuer
+      // das 5h-Fenster liesse sich der Wochenanteil nicht sauber uebertragen -
+      // dort koennte gerade nur Claude Code oder nur Cowork gelaufen sein.
+      if (kind === 'week') {
+        const cc = claudeCodeShare(result, win.end);
+        if (cc != null) sample.cc = cc;
       }
-      if (count === 0 || !known) continue;
-      const added = addSample(
-        archive,
-        kind,
-        {
-          t: now,
-          e: win.end,
-          p: win.percent,
-          w: Math.round(weightedTokens(tokens, weights)),
-          c: Number(cost.toFixed(4)),
-          n: count,
-        },
-        { maxSamples, minGapMs },
-      );
-      if (added) archiveDirty = true;
+      if (addSample(archive, kind, sample, { maxSamples, minGapMs })) archiveDirty = true;
+    }
+  }
+
+  /**
+   * Messpunkte neu berechnen, nachdem sich die Zaehlung geaendert hat.
+   *
+   * Ein Messpunkt stellt die echte Auslastung dem lokal gezaehlten Verbrauch
+   * gegenueber. Zaehlt das Dashboard inzwischen mehr - etwa die Subagents, die
+   * frueher gar nicht gelesen wurden -, sind alte Punkte zu niedrig und
+   * ergaeben gemischt mit neuen ein falsches Limit. Neu berechnen laesst sich
+   * jeder Punkt, dessen Fenster noch vollstaendig in vorhandenen Transkripten
+   * liegt; gezaehlt wird wie damals bis zum Messzeitpunkt.
+   *
+   * Die uebrigen werden verworfen, auch wenn die Kalibrierung dadurch neu
+   * anlaeuft. In echten Daten lagen die alten Punkte um den Faktor 2-2,5 unter
+   * den neu gezaehlten; schon als Uebergang beigemischt, zeigten sie
+   * 5h-Bloecke mit ueber 400 % an. Lieber weniger Punkte als verzerrte.
+   */
+  function recalibrate() {
+    // Bis wann reichen bereits geloeschte Transkripte dieses Geraets? Danach
+    // ist die Abdeckung lueckenlos. Archive anderer Geraete zaehlen nicht mit,
+    // in die Messpunkte ist ihr Verbrauch nie eingeflossen.
+    let gapUntil = -Infinity;
+    for (const rec of Object.values(archive.files)) {
+      if (!rec.path && !rec.foreign && Number.isFinite(rec.lastTs)) {
+        gapUntil = Math.max(gapUntil, rec.lastTs);
+      }
+    }
+    let kept = 0;
+    let dropped = 0;
+    for (const kind of ['fiveHour', 'week']) {
+      const windowMs = kind === 'fiveHour' ? 5 * HOUR_MS : 7 * DAY_MS;
+      const out = [];
+      for (const s of archive.calibration[kind] ?? []) {
+        const start = s.e - windowMs;
+        const m = start > gapUntil ? windowMeasure(start, Math.min(s.e, s.t + 1)) : null;
+        if (m) {
+          out.push({ ...s, ...m });
+          kept++;
+        } else {
+          dropped++;
+        }
+      }
+      archive.calibration[kind] = out;
+    }
+    return { kept, dropped };
+  }
+
+  /**
+   * Limit-Treffer aus den Transkripten als exakten Messpunkt aufnehmen:
+   * Auslastung 100 %, lokaler Verbrauch vom Fensterstart bis zur Ablehnung.
+   */
+  function recordLimitHit(ev) {
+    if (!calibrating() || seenLimitHits.has(ev.key)) return;
+    seenLimitHits.add(ev.key);
+    const windowMs = ev.kind === 'fiveHour' ? 5 * HOUR_MS : 7 * DAY_MS;
+    const m = windowMeasure(ev.end - windowMs, ev.ts + 1);
+    if (!m) return;
+    const sample = { t: ev.ts, e: ev.end, p: 100, ...m };
+    if (ev.kind === 'week') {
+      const cc = claudeCodeShare(lastGoodLive, ev.end);
+      if (cc != null) sample.cc = cc;
+    }
+    const maxSamples = cfg.calibration?.maxSamples ?? 500;
+    if (addAnchor(archive, ev.kind, sample, { maxSamples })) {
+      stats.limitHits++;
+      archiveDirty = true;
     }
   }
 
   function calibration() {
-    if (!historyEnabled || cfg.calibration?.enabled === false) return null;
+    if (!calibrating()) return null;
     const opts = {
       minSamples: cfg.calibration?.minSamples ?? 8,
       minWindows: cfg.calibration?.minWindows ?? 3,
@@ -517,6 +653,9 @@ export function createStore({ config, pricingTable, historyFile, fetchUsage = fe
         rawEntries: stats.rawEntries,
         uniqueRequests: entries.size,
         duplicatesSkipped: stats.duplicatesSkipped,
+        lateUsage: stats.lateUsage,
+        limitHits: stats.limitHits,
+        recalibrated: stats.recalibrated,
         archiveDuplicates: stats.archiveDuplicates,
         brokenLines: stats.brokenLines,
         lastScanMs: stats.lastScanMs,

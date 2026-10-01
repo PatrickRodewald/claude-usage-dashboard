@@ -126,6 +126,36 @@ function toWindow(raw, windowMs, extra = {}) {
 }
 
 /**
+ * Aufteilung der Wochenauslastung nach Bereich (Claude Code, Chats, Cowork …).
+ *
+ * Die Prozentwerte sind ANTEILE an der Wochenauslastung - sie summieren sich
+ * zu 100 -, nicht Anteile am Limit. Wichtig fuer die Kalibrierung: lokal
+ * gezaehlt werden nur Claude-Code-Tokens, die echte Auslastung enthaelt aber
+ * auch Chats und Cowork. Mit dem Claude-Code-Anteil laesst sich das trennen.
+ */
+function parseBreakdown(raw) {
+  if (!raw || !Array.isArray(raw.rows)) return null;
+  const rows = raw.rows
+    .map((r) => ({
+      key: typeof r?.key === 'string' ? r.key : null,
+      label: r?.display_name ?? r?.key ?? 'unbekannt',
+      percent: pct(r?.percent),
+    }))
+    .filter((r) => r.key && r.percent != null);
+  if (!rows.length) return null;
+  const sum = rows.reduce((a, r) => a + r.percent, 0);
+  const cc = rows.find((r) => r.key === 'claude_code');
+  return {
+    asOf: parseTime(raw.as_of),
+    windowStart: parseTime(raw.window_started_at),
+    rows,
+    // Normiert auf die Summe, damit Rundung (88 + 12 = 100) nicht verfaelscht.
+    // Ohne jede Nutzung im Fenster gibt es keinen Anteil - dann null.
+    claudeCodeShare: cc && sum > 0 ? cc.percent / sum : null,
+  };
+}
+
+/**
  * Aktuelle Auslastung abrufen.
  * Wirft nicht - Fehler landen als { ok: false, reason } im Rueckgabewert.
  */
@@ -273,6 +303,7 @@ export function parseUsageBody(body, { now = Date.now(), cred = null } = {}) {
     scoped,
     spend,
     extraUsage,
+    breakdown: parseBreakdown(body.seven_day_breakdown),
     subscriptionType: cred?.subscriptionType ?? null,
     rateLimitTier: cred?.rateLimitTier ?? null,
   };

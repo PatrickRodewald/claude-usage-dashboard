@@ -6,10 +6,13 @@ import path from 'node:path';
 
 import {
   extractEntry,
+  extractLimitEvent,
+  mergeDuplicate,
   dedupKey,
   parseChunk,
   projectNameFrom,
   readIncremental,
+  listTranscripts,
 } from '../src/parser.js';
 
 /** Realistische Assistant-Zeile, nachgebaut aus echten Transkripten. */
@@ -156,6 +159,114 @@ test('drei Content-Bloecke desselben Requests ergeben EINEN Schluessel', () => {
   assert.equal([...seen.values()][0].output, 477, 'Output darf nicht 3x gezaehlt werden');
 });
 
+// --- Nachgereichte Staende (Subagents) ------------------------------------
+
+test('Subagent-Zeilen: der endgueltige Output der letzten Zeile gewinnt', () => {
+  // Nachgebaut aus echten agent-*.jsonl: erst Zwischenstaende mit 1 Token,
+  // die letzte Zeile traegt den Endstand samt Thinking-Angabe.
+  const blocks = [
+    line({ contentType: 'thinking', output: 1 }),
+    line({ contentType: 'tool_use', output: 1 }),
+    line({ contentType: 'tool_use', output: 383 }),
+  ];
+  blocks[2].message.usage.output_tokens_details = { thinking_tokens: 70 };
+
+  const [first, ...rest] = blocks.map((b) => extractEntry(b));
+  assert.equal(first.thinking, null, 'Zwischenzeile meldet kein Thinking');
+  const deltas = rest.map((e) => mergeDuplicate(first, e));
+  assert.equal(deltas[0], null, 'gleicher Stand bringt nichts Neues');
+  assert.deepEqual(deltas[1], { output: 382 });
+  assert.equal(first.output, 383);
+  assert.equal(first.thinking, 70);
+  assert.equal(first.input, 2, 'unveraenderte Felder bleiben, wie sie sind');
+});
+
+test('ein spaeter kleinerer Stand senkt nichts ab', () => {
+  const a = extractEntry(line({ output: 500 }));
+  const b = extractEntry(line({ output: 3 }));
+  assert.equal(mergeDuplicate(a, b), null);
+  assert.equal(a.output, 500);
+});
+
+test('Cache-Writes werden als Paar uebernommen, nicht feldweise maximiert', () => {
+  // Feldweises Maximum wuerde aus 5m=100 (ohne Aufschluesselung) und
+  // 1h=100 (mit) 200 Tokens machen - es ist aber derselbe Write.
+  const a = extractEntry(line({ eph1h: 0, eph5m: 100 }));
+  const b = extractEntry(line({ eph1h: 120, eph5m: 0 }));
+  const delta = mergeDuplicate(a, b);
+  assert.equal(a.cacheWrite5m + a.cacheWrite1h, 120);
+  assert.equal(a.cacheWrite1h, 120);
+  assert.equal(delta.cacheWrite5m, -100);
+  assert.equal(delta.cacheWrite1h, 120);
+});
+
+test('liest Agent, Skill, Effort und Thinking-Tokens mit', () => {
+  const raw = line({ attributionAgent: 'Explore', attributionSkill: 'docs', effort: 'xhigh' });
+  raw.message.usage.output_tokens_details = { thinking_tokens: 120 };
+  const e = extractEntry(raw);
+  assert.equal(e.agent, 'Explore');
+  assert.equal(e.skill, 'docs');
+  assert.equal(e.effort, 'xhigh');
+  assert.equal(e.thinking, 120);
+
+  const plain = extractEntry(line());
+  assert.equal(plain.agent, null);
+  assert.equal(plain.skill, null);
+  assert.equal(plain.effort, null);
+  assert.equal(plain.thinking, null, 'nicht gemeldet ist nicht dasselbe wie 0');
+});
+
+// --- Limit-Treffer --------------------------------------------------------
+
+/** Ablehnungszeile, wie Claude Code sie beim Erreichen des Limits schreibt. */
+function rejection(over = {}) {
+  return {
+    type: 'assistant',
+    timestamp: '2026-09-29T10:51:00.658Z',
+    apiErrorStatus: 429,
+    isApiErrorMessage: true,
+    quotaLimits: {
+      status: 'rejected',
+      resetsAt: 1790681400,
+      rateLimitType: 'five_hour',
+      overageStatus: 'rejected',
+      isUsingOverage: false,
+      ...over,
+    },
+    message: {
+      id: 'msg_err',
+      model: '<synthetic>',
+      content: [{ type: 'text', text: "You've hit your session limit" }],
+      usage: { input_tokens: 0, output_tokens: 0 },
+    },
+  };
+}
+
+test('erkennt einen Limit-Treffer samt Fenster und Reset', () => {
+  const ev = extractLimitEvent(rejection());
+  assert.equal(ev.kind, 'fiveHour');
+  assert.equal(ev.end, 1790681400 * 1000, 'resetsAt kommt in Sekunden');
+  assert.equal(ev.ts, Date.parse('2026-09-29T10:51:00.658Z'));
+  assert.equal(ev.key, `fiveHour:${1790681400 * 1000}`);
+  assert.equal(extractLimitEvent(rejection({ rateLimitType: 'seven_day' })).kind, 'week');
+});
+
+test('nur echte Ablehnungen zaehlen als Limit-Treffer', () => {
+  assert.equal(extractLimitEvent(rejection({ status: 'allowed_warning' })), null);
+  assert.equal(extractLimitEvent(rejection({ rateLimitType: 'seven_day_opus' })), null, 'unbekanntes Fenster');
+  assert.equal(extractLimitEvent(rejection({ resetsAt: null })), null);
+  assert.equal(extractLimitEvent(rejection({ resetsAt: 1 })), null, 'Reset vor dem Treffer ist unbrauchbar');
+  assert.equal(extractLimitEvent(line()), null, 'normale Zeile');
+});
+
+test('parseChunk liefert Limit-Treffer, obwohl die Zeile kein Eintrag ist', () => {
+  const text = [JSON.stringify(line()), JSON.stringify(rejection())].join('\n');
+  const { entries, events } = parseChunk(text);
+  assert.equal(entries.length, 1, '<synthetic> bleibt als Eintrag ausgeschlossen');
+  assert.equal(events.length, 1);
+  assert.equal(events[0].kind, 'fiveHour');
+});
+
 // --- Robustheit -----------------------------------------------------------
 
 test('parseChunk ueberspringt kaputte Zeilen und zaehlt sie', () => {
@@ -264,4 +375,94 @@ test('fehlende Datei wirft nicht', async () => {
   const res = await readIncremental(path.join(os.tmpdir(), 'gibt-es-nicht-xyz.jsonl'), 0);
   assert.equal(res.missing, true);
   assert.deepEqual(res.entries, []);
+});
+
+// --- Blockweises Lesen (Dateien > 500 MB) ---------------------------------
+
+test('blockweises Lesen liefert dasselbe wie das Lesen am Stueck', async () => {
+  // Blockgroesse 97 Bytes: jede Zeile wird mehrfach zerschnitten, auch mitten
+  // in Mehrbyte-Zeichen.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 'gross.jsonl');
+  try {
+    const lines = [1, 2, 3, 4, 5].map((n) => {
+      const raw = line({ id: `m${n}`, requestId: `r${n}`, output: n * 100 });
+      raw.cwd = `c:\\Projekte\\Küchen-Ärger-日本-${n}`;
+      return JSON.stringify(raw);
+    });
+    fs.writeFileSync(file, lines.join('\n') + '\n');
+    const whole = await readIncremental(file, 0);
+    const chunked = await readIncremental(file, 0, { chunkSize: 97 });
+    assert.equal(chunked.entries.length, 5);
+    assert.deepEqual(chunked.entries, whole.entries);
+    assert.equal(chunked.offset, fs.statSync(file).size);
+    assert.equal(chunked.skipped, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('blockweise: angefangene letzte Zeile bleibt auch ueber Blockgrenzen stehen', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 'b.jsonl');
+  try {
+    const complete = JSON.stringify(line({ id: 'm1', requestId: 'r1' })) + '\n';
+    const second = JSON.stringify(line({ id: 'm2', requestId: 'r2' }));
+    fs.writeFileSync(file, complete + second.slice(0, 300));
+    const first = await readIncremental(file, 0, { chunkSize: 64 });
+    assert.equal(first.entries.length, 1);
+    assert.equal(first.offset, Buffer.byteLength(complete));
+
+    fs.appendFileSync(file, second.slice(300) + '\n');
+    const next = await readIncremental(file, first.offset, { chunkSize: 64 });
+    assert.equal(next.entries.length, 1);
+    assert.equal(next.entries[0].key, 'm2::r2');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('eine ueberlange Einzelzeile wird uebersprungen, die Datei weiter gelesen', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  const file = path.join(dir, 'lang.jsonl');
+  try {
+    const huge = JSON.stringify({ type: 'user', blob: 'x'.repeat(5000) });
+    fs.writeFileSync(
+      file,
+      [
+        JSON.stringify(line({ id: 'm1', requestId: 'r1' })),
+        huge,
+        JSON.stringify(line({ id: 'm2', requestId: 'r2' })),
+      ].join('\n') + '\n',
+    );
+    const res = await readIncremental(file, 0, { chunkSize: 256, maxLine: 2000 });
+    assert.deepEqual(res.entries.map((e) => e.key), ['m1::r1', 'm2::r2']);
+    assert.equal(res.skipped, 1);
+    assert.equal(res.offset, fs.statSync(file).size);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('Subagent-Transkripte in Unterordnern werden gefunden', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-'));
+  try {
+    const proj = path.join(base, 'c--Projekte-app');
+    const sub = path.join(proj, 'sess-1', 'subagents');
+    fs.mkdirSync(sub, { recursive: true });
+    fs.writeFileSync(path.join(proj, 'sess-1.jsonl'), '');
+    fs.writeFileSync(path.join(sub, 'agent-a1.jsonl'), '');
+    fs.writeFileSync(path.join(proj, 'sess-1', 'notiz.txt'), '');
+    const found = listTranscripts([base]);
+    assert.deepEqual(
+      found.map((f) => path.relative(base, f.file)).sort(),
+      [
+        path.join('c--Projekte-app', 'sess-1', 'subagents', 'agent-a1.jsonl'),
+        path.join('c--Projekte-app', 'sess-1.jsonl'),
+      ].sort(),
+    );
+    assert.ok(found.every((f) => f.projectDir === 'c--Projekte-app'), 'Projekt bleibt der oberste Ordner');
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
 });

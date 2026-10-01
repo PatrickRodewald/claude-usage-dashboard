@@ -82,6 +82,55 @@ test('erfasst modellspezifische Wochenlimits', () => {
   assert.equal(r.scoped[0].percent, 1);
 });
 
+/** seven_day_breakdown, wie es die API am 01.10.2026 geliefert hat. */
+function breakdown(rows) {
+  return {
+    as_of: '2026-10-01T07:49:24.872657+00:00',
+    window_started_at: '2026-09-28T20:59:59.831432+00:00',
+    rows: rows ?? [
+      { key: 'claude_code', display_name: 'Claude Code', percent: 88 },
+      { key: 'chat', display_name: 'Chats', percent: 0 },
+      { key: 'cowork', display_name: 'Cowork', percent: 12 },
+      { key: 'other', display_name: 'Other', percent: 0 },
+    ],
+  };
+}
+
+test('liest die Aufteilung der Wochenauslastung nach Bereich', () => {
+  const r = parseUsageBody(usageBody({ seven_day_breakdown: breakdown() }), { now: NOW });
+  assert.equal(r.breakdown.rows.length, 4);
+  assert.deepEqual(r.breakdown.rows[2], { key: 'cowork', label: 'Cowork', percent: 12 });
+  assert.ok(Math.abs(r.breakdown.claudeCodeShare - 0.88) < 1e-12);
+  assert.equal(r.breakdown.windowStart, Date.parse('2026-09-28T20:59:59.831Z'));
+});
+
+test('der Claude-Code-Anteil wird auf die Zeilensumme normiert', () => {
+  // Gerundete Anteile summieren sich nicht immer exakt zu 100.
+  const r = parseUsageBody(
+    usageBody({
+      seven_day_breakdown: breakdown([
+        { key: 'claude_code', percent: 67 },
+        { key: 'cowork', percent: 34 },
+      ]),
+    }),
+    { now: NOW },
+  );
+  assert.ok(Math.abs(r.breakdown.claudeCodeShare - 67 / 101) < 1e-12);
+});
+
+test('ohne Nutzung oder ohne Aufteilung gibt es keinen Anteil', () => {
+  const leer = parseUsageBody(
+    usageBody({ seven_day_breakdown: breakdown([{ key: 'claude_code', percent: 0 }, { key: 'chat', percent: 0 }]) }),
+    { now: NOW },
+  );
+  assert.equal(leer.breakdown.claudeCodeShare, null);
+  assert.equal(parseUsageBody(usageBody(), { now: NOW }).breakdown, null, 'aeltere Antwort ohne Feld');
+  assert.equal(
+    parseUsageBody(usageBody({ seven_day_breakdown: { rows: 'kaputt' } }), { now: NOW }).breakdown,
+    null,
+  );
+});
+
 test('faellt auf five_hour/seven_day zurueck, wenn limits[] fehlt', () => {
   const body = usageBody();
   delete body.limits;

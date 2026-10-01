@@ -12,6 +12,9 @@ import {
   bucketsFromEntries,
   resolveLimit,
   projectLabels,
+  MAIN_AGENT,
+  NO_SKILL,
+  NO_EFFORT,
 } from '../src/aggregate.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -257,6 +260,53 @@ test('Aufschluesselungen nach Projekt, Modell und Session', () => {
   assert.deepEqual(snap.byModel.map((m) => m.key), ['claude-opus-5', 'claude-haiku-4-5']);
   assert.equal(snap.byModel.every((m) => m.priced), true);
   assert.equal(snap.bySession.length, 2);
+});
+
+test('Aufschluesselungen nach Agent, Skill und Effort samt Thinking-Anteil', () => {
+  const now = iso('2026-07-31T11:00:00Z');
+  const entries = [
+    entry('2026-07-31T08:00:00Z', { output: 2_000_000, effort: 'max', thinking: 1_500_000, tag: 'a' }),
+    entry('2026-07-31T09:00:00Z', {
+      output: 1_000_000,
+      agent: 'Explore',
+      skill: 'docs',
+      effort: 'xhigh',
+      thinking: 250_000,
+      tag: 'b',
+    }),
+    // Ohne Thinking-Angabe: zaehlt bei Tokens und Kosten mit, beim Anteil nicht.
+    entry('2026-07-31T10:00:00Z', { output: 1_000_000, effort: 'xhigh', tag: 'c' }),
+  ];
+  const snap = buildSnapshot(entries, { config: baseConfig, pricing, now });
+
+  assert.deepEqual(snap.byAgent.map((a) => a.key), [MAIN_AGENT, 'Explore'], 'teuerstes zuerst');
+  assert.ok(Math.abs(snap.byAgent[0].cost - 75) < 1e-9, '3 Mio. Opus-5-Output');
+  assert.deepEqual(snap.bySkill.map((a) => a.key), [NO_SKILL, 'docs']);
+  assert.deepEqual(snap.byEffort.map((a) => a.key), ['xhigh', 'max'], 'nach Stufe, nicht nach Kosten');
+
+  const xhigh = snap.byEffort[0];
+  assert.equal(xhigh.count, 2);
+  assert.ok(Math.abs(xhigh.thinkingShare - 0.25) < 1e-12, 'nur der Request mit Angabe zaehlt');
+  assert.ok(Math.abs(snap.byEffort[1].thinkingShare - 0.75) < 1e-12);
+
+  assert.equal(snap.thinking.tokens, 1_750_000);
+  assert.equal(snap.thinking.output, 3_000_000);
+  assert.ok(Math.abs(snap.thinking.share - 1_750_000 / 3_000_000) < 1e-12);
+  assert.equal(snap.thinking.requests, 2);
+  assert.equal(snap.thinking.ofRequests, 3);
+  assert.equal(snap.detailFrom, iso('2026-07-31T08:00:00Z'));
+});
+
+test('ohne Thinking-Angaben gibt es keinen Anteil statt 0 %', () => {
+  const now = iso('2026-07-31T11:00:00Z');
+  const snap = buildSnapshot([entry('2026-07-31T09:00:00Z', { output: 10 })], {
+    config: baseConfig,
+    pricing,
+    now,
+  });
+  assert.equal(snap.thinking.share, null);
+  assert.equal(snap.byEffort[0].key, NO_EFFORT);
+  assert.equal(snap.byEffort[0].thinkingShare, null);
 });
 
 test('unbekannte Modelle werden gemeldet statt zu stuerzen', () => {
