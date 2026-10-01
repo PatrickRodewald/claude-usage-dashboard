@@ -267,7 +267,9 @@ eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, g
 
 Preise in USD pro 1 Mio. Tokens, zum Selbstpflegen. Regeln:
 
-- `cacheWrite5m` = 1,25× Input · `cacheWrite1h` = **2,0×** Input · `cacheRead` = 0,1× Input
+- `cacheWrite5m` = 1,25× Input · `cacheWrite1h` = **2,0×** Input · `cacheRead` = 0,1× Input —
+  außer bei Fable 5.1 / Mythos 5.1 (0,025×) und Opus 5.5 (0,05×). Werte daher aus der
+  Preisliste übernehmen, nicht hochrechnen
 - `fast` — optionaler Block, greift bei `usage.speed == "fast"`
 - `promo` — befristeter Einführungspreis mit `until`; historische Einträge bleiben dadurch
   korrekt bepreist, auch nachdem die Aktion abgelaufen ist

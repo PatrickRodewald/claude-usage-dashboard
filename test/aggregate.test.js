@@ -492,20 +492,28 @@ test('Buckets fassen Eintraege nach Tag, Projekt, Modell und Geschwindigkeit zus
 });
 
 test('Bucket-Kosten werden mit dem Tag als Stichtag gerechnet', () => {
-  // Sonnet 5 hat einen Einfuehrungspreis bis 31.08.2026: 2 statt 3 USD/Mio.
+  // Eigene Tabelle mit Einfuehrungspreis bis 31.08.2026: 2 statt 3 USD/Mio.
   // Input. Ein Tag davor und ein Tag danach muessen sich unterscheiden.
+  const promoPricing = createPricing({
+    models: {
+      'claude-test': {
+        input: 3, output: 15,
+        promo: { until: '2026-08-31T23:59:59.999Z', input: 2, output: 10 },
+      },
+    },
+  });
   const mk = (day) => [
     {
       day,
       project: 'p',
-      model: 'claude-sonnet-5',
+      model: 'claude-test',
       speed: 'standard',
       tokens: { input: 1_000_000, output: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0 },
       count: 1,
     },
   ];
-  const promo = [...rollupBuckets(mk('2026-08-30'), (b) => b.project, pricing).values()][0];
-  const regulaer = [...rollupBuckets(mk('2026-09-02'), (b) => b.project, pricing).values()][0];
+  const promo = [...rollupBuckets(mk('2026-08-30'), (b) => b.project, promoPricing).values()][0];
+  const regulaer = [...rollupBuckets(mk('2026-09-02'), (b) => b.project, promoPricing).values()][0];
   assert.ok(Math.abs(promo.cost - 2) < 1e-9, 'im Aktionszeitraum');
   assert.ok(Math.abs(regulaer.cost - 3) < 1e-9, 'danach zum Listenpreis');
 });

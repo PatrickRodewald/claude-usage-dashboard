@@ -86,16 +86,55 @@ test('Fast-Mode nutzt den Fast-Tarif (Opus 5: 10 / 50)', () => {
 });
 
 test('Einfuehrungspreis gilt vor dem Stichtag und danach nicht mehr', () => {
-  const before = pricing.rateFor('claude-sonnet-5', {
+  // Eigene Tabelle: die echte pricing.json hat derzeit keinen Aktionspreis.
+  const promoPricing = createPricing({
+    models: {
+      'claude-test': {
+        input: 3, output: 15,
+        promo: { until: '2026-08-31T23:59:59.999Z', input: 2, output: 10 },
+      },
+    },
+  });
+  const before = promoPricing.rateFor('claude-test', {
     timestampMs: Date.parse('2026-08-01T00:00:00Z'),
   });
-  const after = pricing.rateFor('claude-sonnet-5', {
+  const after = promoPricing.rateFor('claude-test', {
     timestampMs: Date.parse('2026-09-01T00:00:00Z'),
   });
   assert.equal(before.input, 2, 'Aktionspreis waehrend der Laufzeit');
   assert.equal(before.output, 10);
   assert.equal(after.input, 3, 'Listenpreis nach Ablauf');
   assert.equal(after.output, 15);
+});
+
+test('Sonnet 5 bleibt auch nach dem 31.08.2026 bei 2 / 10', () => {
+  const after = pricing.rateFor('claude-sonnet-5', {
+    timestampMs: Date.parse('2026-09-15T00:00:00Z'),
+  });
+  assert.equal(after.input, 2);
+  assert.equal(after.output, 10);
+});
+
+test('Opus 5.5: 4 / 20, Cache-Read nur 0,05x Input', () => {
+  const r = pricing.rateFor('claude-opus-5-5', { timestampMs: AT });
+  assert.equal(r.input, 4);
+  assert.equal(r.output, 20);
+  near(r.cacheWrite5m, 4 * 1.25);
+  near(r.cacheWrite1h, 4 * 2);
+  near(r.cacheRead, 4 * 0.05);
+  const fast = pricing.rateFor('claude-opus-5-5', { speed: 'fast', timestampMs: AT });
+  assert.equal(fast.input, 8);
+  assert.equal(fast.output, 40);
+  near(fast.cacheRead, 8 * 0.05);
+});
+
+test('Fable 5.1: gleicher Tarif wie Fable 5, aber Cache-Read nur 0,025x', () => {
+  const neu = pricing.rateFor('claude-fable-5-1', { timestampMs: AT });
+  const alt = pricing.rateFor('claude-fable-5', { timestampMs: AT });
+  assert.equal(neu.input, alt.input);
+  assert.equal(neu.output, alt.output);
+  near(neu.cacheRead, 10 * 0.025);
+  near(alt.cacheRead, 10 * 0.1);
 });
 
 test('Modell-Tarife stehen im erwarteten Verhaeltnis zueinander', () => {
