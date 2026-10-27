@@ -132,19 +132,21 @@ Kaffeetasse:
 - **arbeitet:** Laptop an, Lampe blinkt, die Arme tippen, der Kaffee dampft. Die Sprechblase
   zeigt das gerade laufende Werkzeug (`Bash`, `WebFetch`, …), „delegiert“ beim Warten auf einen
   Subagent und „• • •“ beim Nachdenken oder Schreiben.
-- **was genau:** Neben dem Laptop zeigt ein Requisit das laufende Werkzeug.
+- **was genau:** Neben dem Laptop zeigt ein Requisit das laufende Werkzeug, und die Figur
+  arbeitet damit: Kopf, Blick und linke Hand gehen zum Requisit, die rechte tippt weiter.
+  Subagents machen dieselben Bewegungen, nur kleiner.
 
-  | Werkzeug | Requisit |
-  |---|---|
-  | Lesen | Buch mit umblätternder Seite |
-  | Suchen | wandernde Lupe |
-  | Schreiben | kritzelnder Stift auf dem Notizblock |
-  | Shell | grüner Text auf dem Laptop |
-  | Testlauf | blubberndes Reagenzglas |
-  | Web und MCP | Globus und Funkwellen an der Antenne |
-  | To-dos | Klemmbrett mit Haken |
-  | Delegieren | Papierflieger in der Hand |
-  | Nachdenken | Gedankenwolke mit drehendem Zahnrad |
+  | Werkzeug | Requisit | Figur |
+  |---|---|---|
+  | Lesen | Buch mit umblätternder Seite | beugt sich darüber, Augen fahren die Zeilen ab, die Hand blättert |
+  | Suchen | wandernde Lupe | führt die Lupe, Kopf und Blick folgen ihr |
+  | Schreiben | kritzelnder Stift auf dem Notizblock | führt den Stift, Kopf über dem Block |
+  | Shell | grüner Text auf dem Laptop | tippt kräftig, nickt im Takt, haut regelmäßig auf Enter |
+  | Testlauf | blubberndes Reagenzglas | schüttelt es und prüft dann mit zusammengekniffenen Augen |
+  | Web und MCP | Globus und Funkwellen an der Antenne | dreht den Globus, schaut sich um, die Antenne wackelt |
+  | To-dos | Klemmbrett mit Haken | hakt Kästchen für Kästchen ab und nickt dabei |
+  | Delegieren | Papierflieger | nimmt ihn hoch, holt aus, wirft und schaut ihm nach |
+  | Nachdenken | Gedankenwolke mit drehendem Zahnrad | wiegt den Kopf, schaut nach oben, trommelt mit den Fingern, kratzt sich am Kopf |
 
   Ein erfolgreicher `git commit` wird mit Konfetti gefeiert, ein `git push` zusätzlich mit einer
   Rakete. Beides passiert einmal und nur, wenn der Commit frisch ist.
@@ -215,6 +217,23 @@ Jeder Raum hat eine Tür in der Rückwand. Ein neuer Subagent oder eine neu geö
 kommt durch die Tür herein und geht an den eigenen Tisch. Wer verschwindet, steht auf und geht
 hinaus. Geht die letzte Sitzung eines Projekts, schließt danach der ganze Raum. Beim Öffnen der
 Seite sitzen alle schon an ihren Plätzen.
+
+Im Büro herrscht Betrieb. Wer nichts zu tun hat, also eine Sitzung, die auf dich wartet, oder
+ein fertiger Subagent, steht nach ein paar Sekunden immer wieder auf und erledigt etwas:
+
+- Kaffee holen und an der Maschine trinken, dann mit der Tasse zurück
+- die Pflanze gießen
+- sich am Fenster strecken
+- an der Tafel mit dem Zeigestock auf die Aufträge zeigen, während die anderen hinschauen
+- mit einer Kollegin oder einem Kollegen plaudern, die dafür kurz aufwachen
+- kurz zur Tür hinaus und wieder herein
+
+Wer lange nachdenkt (ab 12 Sekunden), geht mit der Gedankenwolke hinter dem Tisch auf und ab.
+Wer auf Subagents wartet, schaut bei einem vorbei und über die Schulter auf dessen Laptop.
+Gearbeitet wird am Tisch: Kommt eine neue Nachricht oder ein Werkzeug, eilt die Figur sofort
+zurück. Unterwegs sind höchstens 40 % der Figuren eines Raums, maximal vier. Die Wege führen
+hinter den Tischen entlang, wer vorbeigeht, verschwindet also hinter den Sitzenden. Bei der
+Zwangspause, im Hintergrund-Tab und mit „Bewegung reduzieren“ bleiben alle sitzen.
 
 Die Ansicht aktualisiert sich innerhalb von etwa einer Sekunde und zeigt nur Sitzungen auf diesem
 Gerät. Sie funktioniert im hellen wie im dunklen Design und kommt ohne externe Schriften aus: Die

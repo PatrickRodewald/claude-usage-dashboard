@@ -7,7 +7,8 @@
  * sitzt als Figur an einem Schreibtisch mit Laptop und Kaffeetasse, ihre
  * Subagents an kleineren Tischen davor. Laufen sie, fliegen Papierflieger
  * mit Auftraegen vom Auftraggeber zu ihnen. Sprechblasen zeigen das gerade
- * benutzte Werkzeug.
+ * benutzte Werkzeug. Wer nichts zu tun hat, steht auf und macht Besorgungen
+ * (Kaffee, Pflanze, Fenster, Tafel, Plaudern) - siehe "Treiben".
  *
  * Die Raeume werden nur neu aufgebaut, wenn sich die Besetzung aendert (neue
  * Sitzung, neuer Agent). Ein Status- oder Werkzeugwechsel setzt lediglich
@@ -183,6 +184,109 @@ export function lookOffset(fromX, toX, max = 2) {
   if (!Number.isFinite(fromX) || !Number.isFinite(toX)) return 0;
   const d = toX - fromX;
   return Math.abs(d) < 4 ? 0 : Math.sign(d) * max;
+}
+
+/* --- Treiben: Besorgungen ------------------------------------------------------- */
+
+/** Wer so lange wartet (oder fertig ist), steht zwischendurch auf. */
+export const ERRAND_IDLE_MS = 5000;
+/** So lange nachgedacht: auf und ab gehen. */
+export const PACE_AFTER_MS = 12_000;
+/** So lange auf Subagents gewartet: bei einem vorbeischauen. */
+export const VISIT_AFTER_MS = 6000;
+
+const DONE_STATES = new Set(['completed', 'failed', 'stopped']);
+
+/** Hat die Figur nichts zu tun? Wartende Sitzungen und beendete Subagents. */
+function atLeisure(kind, state) {
+  return kind === 'session' ? state === 'idle' : DONE_STATES.has(state);
+}
+
+/**
+ * Welche Besorgungen eine Figur jetzt machen kann: { rate (Chance je
+ * Sekunde), options: [[name, gewicht], ...] } oder null.
+ * fig = { kind, state, stateMs }, room = { window, colleagues, agentsRunning }.
+ */
+export function errandsFor(fig, room = {}) {
+  if (atLeisure(fig.kind, fig.state)) {
+    if (!(fig.stateMs >= ERRAND_IDLE_MS)) return null;
+    const options = [
+      ['coffee', 3],
+      ['plant', 2],
+      ['board', 2],
+    ];
+    if (room.window) options.push(['window', 2]);
+    if (room.colleagues > 0) options.push(['chat', 3]);
+    if (fig.kind === 'session') options.push(['door', 1]);
+    return { rate: 1 / 12, options };
+  }
+  if (fig.state === 'thinking' && fig.stateMs >= PACE_AFTER_MS) return { rate: 1 / 8, options: [['pace', 1]] };
+  if (fig.kind === 'session' && fig.state === 'delegating' && room.agentsRunning > 0 && fig.stateMs >= VISIT_AFTER_MS) {
+    return { rate: 1 / 12, options: [['visit', 1]] };
+  }
+  return null;
+}
+
+/** Passt die Besorgung noch zum Zustand? Sonst eilt die Figur zurueck. */
+export function errandStillFits(errand, kind, state) {
+  if (errand === 'pace') return state === 'thinking';
+  if (errand === 'visit') return state === 'delegating';
+  return atLeisure(kind, state);
+}
+
+/**
+ * Weg zwischen zwei Standpunkten (Fuesse, global): einen Schritt hinter die
+ * Tische, dort quer, dann nach vorn zum Ziel. Ohne Punkte, die auf der
+ * Stelle treten.
+ */
+export function walkRoute(a, b, step = 6) {
+  const lane = Math.min(a.feet, b.feet) - step;
+  const pts = [
+    { x: a.x, feet: lane },
+    { x: b.x, feet: lane },
+    { x: b.x, feet: b.feet },
+  ];
+  const out = [];
+  let prev = a;
+  for (const p of pts) {
+    if (Math.hypot(p.x - prev.x, p.feet - prev.feet) > 0.5) {
+      out.push(p);
+      prev = p;
+    }
+  }
+  return out;
+}
+
+/**
+ * Keyframes fuer gleichmaessiges Gehen ueber Wegpunkte ({x, y} als
+ * Verschiebung): Offsets nach Strecke, Dauer nach Tempo (px/s).
+ */
+export function walkFrames(from, points, speed) {
+  const all = [from, ...points];
+  const cum = [0];
+  for (let i = 1; i < all.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(all[i].x - all[i - 1].x, all[i].y - all[i - 1].y));
+  }
+  const total = cum[cum.length - 1];
+  return {
+    duration: speed > 0 ? (total / speed) * 1000 : 0,
+    frames: all.map((p, i) => ({
+      transform: `translate(${p.x}px, ${p.y}px)`,
+      offset: total > 0 ? cum[i] / total : i / Math.max(1, all.length - 1),
+    })),
+  };
+}
+
+/** Gewichtete Auswahl; r in [0, 1). */
+export function pickWeighted(options, r = Math.random()) {
+  const total = options.reduce((a, [, w]) => a + w, 0);
+  if (!(total > 0)) return null;
+  let x = r * total;
+  for (const [name, w] of options) {
+    x -= w;
+    if (x < 0) return name;
+  }
+  return options[options.length - 1][0];
 }
 
 /* --- Messwerte als Gegenstaende ------------------------------------------------ */
@@ -395,6 +499,8 @@ function drawBoard(svg, w) {
   return {
     title,
     lines,
+    x: bx,
+    w: bw,
     // Zeichen pro Zeile grob nach Breite - die Kreideschrift ist breit.
     titleChars: Math.floor((bw - 24) / 8.6),
     lineChars: Math.floor((bw - 28) / 6.4),
@@ -632,7 +738,7 @@ function props(parent, ox, oy, s = 1) {
   el('path', { d: 'M-40 -6l9 -13l3 2l-9 13z', class: 'pencil-body' }, pencil);
   el('path', { d: 'M-40 -6l-1 4l3 -2z', class: 'pencil-tip' }, pencil);
 
-  // Testlauf: Reagenzglas mit aufsteigenden Blasen.
+  // Testlauf: Reagenzglas mit aufsteigenden Blasen, wird geschuettelt.
   const test = el('g', { class: 'prop prop-test' }, g);
   el('path', { d: 'M-42 -22v17a4 4 0 0 0 8 0v-17', class: 'tube' }, test);
   el('path', { d: 'M-42 -12v7a4 4 0 0 0 8 0v-7z', class: 'tube-liquid' }, test);
@@ -661,7 +767,7 @@ function props(parent, ox, oy, s = 1) {
     el('path', { d: `M-41 ${y - 0.5}h7`, class: 'paper-line' }, todo);
   });
 
-  // Delegieren: Papierflieger, startbereit in der Hand.
+  // Delegieren: Papierflieger, wird immer wieder losgeworfen.
   const del = el('g', { class: 'prop prop-delegate' }, g);
   el('path', { d: 'M-46 -14l14 4l-14 4l3 -4z', class: 'plane-body' }, del);
 
@@ -772,6 +878,37 @@ function celebrationFx(parent, cx, y) {
 }
 
 /**
+ * Plauderblase mit drei Punkten ueber dem Kopf, zur anderen Figur hin
+ * (toward: -1 links, 1 rechts). Koordinaten relativ zur Kopfmitte.
+ */
+function chatBubble(parent, toward) {
+  const g = el('g', { class: 'chat', transform: toward < 0 ? 'scale(-1 1)' : null }, parent);
+  el('rect', { x: 6, y: -47, width: 26, height: 13, rx: 6.5 }, g);
+  el('path', { d: 'M10 -34.5l-2 5l6 -5z' }, g);
+  for (const x of [13, 19, 25]) el('circle', { cx: x, cy: -40.5, r: 1.4, class: 'chat-dot' }, g);
+  return g;
+}
+
+/**
+ * Was eine Figur unterwegs dabeihat: Giesskanne und Zeigestock.
+ * head = { x, y, s } (Kopfmitte, Groesse relativ zur Hauptfigur); sichtbar
+ * macht CSS je nach Besorgung.
+ */
+function walkKit(parent, head) {
+  const kit = el('g', { class: 'kit', transform: `translate(${head.x} ${head.y}) scale(${head.s})` }, parent);
+  const can = el('g', { class: 'can' }, kit);
+  el('path', { d: 'M20 31a5 5 0 0 1 8 0', class: 'can-handle' }, can);
+  el('rect', { x: 17, y: 31, width: 13, height: 11, rx: 2, class: 'can-body' }, can);
+  el('path', { d: 'M29 35l9 -7', class: 'can-spout' }, can);
+  [0, 0.2, 0.4].forEach((d, i) => {
+    el('circle', { cx: 38 + i, cy: 30, r: 1, class: 'drop', style: `animation-delay:${d}s` }, can);
+  });
+  const pointer = el('g', { class: 'pointer' }, kit);
+  el('path', { d: 'M22.5 -4L37 -44' }, pointer);
+  return kit;
+}
+
+/**
  * Hauptfigur am Schreibtisch, in lokalen Koordinaten (Tischplatte bei y=88).
  * Aussen die Position (transform-Attribut), innen die Animation (CSS) -
  * beides auf demselben Element wuerde sich gegenseitig ueberschreiben.
@@ -781,25 +918,33 @@ function mainFigure(parent, cx) {
   const b = bubble(fig, cx, 2);
 
   const bodyG = el('g', { class: 'fig-body' }, fig);
-  // Antenne mit Lampe: leuchtet, solange gearbeitet wird.
-  el('line', { x1: cx, y1: 31, x2: cx, y2: 25, class: 'fig-line' }, bodyG);
-  el('circle', { cx, cy: 24, r: 2.6, class: 'fig-lamp' }, bodyG);
   el('rect', { x: cx - 17, y: 58, width: 34, height: 32, rx: 9, class: 'fig-fill' }, bodyG);
-  el('circle', { cx, cy: 44, r: 13, class: 'fig-fill' }, bodyG);
+  // Kopf als eigene Gruppe: neigt sich, nickt und schaut je nach Taetigkeit.
+  const head = el('g', { class: 'head' }, bodyG);
+  // Antenne mit Lampe: leuchtet, solange gearbeitet wird; wackelt beim Funken.
+  const antenna = el('g', { class: 'antenna' }, head);
+  el('line', { x1: cx, y1: 31, x2: cx, y2: 25, class: 'fig-line' }, antenna);
+  el('circle', { cx, cy: 24, r: 2.6, class: 'fig-lamp' }, antenna);
+  el('circle', { cx, cy: 44, r: 13, class: 'fig-fill' }, head);
   // Augen offen bzw. geschlossen - welche sichtbar sind, steuert data-state.
-  // Blick (aussen) und Blinzeln (innen) getrennt - beide setzen transform.
-  const open = el('g', { class: 'eyes-open look' }, bodyG);
-  const blink = el('g', { class: 'blink' }, open);
+  // Hinschauen (look), Blick je Taetigkeit (gaze) und Blinzeln getrennt -
+  // alle drei setzen transform.
+  const open = el('g', { class: 'eyes-open look' }, head);
+  const blink = el('g', { class: 'blink' }, el('g', { class: 'gaze' }, open));
   el('circle', { cx: cx - 5, cy: 43, r: 2.2, class: 'fig-eye' }, blink);
   el('circle', { cx: cx + 5, cy: 43, r: 2.2, class: 'fig-eye' }, blink);
-  const closed = el('g', { class: 'eyes-closed' }, bodyG);
+  const closed = el('g', { class: 'eyes-closed' }, head);
   el('path', { d: `M${cx - 8} 44q3 2 6 0M${cx + 2} 44q3 2 6 0`, class: 'fig-eye-line' }, closed);
-  // Arme zum Tisch; tippen, solange gearbeitet wird.
-  el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, bodyG);
-  el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, bodyG);
+  // Arme zum Tisch; drehen sich an der Schulter zu den Requisiten. Beim
+  // Nachdenken kratzt sich die Figur zwischendurch am Kopf.
+  const arms = el('g', { class: 'arms' }, bodyG);
+  el('rect', { x: cx - 23, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-l' }, arms);
+  el('rect', { x: cx + 16, y: 66, width: 7, height: 20, rx: 3.5, class: 'fig-fill arm arm-r' }, arms);
+  el('rect', { x: cx + 19, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-scratch' }, arms);
   // Hochgereckte Arme fuers Strecken nach langer Arbeit (blenden nur kurz ein).
-  el('rect', { x: cx - 26, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up' }, bodyG);
-  el('rect', { x: cx + 19, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up' }, bodyG);
+  const up = el('g', { class: 'arms-up' }, bodyG);
+  el('rect', { x: cx - 26, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up arm-up-l' }, up);
+  el('rect', { x: cx + 19, y: 38, width: 7, height: 22, rx: 3.5, class: 'fig-fill arm-up arm-up-r' }, up);
   // Nur in der Zwangspause sichtbar: Beine zum Stehen und eine Tasse in der Hand.
   const legs = el('g', { class: 'legs' }, bodyG);
   el('rect', { x: cx - 12, y: 88, width: 8, height: 24, rx: 3, class: 'fig-fill' }, legs);
@@ -843,15 +988,19 @@ function agentFigure(parent, cx, top, color) {
   const b = bubble(fig, cx, top);
 
   const bodyG = el('g', { class: 'fig-body' }, fig);
-  el('circle', { cx, cy: top + 33, r: 9, class: 'fig-fill' }, bodyG);
-  const eyes = el('g', { class: 'blink' }, el('g', { class: 'look' }, bodyG));
+  const head = el('g', { class: 'head' }, bodyG);
+  el('circle', { cx, cy: top + 33, r: 9, class: 'fig-fill' }, head);
+  const eyes = el('g', { class: 'blink' }, el('g', { class: 'gaze' }, el('g', { class: 'look' }, head)));
   el('circle', { cx: cx - 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, eyes);
   el('circle', { cx: cx + 3.4, cy: top + 32.5, r: 1.6, class: 'fig-eye' }, eyes);
   el('rect', { x: cx - 11, y: top + 44, width: 22, height: 18, rx: 6, class: 'fig-fill' }, bodyG);
-  el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, bodyG);
-  el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, bodyG);
-  el('rect', { x: cx - 17, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up' }, bodyG);
-  el('rect', { x: cx + 12, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up' }, bodyG);
+  const arms = el('g', { class: 'arms' }, bodyG);
+  el('rect', { x: cx - 16, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-l' }, arms);
+  el('rect', { x: cx + 11, y: top + 47, width: 5, height: 12, rx: 2.5, class: 'fig-fill arm arm-r' }, arms);
+  el('rect', { x: cx + 12, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-scratch' }, arms);
+  const up = el('g', { class: 'arms-up' }, bodyG);
+  el('rect', { x: cx - 17, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up arm-up-l' }, up);
+  el('rect', { x: cx + 12, y: top + 30, width: 5, height: 15, rx: 2.5, class: 'fig-fill arm-up arm-up-r' }, up);
   const legs = el('g', { class: 'legs' }, bodyG);
   el('rect', { x: cx - 8, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
   el('rect', { x: cx + 2, y: top + 60, width: 6, height: 14, rx: 2, class: 'fig-fill' }, legs);
@@ -993,10 +1142,12 @@ function buildOffice(project, ctx) {
   drawRoom(svg, width, height);
   const board = drawBoard(svg, width);
   let windowG = null;
+  let windowX = null;
   let clock = null;
   let calendar = null;
   if (board.sideRoom >= 74) {
-    windowG = drawWindow(svg, Math.max(14, board.sideRoom / 2 - 28), 24);
+    windowX = Math.max(14, board.sideRoom / 2 - 28);
+    windowG = drawWindow(svg, windowX, 24);
     clock = drawClock(svg, width - Math.max(30, board.sideRoom / 2), 52);
     calendar = drawCalendar(svg, clock.cx, 76);
   }
@@ -1004,9 +1155,23 @@ function buildOffice(project, ctx) {
   drawCoffeeCorner(svg);
   drawDoor(svg);
 
+  // Unterwegs gehen die Figuren hinter den Tischen entlang: ihre Ebene liegt
+  // vor der Einrichtung, aber hinter allen Tischen und Sitzenden.
+  const walkers = el('g', { class: 'walkers' }, svg);
+  // Wo man hingeht (Fuesse, global).
+  const spots = {
+    coffee: { x: 54, feet: WALL_H + 46 },
+    door: { x: DOOR_X + DOOR_W / 2, feet: WALL_H + 2 },
+    plant: { x: width - 58, feet: WALL_H + 46 },
+    window: windowX == null ? null : { x: windowX + 28, feet: WALL_H + 44 },
+    board: { x0: board.x + 34, x1: board.x + board.w - 34, feet: WALL_H + 44 },
+  };
+
   const figures = el('g', {}, svg);
   // Nach den Figuren: die Papierflieger fliegen vor Tischen und Robotern.
   const routes = el('g', { class: 'routes' }, svg);
+  // Ganz vorn: Plauderblasen - sonst verschwinden sie hinter Tischen.
+  const overlay = el('g', { class: 'overlay' }, svg);
 
   const figs = new Map();
   // Etwas Abstand zur Pflanze rechts: der Inhalt wird mittig verteilt.
@@ -1022,10 +1187,13 @@ function buildOffice(project, ctx) {
       ...main,
       label,
       sub,
+      id: block.s.sessionId,
       kind: 'session',
       desk: { x: cx - 26, y: MAIN_DESK_Y + 2 },
       // Wo die Figur steht, wenn sie aufsteht (Fuesse der Beine, global).
       home: { x: cx, feet: MAIN_Y + 112 },
+      // Kopfmitte in Figurkoordinaten und Groesse - fuer das Mitgenommene.
+      head: { x: cx, y: 44, s: 1 },
     });
     ctx.hover(main.fig, block.s.sessionId);
 
@@ -1037,7 +1205,17 @@ function buildOffice(project, ctx) {
       const fig = agentFigure(figures, ax, top, typeColor(a.type));
       const label = el('text', { x: ax, y: top + 93, 'text-anchor': 'middle', class: 'fig-label' }, figures);
       const sub = el('text', { x: ax, y: top + 105, 'text-anchor': 'middle', class: 'fig-sublabel' }, figures);
-      figs.set(a.id, { ...fig, label, sub, kind: 'agent', desk: { x: ax - 20, y: top + 60 }, home: { x: ax, feet: top + 74 } });
+      figs.set(a.id, {
+        ...fig,
+        label,
+        sub,
+        id: a.id,
+        kind: 'agent',
+        owner: block.s.sessionId,
+        desk: { x: ax - 20, y: top + 60 },
+        home: { x: ax, feet: top + 74 },
+        head: { x: ax, y: top + 33, s: 0.69 },
+      });
       ctx.hover(fig.fig, a.id);
     });
     x0 += block.width;
@@ -1092,7 +1270,22 @@ function buildOffice(project, ctx) {
   el('rect', { x: 0, y: 0, width, height, class: 'alarm-glow' }, svg);
 
   root.append(svg);
-  return { root, svg, figs, board, windowG, clock, calendar, sig: layoutSignature(project) };
+  return {
+    root,
+    svg,
+    figs,
+    board,
+    windowG,
+    clock,
+    calendar,
+    walkers,
+    overlay,
+    spots,
+    width,
+    // Besetzte Plaetze (Kaffeemaschine, Tafel, ...) - dort steht immer nur einer.
+    taken: new Set(),
+    sig: layoutSignature(project),
+  };
 }
 
 /** Uhr und Fenster auf die aktuelle Zeit stellen. */
@@ -1189,6 +1382,28 @@ function applyCalendar(st, timeZone) {
     (Number.isFinite(week.percent) ? ` · ${Math.round(week.percent)} % verbraucht` : '');
 }
 
+/** Alle anderen im Raum schauen fuer ms Millisekunden zu x hinueber. */
+function glance(st, x, ms, exceptId, key) {
+  for (const [otherId, f] of st.figs) {
+    if (otherId === exceptId) continue;
+    f.fig.style.setProperty('--look-x', `${lookOffset(f.home.x, x)}px`);
+    f.fig.dataset.look = key;
+    clearTimeout(f.lookTimer);
+    f.lookTimer = setTimeout(() => {
+      if (f.fig.dataset.look === key) delete f.fig.dataset.look;
+    }, ms);
+  }
+}
+
+/** Zustand einer Figur setzen und merken, seit wann er gilt (fuer die Besorgungen). */
+function setState(f, state, now) {
+  if (f.state !== state) {
+    f.state = state;
+    f.stateSince = now;
+  }
+  f.fig.dataset.state = state;
+}
+
 /** Zustand auf einen bestehenden Raum uebertragen - ohne Neuaufbau. */
 function applyOffice(st, project, ctx, env = {}) {
   st.env = env;
@@ -1217,11 +1432,12 @@ function applyOffice(st, project, ctx, env = {}) {
   });
 
   const summary = [];
+  const now = ctx.now();
   for (const s of project.sessions) {
     const f = st.figs.get(s.sessionId);
     if (!f) continue;
     const state = sessionState(s);
-    f.fig.dataset.state = state;
+    setState(f, state, now);
     setActivity(f.fig, sessionActivity(s, state));
     setTempo(f.fig, s.outputPerMin);
     applyStack(f.stack, s.context, s.contextLimit);
@@ -1235,7 +1451,7 @@ function applyOffice(st, project, ctx, env = {}) {
       const g = st.figs.get(a.id);
       if (!g) continue;
       const as = agentState(a);
-      g.fig.dataset.state = as;
+      setState(g, as, now);
       setActivity(g.fig, agentActivity(a, as));
       setTempo(g.fig, a.outputPerMin);
       applyStack(g.stack, a.context, a.contextLimit);
@@ -1257,7 +1473,6 @@ function applyOffice(st, project, ctx, env = {}) {
     }
   }
   // Lange am Stueck gearbeitet: zwischendurch strecken.
-  const now = ctx.now();
   for (const s of project.sessions) {
     const f = st.figs.get(s.sessionId);
     if (!f) continue;
@@ -1285,15 +1500,7 @@ function applyOffice(st, project, ctx, env = {}) {
     if (!target) continue;
     // Das Ergebnis fliegt als Papierflieger zum Auftraggeber zurueck.
     target.route?.sendBack?.();
-    for (const [otherId, f] of st.figs) {
-      if (otherId === id) continue;
-      f.fig.style.setProperty('--look-x', `${lookOffset(f.home.x, target.home.x)}px`);
-      f.fig.dataset.look = id;
-      clearTimeout(f.lookTimer);
-      f.lookTimer = setTimeout(() => {
-        if (f.fig.dataset.look === id) delete f.fig.dataset.look;
-      }, 4000);
-    }
+    glance(st, target.home.x, 4000, id, id);
   }
   if (finished.length) ctx.sound?.('chime');
 
@@ -1308,8 +1515,8 @@ function applyOffice(st, project, ctx, env = {}) {
 /**
  * @param container  Element, das die Raeume aufnimmt
  * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone(), now()?, emptyText? }
- * @returns {{ render(activity, env), tick(), setSound(on) }}  env = { fiveHour, week } aus snapshot.live;
- *          tick() stellt Uhren, Fenster und Kalender
+ * @returns {{ render(activity, env), tick(), setSound(on), errand(id, kind) }}  env = { fiveHour, week }
+ *          aus snapshot.live; tick() stellt Uhren, Fenster und Kalender
  */
 export function createWorkshop(
   container,
@@ -1365,6 +1572,8 @@ export function createWorkshop(
     for (const st of stations.values()) {
       if (hidden) st.svg.pauseAnimations?.();
       else st.svg.unpauseAnimations?.();
+      // Besorgungen laufen per Web Animations - die haelt die Klasse nicht an.
+      if (hidden) stopWalks(st);
     }
   };
   document.addEventListener('visibilitychange', syncPause);
@@ -1470,8 +1679,420 @@ export function createWorkshop(
     }
   };
 
+  /* --- Treiben: Besorgungen ------------------------------------------------ */
+
+  /*
+   * Wer nichts zu tun hat, steht auf und macht etwas: Kaffee holen, Pflanze
+   * giessen, am Fenster strecken, an der Tafel zeigen, plaudern, kurz raus.
+   * Wer lange nachdenkt, geht auf und ab; wer auf Subagents wartet, schaut
+   * bei einem vorbei. Kommt Arbeit, eilt die Figur zurueck an den Tisch.
+   *
+   * Unterwegs haengt der Koerper der Figur in einem eigenen Geher (Ebene
+   * hinter den Tischen); bewegt wird er per Web Animations. Am Tisch wird er
+   * wieder eingehaengt, wo er herkam.
+   */
+  const WALK_SPEED = 55; // px/s
+  const HURRY_SPEED = 130;
+  const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+  const setPos = (w, p) => {
+    w.pos = { x: p.x, y: p.y };
+    w.mover.style.transform = `translate(${p.x}px, ${p.y}px)`;
+  };
+  /** Wo der Geher gerade steht (global, Fuesse). */
+  const whereIs = (w) => ({ x: w.f.home.x + w.pos.x, feet: w.f.home.feet + w.pos.y });
+
+  /** Warten; endet sofort, wenn die Figur zurueckgerufen wird. */
+  const pause = (w, ms) =>
+    new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(t);
+        if (w.wake === done) w.wake = null;
+        resolve();
+      };
+      const t = setTimeout(done, ms);
+      w.wake = done;
+    });
+
+  /** Ueber Wegpunkte (Verschiebungen) gehen. */
+  const moveAlong = (w, points, speed) =>
+    new Promise((resolve) => {
+      const last = points[points.length - 1];
+      const { frames, duration } = walkFrames(w.pos, points, speed);
+      if (!last || duration < 30 || !w.walker.isConnected) {
+        if (last) setPos(w, last);
+        resolve();
+        return;
+      }
+      w.walker.dataset.walking = '1';
+      const dx = last.x - w.pos.x;
+      if (Math.abs(dx) > 1) w.walker.dataset.dir = dx < 0 ? 'left' : 'right';
+      const anim = w.mover.animate(frames, { duration, fill: 'forwards' });
+      w.anim = anim;
+      let ended = false;
+      const end = () => {
+        if (ended) return;
+        ended = true;
+        if (w.anim === anim) w.anim = null;
+        delete w.walker.dataset.walking;
+        delete w.walker.dataset.dir;
+        resolve();
+      };
+      anim.onfinish = () => {
+        setPos(w, last);
+        anim.cancel();
+        end();
+      };
+      anim.oncancel = end;
+    });
+
+  /** Zu einem Standpunkt (global) gehen - hinter den Tischen entlang. */
+  const walkTo = (w, to, speed = WALK_SPEED) => {
+    const { x, feet } = w.f.home;
+    return moveAlong(
+      w,
+      walkRoute(whereIs(w), to).map((p) => ({ x: p.x - x, y: p.feet - feet })),
+      speed,
+    );
+  };
+
+  const fade = (w, from, to) =>
+    new Promise((resolve) => {
+      const anim = w.mover.animate([{ opacity: from }, { opacity: to }], { duration: 450, fill: 'forwards' });
+      w.fadeAnim?.cancel();
+      w.fadeAnim = anim;
+      anim.onfinish = anim.oncancel = () => resolve();
+    });
+
+  /** Koerper aus dem Tisch loesen und in einen Geher haengen. */
+  const startWalk = (st, f) => {
+    const body = f.fig.querySelector(':scope > .fig-body');
+    if (!body || f.walk) return null;
+    const walker = el('g', { class: 'walker', style: f.fig.getAttribute('style') ?? '' }, st.walkers);
+    if (f.kind === 'session') walker.setAttribute('transform', `translate(0 ${MAIN_Y})`);
+    else walker.dataset.agent = '1';
+    if (DONE_STATES.has(f.state)) walker.dataset.faded = '1';
+    const mover = el('g', { class: 'mover' }, walker);
+    const w = { st, f, walker, mover, body, anchor: body.nextSibling, pos: { x: 0, y: 0 }, moved: [], cleanups: [] };
+    mover.append(body);
+    w.kit = walkKit(mover, f.head);
+    f.fig.dataset.away = '1';
+    f.walk = w;
+    return w;
+  };
+
+  /** Teil der Tisch-Gruppe (z. B. die Gedankenwolke) mitnehmen. */
+  const carry = (w, node) => {
+    if (!node) return;
+    w.moved.push([node, node.parentNode, node.nextSibling]);
+    w.mover.insertBefore(node, w.kit);
+  };
+
+  /** Wieder hinsetzen: Koerper und Mitgenommenes zurueck an den Tisch. */
+  const sitDown = (w) => {
+    const { f } = w;
+    if (f.walk !== w) return;
+    w.anim?.cancel();
+    w.fadeAnim?.cancel();
+    w.wake?.();
+    for (const [node, parent, next] of w.moved.reverse()) parent.insertBefore(node, next?.parentNode === parent ? next : null);
+    f.fig.insertBefore(w.body, w.anchor?.parentNode === f.fig ? w.anchor : null);
+    w.walker.remove();
+    for (const fn of w.cleanups) fn();
+    if (w.spot) w.st.taken.delete(w.spot);
+    delete f.fig.dataset.away;
+    f.walk = null;
+    f.restUntil = performance.now() + 5000 + Math.random() * 7000;
+  };
+
+  /** Zurueckrufen: die laufende Bewegung endet, wo sie gerade ist. */
+  const recall = (w) => {
+    if (!w || w.recalled) return;
+    w.recalled = true;
+    if (w.anim) {
+      const m = new DOMMatrixReadOnly(getComputedStyle(w.mover).transform);
+      setPos(w, { x: m.m41, y: m.m42 });
+      w.anim.cancel();
+    }
+    w.wake?.();
+  };
+
+  /** Sofort alle an ihre Tische (Raum wird umgebaut, Zwangspause, Tab weg). */
+  const stopWalks = (st) => {
+    for (const f of st.figs.values()) {
+      if (!f.walk) continue;
+      f.walk.recalled = true;
+      sitDown(f.walk);
+    }
+  };
+
+  /** Zurueck zum Tisch; wird die Figur unterwegs gerufen, eilt sie. */
+  const goHome = async (w) => {
+    // Was dort war (Blasen, Maschine, Gespraechspartner), endet jetzt - nicht erst am Tisch.
+    for (const fn of w.cleanups.splice(0)) fn();
+    if (w.spot) {
+      w.st.taken.delete(w.spot);
+      w.spot = null;
+    }
+    if (w.outside) {
+      openDoor(w.st);
+      w.outside = false;
+      await fade(w, 0, 1);
+    }
+    delete w.walker.dataset.act;
+    for (let i = 0; i < 3 && w.f.walk === w && (Math.abs(w.pos.x) > 0.5 || Math.abs(w.pos.y) > 0.5); i++) {
+      const hurried = Boolean(w.recalled);
+      if (hurried) w.walker.dataset.hurry = '1';
+      await walkTo(w, w.f.home, hurried ? HURRY_SPEED : WALK_SPEED);
+      if (Boolean(w.recalled) === hurried) break;
+    }
+  };
+
+  /** Platz belegen (Kaffeemaschine, Pflanze, Fenster, Tafel); false = besetzt. */
+  const claim = (w, spot) => {
+    if (w.st.taken.has(spot)) return false;
+    w.st.taken.add(spot);
+    w.spot = spot;
+    return true;
+  };
+  const jitter = (n) => (Math.random() * 2 - 1) * n;
+  /**
+   * Neben einer anderen Figur stehen, auf der Seite, von der man kommt - mit
+   * etwas Luft, damit die Plauderblasen nicht auf dem Gesicht des anderen landen.
+   */
+  const halfWidth = (f) => (f.kind === 'session' ? 22 : 15);
+  const beside = (w, other) => {
+    const side = w.f.home.x < other.home.x ? -1 : 1;
+    const gap = halfWidth(w.f) + halfWidth(other) + 4;
+    const x = Math.min(w.st.width - 20, Math.max(20, other.home.x + side * gap));
+    return { x, feet: other.home.feet - (other.kind === 'session' ? 14 : 8), side };
+  };
+
+  /** Plauderblase ueber einer Figur, die bei pos (Verschiebung vom Platz) steht - in der vordersten Ebene. */
+  const talkBubble = (st, f, pos, toward) => {
+    const holder = el(
+      'g',
+      { class: 'talk', transform: `translate(${pos.x} ${pos.y + (f.kind === 'session' ? MAIN_Y : 0)})` },
+      st.overlay,
+    );
+    chatBubble(el('g', { transform: `translate(${f.head.x} ${f.head.y}) scale(${f.head.s})` }, holder), toward);
+    return holder;
+  };
+
+  /** Freie Gespraechspartner: wer nichts zu tun hat und nicht unterwegs ist. */
+  const chatPartners = (st, f) =>
+    [...st.figs.values()].filter((o) => o !== f && !o.walk && !o.fig.dataset.chat && !o.fig.dataset.enter && atLeisure(o.kind, o.state));
+  const runningAgentsOf = (st, f) =>
+    [...st.figs.values()].filter((o) => o.kind === 'agent' && o.owner === f.id && !o.walk && (o.state === 'tool' || o.state === 'thinking'));
+
+  const ERRANDS = {
+    async coffee(w) {
+      if (!claim(w, 'coffee')) return;
+      const s = w.st.spots.coffee;
+      await walkTo(w, { x: s.x + jitter(4), feet: s.feet });
+      if (w.recalled) return;
+      w.st.root.dataset.brewing = '1';
+      w.cleanups.push(() => delete w.st.root.dataset.brewing);
+      w.walker.dataset.act = 'coffee';
+      await pause(w, 4400);
+      delete w.st.root.dataset.brewing;
+      w.walker.dataset.carry = 'cup';
+    },
+    async plant(w) {
+      if (!claim(w, 'plant')) return;
+      const s = w.st.spots.plant;
+      w.walker.dataset.carry = 'can';
+      // Kleinere Figuren stehen naeher dran - die Kanne reicht sonst nicht.
+      await walkTo(w, { x: s.x + (w.f.kind === 'agent' ? 12 : 0), feet: s.feet });
+      if (w.recalled) return;
+      w.walker.dataset.act = 'water';
+      w.st.root.dataset.watering = '1';
+      w.cleanups.push(() => delete w.st.root.dataset.watering);
+      await pause(w, 3600);
+      delete w.st.root.dataset.watering;
+    },
+    async window(w) {
+      const s = w.st.spots.window;
+      if (!s || !claim(w, 'window')) return;
+      await walkTo(w, { x: s.x + jitter(6), feet: s.feet });
+      if (w.recalled) return;
+      w.walker.dataset.act = 'window';
+      await pause(w, 3800);
+    },
+    async board(w) {
+      if (!claim(w, 'board')) return;
+      const s = w.st.spots.board;
+      const x = s.x0 + Math.random() * Math.max(0, s.x1 - s.x0);
+      await walkTo(w, { x, feet: s.feet });
+      if (w.recalled) return;
+      w.walker.dataset.act = 'board';
+      glance(w.st, x, 4600, w.f.id, `board:${w.f.id}`);
+      await pause(w, 4600);
+    },
+    async door(w) {
+      await walkTo(w, w.st.spots.door);
+      if (w.recalled) return;
+      openDoor(w.st);
+      w.outside = true;
+      await fade(w, 1, 0);
+      await pause(w, 3000 + Math.random() * 5000);
+    },
+    async chat(w) {
+      const partners = chatPartners(w.st, w.f);
+      const o = partners[Math.floor(Math.random() * partners.length)];
+      if (!o) return;
+      w.target = o;
+      o.fig.dataset.chat = '1';
+      w.cleanups.push(() => delete o.fig.dataset.chat);
+      const spot = beside(w, o);
+      await walkTo(w, spot);
+      if (w.recalled || o.walk) return;
+      // Zueinander gedreht: die Blasen zeigen zum anderen, er schaut her.
+      const mine = talkBubble(w.st, w.f, w.pos, -spot.side);
+      const reply = talkBubble(w.st, o, { x: 0, y: 0 }, spot.side);
+      reply.classList.add('reply');
+      w.cleanups.push(() => {
+        mine.remove();
+        reply.remove();
+      });
+      o.fig.style.setProperty('--look-x', `${lookOffset(o.home.x, spot.x)}px`);
+      o.fig.dataset.look = `chat:${w.f.id}`;
+      w.cleanups.push(() => {
+        if (o.fig.dataset.look === `chat:${w.f.id}`) delete o.fig.dataset.look;
+      });
+      w.walker.dataset.act = 'chat';
+      o.fig.dataset.chat = 'talk';
+      await pause(w, 4000 + Math.random() * 2500);
+    },
+    async visit(w) {
+      const agents = runningAgentsOf(w.st, w.f);
+      const a = agents[Math.floor(Math.random() * agents.length)];
+      if (!a) return;
+      w.target = a;
+      const spot = beside(w, a);
+      await walkTo(w, spot);
+      if (w.recalled) return;
+      w.walker.dataset.act = 'visit';
+      w.walker.dataset.dir = spot.side > 0 ? 'left' : 'right';
+      a.fig.style.setProperty('--look-x', `${lookOffset(a.home.x, spot.x)}px`);
+      a.fig.dataset.look = `visit:${w.f.id}`;
+      w.cleanups.push(() => {
+        if (a.fig.dataset.look === `visit:${w.f.id}`) delete a.fig.dataset.look;
+      });
+      await pause(w, 3500);
+    },
+    async pace(w) {
+      // Die Gedankenwolke geht mit.
+      carry(w, w.f.fig.querySelector(':scope > .thought'));
+      const reach = w.f.kind === 'session' ? 30 : 18;
+      const back = w.f.kind === 'session' ? -12 : -7;
+      const laps = 2 + Math.floor(Math.random() * 3);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      for (let i = 0; i < laps * 2 && !w.recalled; i++) {
+        await moveAlong(w, [{ x: (i % 2 ? -side : side) * reach, y: back }], WALK_SPEED * 0.7);
+        if (!w.recalled) await pause(w, 300);
+      }
+    },
+  };
+
+  /** Eine Besorgung von Anfang bis Ende: hin, dort etwas tun, zurueck, hinsetzen. */
+  const runErrand = async (st, f, kind) => {
+    const w = startWalk(st, f);
+    if (!w) return;
+    w.kind = kind;
+    w.walker.dataset.errand = kind;
+    try {
+      await ERRANDS[kind](w);
+      if (f.walk === w) await goHome(w);
+    } finally {
+      sitDown(w);
+    }
+  };
+
+  /** Wer unterwegs ist, als der Raum umgebaut wird: Standpunkt merken. */
+  const walkPositions = (st) => {
+    const out = new Map();
+    for (const [id, f] of st.figs) {
+      const w = f.walk;
+      if (!w) continue;
+      let p = w.pos;
+      if (w.anim) {
+        const m = new DOMMatrixReadOnly(getComputedStyle(w.mover).transform);
+        p = { x: m.m41, y: m.m42 };
+      }
+      out.set(id, { x: f.home.x + p.x, feet: f.home.feet + p.y, outside: Boolean(w.outside) });
+    }
+    return out;
+  };
+  /** ... und im neuen Raum von dort aus an den (womoeglich neuen) Platz gehen. */
+  const resumeWalks = (st, positions) => {
+    for (const [id, p] of positions) {
+      const f = st.figs.get(id);
+      if (!f || f.fig.dataset.enter || st.root.dataset.limit === 'reached') continue;
+      const w = startWalk(st, f);
+      if (!w) continue;
+      w.kind = 'return';
+      w.walker.dataset.errand = 'return';
+      setPos(w, { x: p.x - f.home.x, y: p.feet - f.home.feet });
+      if (p.outside) {
+        w.outside = true;
+        w.mover.style.opacity = '0';
+      }
+      goHome(w).finally(() => sitDown(w));
+    }
+  };
+
+  /** Ob eine Besorgung noch passt - sonst zurueck an die Arbeit. */
+  const checkWalks = (st) => {
+    if (st.root.dataset.limit === 'reached') {
+      stopWalks(st);
+      return;
+    }
+    for (const f of st.figs.values()) {
+      const w = f.walk;
+      if (!w || w.kind === 'return') continue;
+      const targetBusy = w.kind === 'chat' && w.target && !atLeisure(w.target.kind, w.target.state);
+      if (!errandStillFits(w.kind, f.kind, f.state) || targetBusy) recall(w);
+    }
+  };
+
+  /** Jede Sekunde: wer hat Zeit und Lust, loszugehen? */
+  const DIRECT_MS = 1000;
+  const direct = () => {
+    if (document.hidden || reducedMotion() || container.closest('[hidden]')) return;
+    const nowMs = now();
+    const t = performance.now();
+    for (const st of stations.values()) {
+      if (!st.root.isConnected || st.root.dataset.closing || st.root.dataset.limit === 'reached') continue;
+      const figs = [...st.figs.values()];
+      let out = figs.filter((f) => f.walk).length;
+      // Viel los, aber kein Gewimmel: hoechstens 40 % unterwegs, maximal 4.
+      const cap = Math.min(4, Math.max(1, Math.ceil(figs.length * 0.4)));
+      for (const f of figs.sort(() => Math.random() - 0.5)) {
+        if (out >= cap) break;
+        if (f.walk || f.fig.dataset.enter || f.fig.dataset.chat || (f.restUntil ?? 0) > t) continue;
+        const plan = errandsFor(
+          { kind: f.kind, state: f.state, stateMs: nowMs - (f.stateSince ?? nowMs) },
+          {
+            window: Boolean(st.spots.window),
+            colleagues: chatPartners(st, f).length,
+            agentsRunning: f.kind === 'session' ? runningAgentsOf(st, f).length : 0,
+          },
+        );
+        if (!plan || Math.random() >= plan.rate * (DIRECT_MS / 1000)) continue;
+        const free = plan.options.filter(([k]) => !st.taken.has(k));
+        const kind = pickWeighted(free);
+        if (!kind) continue;
+        out++;
+        runErrand(st, f, kind);
+      }
+    }
+  };
+  setInterval(direct, DIRECT_MS);
+
   /** Raum ohne Sitzung: die Letzten gehen hinaus, dann schliesst er. */
   const closeRoom = (st) => {
+    stopWalks(st);
     if (!renderedOnce || document.hidden || !st.figs.size) {
       st.root.remove();
       return;
@@ -1533,10 +2154,14 @@ export function createWorkshop(
     for (const p of projects) {
       const sig = layoutSignature(p);
       let st = stations.get(p.key);
+      let walking = null;
       if (!st || st.sig !== sig) {
         const fresh = buildOffice(p, ctx);
         const before = st ? [...st.figs.keys()] : [];
         if (st) {
+          // Wer gerade unterwegs ist, geht im neuen Raum von dort aus weiter.
+          walking = walkPositions(st);
+          stopWalks(st);
           dropHover(st);
           // Wer vorher lief, bleibt bekannt - sonst ginge ein "gerade fertig"
           // verloren, wenn im selben Moment ein neuer Agent dazukommt.
@@ -1554,6 +2179,8 @@ export function createWorkshop(
         if (document.hidden) st.svg.pauseAnimations?.();
       }
       applyOffice(st, p, ctx, env);
+      if (walking) resumeWalks(st, walking);
+      checkWalks(st);
       for (const s of p.sessions) {
         celebrate(st, s.sessionId, s.celebration);
         mail(st, s.sessionId, s.prompt);
@@ -1606,5 +2233,14 @@ export function createWorkshop(
     }
   }
 
-  return { render, tick, setSound };
+  /** Vorschau und Tests: eine Besorgung gezielt starten (Figur-Id, Name aus ERRANDS). */
+  function errand(id, kind) {
+    for (const st of stations.values()) {
+      const f = st.figs.get(id);
+      if (f && ERRANDS[kind]) return runErrand(st, f, kind);
+    }
+    return null;
+  }
+
+  return { render, tick, setSound, errand };
 }

@@ -1092,7 +1092,14 @@ td.name {
   animation: cud-tick 1.8s ease-out infinite;
 }
 .prop-delegate .plane-body {
-  animation: cud-bob 0.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cud-throw 2s ease-in-out infinite;
+}
+.prop-test {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cud-tube 2s ease-in-out infinite;
 }
 .screen-line {
   stroke: #39d353;
@@ -1129,6 +1136,165 @@ td.name {
 }
 .gear-hole {
   fill: var(--surface);
+}
+
+/* --- Koerpersprache je Taetigkeit ------------------------------------------
+   Die Figur arbeitet selbst mit: der Kopf neigt sich zum Requisit, die Augen
+   folgen ihm, der linke Arm dreht an der Schulter dorthin und macht die
+   Bewegung des Requisits mit (gleiche Dauer, startet im selben Moment). Der
+   rechte Arm tippt weiter. Die Winkel passen fuer Haupt- und Agent-Figur. */
+
+.head,
+.antenna {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.gaze {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.arm {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+.arm-scratch {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+/* Lesen: ueber das Buch gebeugt, Augen fahren die Zeilen ab, die Hand blaettert. */
+.fig[data-activity='read'] .fig-body {
+  animation: cud-lean 1.4s ease-in-out infinite;
+}
+.fig[data-activity='read'] .head {
+  animation: cud-head-read 1.4s ease-in-out infinite;
+}
+.fig[data-activity='read'] .gaze {
+  animation: cud-gaze-read 1.4s linear infinite;
+}
+.fig[data-activity='read'] .arm-l {
+  animation: cud-arm-read 1.4s ease-in-out infinite;
+}
+
+/* Suchen: Lupe in der Hand, Kopf und Blick folgen ihr. */
+.fig[data-activity='search'] .fig-body {
+  animation: cud-lean 1.8s ease-in-out infinite;
+}
+.fig[data-activity='search'] .head {
+  animation: cud-head-search 1.8s ease-in-out infinite;
+}
+.fig[data-activity='search'] .gaze {
+  animation: cud-gaze-search 1.8s ease-in-out infinite;
+}
+.fig[data-activity='search'] .arm-l {
+  animation: cud-arm-search 1.8s ease-in-out infinite;
+}
+
+/* Schreiben: Kopf ueber dem Block, die Hand fuehrt den Stift. */
+.fig[data-activity='write'] .fig-body {
+  animation: cud-lean 1s ease-in-out infinite;
+}
+.fig[data-activity='write'] .head {
+  animation: cud-head-write 1s ease-in-out infinite;
+}
+.fig[data-activity='write'] .gaze {
+  animation: cud-gaze-write 0.5s ease-in-out infinite;
+}
+.fig[data-activity='write'] .arm-l {
+  animation: cud-arm-write 0.5s ease-in-out infinite;
+}
+
+/* Shell (und Unbekanntes): kraeftig tippen, im Takt nicken; bei der Shell
+   holt die rechte Hand regelmaessig aus und haut auf Enter. */
+.fig[data-activity='shell'] .fig-body,
+.fig[data-activity='tool'] .fig-body {
+  animation: cud-bob calc(var(--type-dur, 0.32s) * 2) ease-in-out infinite;
+}
+.fig[data-activity='shell'] .head,
+.fig[data-activity='tool'] .head {
+  animation: cud-nod calc(var(--type-dur, 0.32s) * 2) ease-in-out infinite;
+}
+.fig[data-activity='shell'] .gaze,
+.fig[data-activity='tool'] .gaze {
+  transform: translateY(1.5px);
+}
+.fig[data-activity='shell'] .arm-l {
+  animation: cud-type-hard var(--type-dur, 0.32s) ease-in-out infinite;
+}
+.fig[data-activity='shell'] .arm-r {
+  animation: cud-enter-key 2.4s ease-in-out infinite;
+}
+
+/* Testlauf: Reagenzglas schuetteln, dann mit zusammengekniffenen Augen pruefen. */
+.fig[data-activity='test'] .fig-body {
+  animation: cud-jitter 0.5s ease-in-out infinite;
+}
+.fig[data-activity='test'] .head {
+  animation: cud-head-test 2s ease-in-out infinite;
+}
+.fig[data-activity='test'] .gaze {
+  animation: cud-gaze-test 2s ease-in-out infinite;
+}
+.fig[data-activity='test'] .arm-l {
+  animation: cud-arm-test 2s ease-in-out infinite;
+}
+
+/* Web: Antenne wackelt, Kopf schaut sich um, die Hand dreht den Globus. */
+.fig[data-activity='web'] .antenna {
+  animation: cud-antenna 0.6s ease-in-out infinite;
+}
+.fig[data-activity='web'] .head {
+  animation: cud-head-web 2.4s ease-in-out infinite;
+}
+.fig[data-activity='web'] .gaze {
+  animation: cud-gaze-web 2.4s ease-in-out infinite;
+}
+.fig[data-activity='web'] .arm-l {
+  animation: cud-arm-web 1s ease-in-out infinite;
+}
+
+/* To-dos: die Hand hakt Kaestchen fuer Kaestchen ab, der Kopf nickt mit. */
+.fig[data-activity='todo'] .fig-body {
+  animation: cud-lean 0.6s ease-in-out infinite;
+}
+.fig[data-activity='todo'] .head {
+  animation: cud-head-todo 0.6s ease-in-out infinite;
+}
+.fig[data-activity='todo'] .gaze {
+  transform: translate(-2px, 1.5px);
+}
+.fig[data-activity='todo'] .arm-l {
+  animation: cud-arm-todo 1.8s ease-in-out infinite;
+}
+
+/* Delegieren: Flieger hochnehmen, ausholen, werfen - und dem Wurf nachschauen. */
+.fig[data-activity='delegate'] .head {
+  animation: cud-head-throw 2s ease-in-out infinite;
+}
+.fig[data-activity='delegate'] .gaze {
+  animation: cud-gaze-throw 2s ease-in-out infinite;
+}
+.fig[data-activity='delegate'] .arm-l {
+  animation: cud-arm-throw 2s ease-in-out infinite;
+}
+
+/* Nachdenken: Kopf wiegen, nach oben schauen, mit den Fingern trommeln und
+   sich zwischendurch am Kopf kratzen. */
+.fig[data-activity='think'] .head {
+  animation: cud-head-think 4s ease-in-out infinite;
+}
+.fig[data-activity='think'] .gaze {
+  animation: cud-gaze-think 4s ease-in-out infinite;
+}
+.fig[data-activity='think'] .arm-l {
+  animation: cud-drum 0.9s ease-in-out infinite;
+}
+.fig[data-activity='think'] .arm-r {
+  animation: cud-scratch-hide 4s ease-in-out infinite;
+}
+.fig[data-activity='think'] .arm-scratch {
+  animation: cud-scratch 4s ease-in-out infinite;
 }
 
 /* Erfolgreicher Commit: Konfetti. Push: zusaetzlich startet eine Rakete. */
@@ -1252,6 +1418,12 @@ td.name {
   transform: translate(var(--bx, 0), var(--by, 0));
   animation: none !important;
 }
+.fig[data-break] .head,
+.fig[data-break] .antenna,
+.fig[data-break] .gaze,
+.fig[data-break] .arm-scratch {
+  animation: none !important;
+}
 .fig[data-break] .legs,
 .fig[data-break] .break-cup {
   display: inline;
@@ -1314,7 +1486,11 @@ td.name {
 .fig[data-enter]:not([data-break]) .legs {
   display: inline;
 }
-.fig[data-enter] .arm {
+.fig[data-enter] .arm,
+.fig[data-enter] .arm-scratch,
+.fig[data-enter] .head,
+.fig[data-enter] .antenna,
+.fig[data-enter] .gaze {
   animation: none !important;
 }
 .fig[data-enter] .bubble,
@@ -1535,27 +1711,21 @@ td.name {
 .fig[data-look] .look {
   transform: translateX(var(--look-x, 0));
 }
-/* Nach langer Arbeit zwischendurch strecken: Arme kurz hoch. */
-.arm-up {
+/* Nach langer Arbeit zwischendurch strecken: Arme kurz hoch. Ein- und
+   Ausblenden haengt an den Gruppen - die Arme selbst bewegen sich weiter. */
+.arms-up {
   opacity: 0;
 }
-.fig[data-long] .arm {
+.fig[data-long] .arms {
   animation: cud-stretch-hide 15s ease-in-out infinite;
 }
-.fig[data-long][data-state='tool'] .arm {
-  animation:
-    cud-type var(--type-dur, 0.32s) ease-in-out infinite,
-    cud-stretch-hide 15s ease-in-out infinite;
-}
-.fig[data-long][data-state='tool'] .arm-r {
-  animation-delay: calc(var(--type-dur, 0.32s) / 2), 0s;
-}
-.fig[data-long] .arm-up {
+.fig[data-long] .arms-up {
   animation: cud-stretch-show 15s ease-in-out infinite;
 }
-.fig[data-break] .arm-up {
+.fig[data-break] .arms-up {
   display: none;
 }
+.fig[data-break] .arms,
 .fig[data-break] .arm {
   animation: none !important;
   opacity: 1;
@@ -1592,6 +1762,260 @@ td.name {
 #sound-toggle[data-on='1'] {
   color: var(--status-good);
   border-color: color-mix(in srgb, var(--status-good) 45%, transparent);
+}
+
+/* --- Treiben: Besorgungen (agents.js) ----------------------------------------
+   Unterwegs haengt der Koerper in einem .walker hinter den Tischen. Gehen,
+   Tun und Mitgenommenes steuern data-walking, data-act und data-carry. */
+
+.walker {
+  pointer-events: none;
+  /* Tasse zum Mund: dorthin, wo die Hand des hochgedrehten rechten Arms ist. */
+  --sip-x: -17.5px;
+  --sip-y: -30.5px;
+}
+.walker[data-agent] {
+  --sip-x: -10px;
+  --sip-y: -17.5px;
+}
+.walker .legs {
+  display: inline;
+}
+.walker[data-faded] .fig-body {
+  opacity: 0.4;
+}
+.legs rect {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+.arm-up {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+/* Gehen: Beine und Arme im Gegentakt, der Kopf wippt, der Blick geht voraus. */
+.walker[data-walking] .legs rect {
+  animation: cud-step 0.5s ease-in-out infinite;
+}
+.walker[data-walking] .legs rect + rect {
+  animation-delay: -0.25s;
+}
+.walker[data-walking] .arm {
+  animation: cud-swing 0.5s ease-in-out infinite;
+}
+.walker[data-walking] .arm-r {
+  animation-delay: -0.25s;
+}
+.walker[data-walking] .head {
+  animation: cud-walk-bob 0.25s ease-in-out infinite;
+}
+.walker[data-hurry] .legs rect,
+.walker[data-hurry] .arm {
+  animation-duration: 0.28s;
+}
+.walker[data-hurry] .legs rect + rect,
+.walker[data-hurry] .arm-r {
+  animation-delay: -0.14s;
+}
+.walker[data-dir='left'] .gaze {
+  transform: translateX(-2px);
+}
+.walker[data-dir='right'] .gaze {
+  transform: translateX(2px);
+}
+/* Am Tisch bleibt nur, was nicht mitkommt. */
+.fig[data-away] .bubble,
+.fig[data-away] .thought,
+.fig[data-away] .zzz,
+.fig[data-away] .props,
+.fig[data-away] .waves {
+  display: none;
+}
+
+/* Mitgenommenes: Giesskanne, Zeigestock, Plauderblase. */
+.kit > g,
+.drop {
+  display: none;
+}
+.can-body {
+  fill: #5aa36a;
+}
+.can-handle,
+.can-spout {
+  fill: none;
+  stroke: #4a8a58;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.drop {
+  fill: #8cc4ee;
+}
+.can {
+  transform-origin: 24px 31px;
+  transition: transform 0.4s ease-out;
+}
+.pointer {
+  transform-origin: 22.5px -4px;
+}
+.pointer path {
+  stroke: #8a5a3c;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.chat rect,
+.chat path {
+  fill: var(--surface);
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+.chat-dot {
+  fill: var(--text-primary);
+  animation: cud-blink 0.9s ease-in-out infinite;
+}
+.chat-dot:nth-of-type(2) {
+  animation-delay: 0.15s;
+}
+.chat-dot:nth-of-type(3) {
+  animation-delay: 0.3s;
+}
+
+/* Kaffee: an der Maschine trinken, mit der Tasse zurueck. */
+.walker[data-act='coffee'] .break-cup,
+.walker[data-carry='cup'] .break-cup {
+  display: inline;
+}
+.walker[data-carry='cup'] .arm-r,
+.walker[data-carry='can'] .arm-r {
+  animation: none;
+}
+.walker[data-act='coffee'] .break-cup {
+  animation: cud-sip-cup 2.4s ease-in-out infinite;
+}
+.walker[data-act='coffee'] .arm-r {
+  animation: cud-sip-arm 2.4s ease-in-out infinite;
+}
+.walker[data-act='coffee'] .head {
+  animation: cud-sip-head 2.4s ease-in-out infinite;
+}
+.station[data-brewing] .machine-steam {
+  animation: cud-steam 1.4s ease-in-out infinite;
+}
+.station[data-brewing] .machine-light {
+  animation: cud-blink 0.5s ease-in-out infinite;
+}
+
+/* Pflanze giessen: Kanne kippen, Tropfen fallen, die Pflanze wippt. */
+.walker[data-carry='can'] .can {
+  display: inline;
+}
+.walker[data-act='water'] .can {
+  transform: rotate(24deg);
+}
+.walker[data-act='water'] .drop {
+  display: inline;
+  animation: cud-drop 0.6s linear infinite;
+}
+.walker[data-act='water'] .head {
+  transform: rotate(5deg);
+}
+.station[data-watering] .plant {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cud-perk 1.2s ease-in-out infinite;
+}
+
+/* Am Fenster: strecken und hinausschauen. */
+.walker[data-act='window'] .arms {
+  opacity: 0;
+}
+.walker[data-act='window'] .arms-up {
+  opacity: 1;
+}
+.walker[data-act='window'] .arm-up {
+  animation: cud-sway 1.9s ease-in-out infinite;
+}
+.walker[data-act='window'] .gaze {
+  transform: translate(-1px, -2.5px);
+}
+.walker[data-act='window'] .head {
+  animation: cud-sway 3.8s ease-in-out infinite;
+}
+
+/* An der Tafel: mit dem Zeigestock auf die Auftraege zeigen. */
+.walker[data-act='board'] .arms-up {
+  opacity: 1;
+}
+.walker[data-act='board'] .arm-up-l {
+  display: none;
+}
+.walker[data-act='board'] .arm-r {
+  opacity: 0;
+}
+.walker[data-act='board'] .pointer {
+  display: inline;
+  animation: cud-point 1.1s ease-in-out infinite;
+}
+.walker[data-act='board'] .gaze {
+  transform: translate(1.5px, -2.5px);
+}
+.walker[data-act='board'] .head {
+  animation: cud-sway 2.2s ease-in-out infinite;
+}
+
+/* Plaudern: abwechselnd Blasen (vorderste Ebene), beide nicken; wer
+   angesprochen wird, wacht auf. */
+.talk {
+  pointer-events: none;
+}
+.talk .chat {
+  animation: cud-talk 2.6s ease-in-out infinite;
+}
+.talk.reply .chat {
+  animation-delay: -1.3s;
+}
+.walker[data-act='chat'] .head,
+.fig[data-chat='talk'] .head {
+  animation: cud-nod 0.9s ease-in-out infinite;
+}
+.fig[data-chat='talk'] .eyes-open {
+  display: inline;
+}
+.fig[data-chat='talk'] .eyes-closed,
+.fig[data-chat='talk'] .zzz {
+  display: none;
+}
+
+/* Beim Subagent vorbeischauen: ueber die Schulter auf seinen Laptop. */
+.walker[data-act='visit'] .head {
+  animation: cud-nod 1.1s ease-in-out infinite;
+}
+.walker[data-act='visit'][data-dir='left'] .gaze {
+  transform: translate(-2px, 2px);
+}
+.walker[data-act='visit'][data-dir='right'] .gaze {
+  transform: translate(2px, 2px);
+}
+
+/* Auf und ab beim Nachdenken: die Gedankenwolke geht mit. */
+.walker[data-errand='pace'] .thought {
+  display: inline;
+}
+.walker[data-errand='pace'] .head {
+  animation: cud-head-think 4s ease-in-out infinite;
+}
+.walker[data-errand='pace'] .gaze {
+  animation: cud-gaze-think 4s ease-in-out infinite;
+}
+
+/* Auch die anderen Wege (Tuer, Zwangspause) mit Schritten statt Gleiten. */
+.fig[data-enter]:not([data-break]) .legs rect,
+.fig[data-break] .legs rect,
+.ghost .legs rect {
+  animation: cud-step 0.45s ease-in-out 4;
+}
+.fig[data-enter]:not([data-break]) .legs rect + rect,
+.fig[data-break] .legs rect + rect,
+.ghost .legs rect + rect {
+  animation-delay: -0.225s;
 }
 
 /* Hintergrund-Tab: alles anhalten. */
@@ -1889,6 +2313,577 @@ td.name {
 @keyframes cud-flow {
   to {
     stroke-dashoffset: -14;
+  }
+}
+
+/* Koerpersprache. Arm-Winkel: positiv dreht den linken Arm nach aussen zu
+   den Requisiten; translateY danach zieht die Hand am Arm entlang zurueck. */
+@keyframes cud-lean {
+  0%,
+  100% {
+    transform: translate(-1.5px, 1px);
+  }
+  50% {
+    transform: translate(-1.5px, 0);
+  }
+}
+@keyframes cud-jitter {
+  0%,
+  100% {
+    transform: translate(-1px, 0);
+  }
+  50% {
+    transform: translate(-1px, -1.5px);
+  }
+}
+@keyframes cud-nod {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(1.5px) rotate(1.5deg);
+  }
+}
+@keyframes cud-type-hard {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+/* Fuenf Anschlaege, dann ausholen und auf Enter hauen. */
+@keyframes cud-enter-key {
+  0%,
+  10%,
+  20%,
+  30%,
+  40%,
+  50% {
+    transform: rotate(0deg) translateY(0);
+  }
+  5%,
+  15%,
+  25%,
+  35%,
+  45% {
+    transform: rotate(0deg) translateY(-4px);
+  }
+  62% {
+    transform: rotate(-60deg) translateY(-2px);
+  }
+  70% {
+    transform: rotate(-75deg) translateY(-3px);
+  }
+  76% {
+    transform: rotate(0deg) translateY(2px);
+  }
+  82%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+@keyframes cud-head-read {
+  0%,
+  35%,
+  100% {
+    transform: translate(-2px, 2px) rotate(-8deg);
+  }
+  55% {
+    transform: translate(-3px, 3px) rotate(-11deg);
+  }
+}
+/* Zwei Zeilen je Seite: von links nach rechts, dann zurueck an den Anfang. */
+@keyframes cud-gaze-read {
+  0% {
+    transform: translate(-2px, 1px);
+  }
+  45% {
+    transform: translate(1px, 1px);
+  }
+  50% {
+    transform: translate(-2px, 2px);
+  }
+  95% {
+    transform: translate(1px, 2px);
+  }
+  100% {
+    transform: translate(-2px, 1px);
+  }
+}
+/* Hand auf der rechten Seite, blaettert mit ihr nach links (wie .flip). */
+@keyframes cud-arm-read {
+  0%,
+  35% {
+    transform: rotate(37deg);
+  }
+  65% {
+    transform: rotate(60deg);
+  }
+  100% {
+    transform: rotate(37deg);
+  }
+}
+@keyframes cud-head-search {
+  0%,
+  100% {
+    transform: translate(-3px, 2px) rotate(-7deg);
+  }
+  50% {
+    transform: translate(-1px, 2px) rotate(-3deg);
+  }
+}
+@keyframes cud-gaze-search {
+  0%,
+  100% {
+    transform: translate(-2px, 1.5px);
+  }
+  50% {
+    transform: translate(0.5px, 1.5px);
+  }
+}
+/* Haelt den Griff der Lupe (cud-scan: 10 px nach rechts und zurueck). */
+@keyframes cud-arm-search {
+  0%,
+  100% {
+    transform: rotate(45deg);
+  }
+  50% {
+    transform: rotate(18deg);
+  }
+}
+@keyframes cud-head-write {
+  0%,
+  100% {
+    transform: translate(-2px, 2px) rotate(-9deg);
+  }
+  50% {
+    transform: translate(-2px, 3px) rotate(-11deg);
+  }
+}
+@keyframes cud-gaze-write {
+  0%,
+  100% {
+    transform: translate(-2.5px, 2px);
+  }
+  50% {
+    transform: translate(-1px, 2px);
+  }
+}
+/* Fuehrt den Stift (cud-scribble: 6 px hin und zurueck). */
+@keyframes cud-arm-write {
+  0%,
+  100% {
+    transform: rotate(52deg);
+  }
+  25% {
+    transform: rotate(47deg);
+  }
+  50% {
+    transform: rotate(39deg);
+  }
+  75% {
+    transform: rotate(46deg);
+  }
+}
+@keyframes cud-tube {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0deg);
+  }
+  5%,
+  15%,
+  25%,
+  35% {
+    transform: rotate(-10deg);
+  }
+  10%,
+  20%,
+  30% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes cud-arm-test {
+  0%,
+  40%,
+  100% {
+    transform: rotate(57deg);
+  }
+  5%,
+  15%,
+  25%,
+  35% {
+    transform: rotate(63deg);
+  }
+  10%,
+  20%,
+  30% {
+    transform: rotate(51deg);
+  }
+}
+@keyframes cud-head-test {
+  0%,
+  40% {
+    transform: translate(-2px, 1px) rotate(-5deg);
+  }
+  20% {
+    transform: translate(-2px, 1px) rotate(-8deg);
+  }
+  55%,
+  90% {
+    transform: translate(-4px, 2px) rotate(-10deg);
+  }
+  100% {
+    transform: translate(-2px, 1px) rotate(-5deg);
+  }
+}
+@keyframes cud-gaze-test {
+  0%,
+  40%,
+  100% {
+    transform: translate(-2px, 1px) scaleY(1);
+  }
+  55%,
+  90% {
+    transform: translate(-2.5px, 1.5px) scaleY(0.5);
+  }
+}
+@keyframes cud-antenna {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes cud-head-web {
+  0%,
+  100% {
+    transform: translateX(-2px) rotate(-7deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(7deg);
+  }
+}
+@keyframes cud-gaze-web {
+  0%,
+  100% {
+    transform: translate(-1.5px, -1px);
+  }
+  50% {
+    transform: translate(1.5px, -1px);
+  }
+}
+/* Streicht am Globus entlang und dreht ihn weiter. */
+@keyframes cud-arm-web {
+  0%,
+  100% {
+    transform: rotate(50deg) translateY(0);
+  }
+  50% {
+    transform: rotate(64deg) translateY(-2px);
+  }
+}
+@keyframes cud-head-todo {
+  0%,
+  100% {
+    transform: translate(-1px, 1px) rotate(-5deg);
+  }
+  60% {
+    transform: translate(-1px, 2.5px) rotate(-6deg);
+  }
+}
+/* Kaestchen oben, Mitte, unten - jeweils dann, wenn sein Haken erscheint
+   (.tick: Verzoegerung 0 / 0,6 / 1,2 s, sichtbar ab 15-30 % des Takts). */
+@keyframes cud-arm-todo {
+  0% {
+    transform: rotate(55deg) translateY(-3px);
+  }
+  12% {
+    transform: rotate(78deg) translateY(-3px);
+  }
+  20%,
+  28% {
+    transform: rotate(78deg) translateY(0);
+  }
+  36% {
+    transform: rotate(66deg) translateY(-3px);
+  }
+  52%,
+  60% {
+    transform: rotate(66deg) translateY(0);
+  }
+  68% {
+    transform: rotate(55deg) translateY(-3px);
+  }
+  84%,
+  92% {
+    transform: rotate(55deg) translateY(0);
+  }
+  100% {
+    transform: rotate(55deg) translateY(-3px);
+  }
+}
+/* Der Flieger auf dem Tisch: hochnehmen, ausholen, weg - und ein neuer. */
+@keyframes cud-throw {
+  0%,
+  30% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  42% {
+    transform: translate(0, -14px) rotate(-20deg);
+    opacity: 1;
+  }
+  48% {
+    transform: translate(3px, -24px) rotate(-60deg);
+    opacity: 1;
+  }
+  72% {
+    transform: translate(10px, -64px) rotate(-80deg);
+    opacity: 0;
+  }
+  85% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+}
+@keyframes cud-arm-throw {
+  0%,
+  30% {
+    transform: rotate(55deg);
+  }
+  42% {
+    transform: rotate(96deg);
+  }
+  48% {
+    transform: rotate(125deg);
+  }
+  56% {
+    transform: rotate(140deg);
+  }
+  78%,
+  100% {
+    transform: rotate(55deg);
+  }
+}
+@keyframes cud-head-throw {
+  0%,
+  30%,
+  100% {
+    transform: translate(-2px, 1px) rotate(-6deg);
+  }
+  50%,
+  70% {
+    transform: translate(-1px, -1px) rotate(-3deg);
+  }
+}
+@keyframes cud-gaze-throw {
+  0%,
+  30%,
+  100% {
+    transform: translate(-2px, 1.5px);
+  }
+  50%,
+  70% {
+    transform: translate(-1.5px, -2.5px);
+  }
+}
+/* Erst nach oben links ins Leere schauen, dann zur kratzenden Hand neigen. */
+@keyframes cud-head-think {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  35% {
+    transform: translateY(-1px) rotate(-4deg);
+  }
+  50%,
+  85% {
+    transform: translateY(0) rotate(5deg);
+  }
+}
+@keyframes cud-gaze-think {
+  0%,
+  100% {
+    transform: translate(-1.5px, -2px);
+  }
+  40% {
+    transform: translate(-1px, -2.5px);
+  }
+  50%,
+  85% {
+    transform: translate(1.5px, -2px);
+  }
+}
+@keyframes cud-drum {
+  0%,
+  40%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-2px);
+  }
+  60% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes cud-scratch-hide {
+  0%,
+  42%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+  46%,
+  88% {
+    opacity: 0;
+  }
+}
+@keyframes cud-scratch {
+  0%,
+  42%,
+  92%,
+  100% {
+    opacity: 0;
+    transform: rotate(-12deg);
+  }
+  46%,
+  58%,
+  70%,
+  82% {
+    opacity: 1;
+    transform: rotate(-12deg);
+  }
+  52%,
+  64%,
+  76%,
+  88% {
+    opacity: 1;
+    transform: rotate(-20deg);
+  }
+}
+/* Treiben */
+@keyframes cud-step {
+  0%,
+  100% {
+    transform: rotate(14deg);
+  }
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+@keyframes cud-swing {
+  0%,
+  100% {
+    transform: rotate(-16deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+@keyframes cud-walk-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+/* Rechter Arm hoch zum Mund (134 Grad: Hand vor dem Mund), Tasse mit. */
+@keyframes cud-sip-arm {
+  0%,
+  30%,
+  100% {
+    transform: rotate(0deg);
+  }
+  45%,
+  80% {
+    transform: rotate(134deg);
+  }
+}
+@keyframes cud-sip-cup {
+  0%,
+  30%,
+  100% {
+    transform: translate(0, 0);
+  }
+  45%,
+  80% {
+    transform: translate(var(--sip-x), var(--sip-y));
+  }
+}
+@keyframes cud-sip-head {
+  0%,
+  35%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50%,
+  78% {
+    transform: rotate(-6deg) translateY(-1px);
+  }
+}
+/* In der gekippten Kanne: (6, 13) faellt senkrecht nach unten. */
+@keyframes cud-drop {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, 13px);
+  }
+}
+@keyframes cud-perk {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.03, 1.07);
+  }
+}
+@keyframes cud-sway {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes cud-point {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-9deg);
+  }
+}
+@keyframes cud-talk {
+  0%,
+  46% {
+    opacity: 1;
+  }
+  50%,
+  96% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {

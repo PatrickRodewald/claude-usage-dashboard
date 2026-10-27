@@ -21,6 +21,14 @@ import {
   roomAsleep,
   lookOffset,
   LONG_WORK_MS,
+  errandsFor,
+  errandStillFits,
+  walkRoute,
+  walkFrames,
+  pickWeighted,
+  ERRAND_IDLE_MS,
+  PACE_AFTER_MS,
+  VISIT_AFTER_MS,
 } from '../public/agents.js';
 
 test('jedes Werkzeug bekommt eine passende Taetigkeit', () => {
@@ -157,4 +165,77 @@ test('toolLabel kuerzt MCP-Werkzeuge auf das Werkzeug', () => {
   assert.equal(toolLabel('mcp__nurserver'), 'mcp__nurserver');
   assert.equal(toolLabel('mcp__server__'), 'mcp__server__');
   assert.equal(toolLabel(null), '');
+});
+
+test('wer nichts zu tun hat, macht Besorgungen - wer arbeitet, bleibt sitzen', () => {
+  const names = (plan) => plan?.options.map(([n]) => n) ?? null;
+  const room = { window: true, colleagues: 1, agentsRunning: 0 };
+  const idle = errandsFor({ kind: 'session', state: 'idle', stateMs: ERRAND_IDLE_MS }, room);
+  assert.deepEqual(names(idle), ['coffee', 'plant', 'board', 'window', 'chat', 'door']);
+  assert.ok(idle.rate > 0 && idle.rate < 1);
+  assert.equal(errandsFor({ kind: 'session', state: 'idle', stateMs: 1000 }, room), null, 'erst kurz wartend: noch sitzen');
+  assert.equal(errandsFor({ kind: 'session', state: 'tool', stateMs: 600_000 }, room), null, 'Werkzeug laeuft');
+  assert.equal(errandsFor({ kind: 'session', state: 'stale', stateMs: 600_000 }, room), null);
+  // Ohne Fenster und ohne freie Kollegen fallen diese Wege weg; Subagents gehen nicht vor die Tuer.
+  assert.deepEqual(names(errandsFor({ kind: 'agent', state: 'completed', stateMs: 9000 }, {})), ['coffee', 'plant', 'board']);
+  assert.equal(errandsFor({ kind: 'agent', state: 'tool', stateMs: 600_000 }, room), null, 'laufender Subagent arbeitet');
+});
+
+test('langes Nachdenken: auf und ab; Warten auf Subagents: vorbeischauen', () => {
+  const pace = errandsFor({ kind: 'agent', state: 'thinking', stateMs: PACE_AFTER_MS });
+  assert.deepEqual(pace.options, [['pace', 1]]);
+  assert.equal(errandsFor({ kind: 'session', state: 'thinking', stateMs: PACE_AFTER_MS - 1 }), null);
+  const visit = errandsFor({ kind: 'session', state: 'delegating', stateMs: VISIT_AFTER_MS }, { agentsRunning: 2 });
+  assert.deepEqual(visit.options, [['visit', 1]]);
+  assert.equal(errandsFor({ kind: 'session', state: 'delegating', stateMs: VISIT_AFTER_MS }, { agentsRunning: 0 }), null, 'niemand zum Besuchen');
+});
+
+test('kommt Arbeit, passt die Besorgung nicht mehr', () => {
+  assert.equal(errandStillFits('coffee', 'session', 'idle'), true);
+  assert.equal(errandStillFits('coffee', 'session', 'tool'), false, 'neuer Prompt: zurueck an den Tisch');
+  assert.equal(errandStillFits('chat', 'agent', 'completed'), true);
+  assert.equal(errandStillFits('pace', 'session', 'thinking'), true);
+  assert.equal(errandStillFits('pace', 'session', 'tool'), false);
+  assert.equal(errandStillFits('visit', 'session', 'delegating'), true);
+  assert.equal(errandStillFits('visit', 'session', 'idle'), false);
+});
+
+test('Wege fuehren hinter den Tischen entlang', () => {
+  // Vom Platz (vorn) zur Kaffeemaschine (hinten links): zurueck, quer, hin.
+  assert.deepEqual(walkRoute({ x: 300, feet: 212 }, { x: 54, feet: 186 }), [
+    { x: 300, feet: 180 },
+    { x: 54, feet: 180 },
+    { x: 54, feet: 186 },
+  ]);
+  // Und auf demselben Weg zurueck.
+  assert.deepEqual(walkRoute({ x: 54, feet: 186 }, { x: 300, feet: 212 }), [
+    { x: 54, feet: 180 },
+    { x: 300, feet: 180 },
+    { x: 300, feet: 212 },
+  ]);
+  // Kein Treten auf der Stelle.
+  assert.deepEqual(walkRoute({ x: 10, feet: 100 }, { x: 10, feet: 100 }, 0), []);
+});
+
+test('Gehen ist gleichmaessig: Keyframes nach Strecke, Dauer nach Tempo', () => {
+  const { frames, duration } = walkFrames({ x: 0, y: 0 }, [{ x: 0, y: -30 }, { x: 90, y: -30 }], 60);
+  assert.equal(duration, 2000);
+  assert.deepEqual(
+    frames.map((f) => f.offset),
+    [0, 0.25, 1],
+  );
+  assert.equal(frames[2].transform, 'translate(90px, -30px)');
+  assert.equal(walkFrames({ x: 5, y: 5 }, [{ x: 5, y: 5 }], 60).duration, 0, 'schon da');
+});
+
+test('pickWeighted waehlt nach Gewicht', () => {
+  const opts = [
+    ['a', 1],
+    ['b', 3],
+  ];
+  assert.equal(pickWeighted(opts, 0), 'a');
+  assert.equal(pickWeighted(opts, 0.24), 'a');
+  assert.equal(pickWeighted(opts, 0.26), 'b');
+  assert.equal(pickWeighted(opts, 0.999), 'b');
+  assert.equal(pickWeighted([], 0.5), null);
 });
