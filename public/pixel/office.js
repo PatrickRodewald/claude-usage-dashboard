@@ -205,6 +205,7 @@ export function createPixelOffice(
   let empty = null;
   let raf = 0;
   let lastT = 0;
+  let roomCount = 0;
   let hovered = null;
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const still = () => reduced?.matches === true;
@@ -269,7 +270,8 @@ export function createPixelOffice(
     const H = L.rows * TILE;
     const dpr = window.devicePixelRatio || 1;
     const avail = container.clientWidth || W * 3;
-    const k = pixelScale(W, avail, dpr);
+    // Ein einzelner Raum darf groesser werden, mehrere passen dafuer nebeneinander.
+    const k = pixelScale(W, avail, dpr, rooms.size === 1 ? 4 : 3);
     room.k = k;
     room.W = W;
     room.H = H;
@@ -889,15 +891,14 @@ export function createPixelOffice(
   }
   document.addEventListener('visibilitychange', kick);
 
-  if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => {
-      for (const room of rooms.values()) {
-        if (!room.layout) continue;
-        fit(room);
-        buildBackground(room);
-      }
-    }).observe(container);
+  function refit() {
+    for (const room of rooms.values()) {
+      if (!room.layout) continue;
+      fit(room);
+      buildBackground(room);
+    }
   }
+  if (typeof ResizeObserver === 'function') new ResizeObserver(refit).observe(container);
 
   /* --- Tooltip -------------------------------------------------------------------- */
 
@@ -958,6 +959,10 @@ export function createPixelOffice(
       if (keep.has(key)) continue;
       room.root.remove();
       rooms.delete(key);
+    }
+    if (rooms.size !== roomCount) {
+      roomCount = rooms.size;
+      refit();
     }
     renderedOnce = true;
     kick();

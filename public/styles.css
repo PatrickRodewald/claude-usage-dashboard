@@ -180,6 +180,36 @@ h1 {
   background: var(--status-critical);
 }
 
+/* Seitenwahl: Buero oder Statistik. */
+.views {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 2px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.view-tab {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 3px 11px;
+  border-radius: 6px;
+}
+.view-tab:hover {
+  color: var(--text-primary);
+}
+.view-tab[aria-current='page'] {
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+}
+main[data-view='office'] .stats-only,
+main[data-view='stats'] .office-only {
+  display: none;
+}
+
 /* --- Layout ------------------------------------------------------------- */
 
 main {
@@ -358,6 +388,204 @@ main {
 }
 .tile-note[data-level='critical'] {
   color: var(--status-critical);
+}
+
+/* --- Bueroansicht: die Kacheln als Leiste ueber dem Buero ----------------
+   Farben aus der Palette der Pixelgrafiken (ENDESGA 32), in beiden Designs
+   gleich - Leiste und Buero sind ein Bildschirm. Zugeklappt zeigt jede Kachel
+   Wert, Balken und eine Kernangabe; beim Zeigen oder Antippen klappt sie ueber
+   das Buero auf. */
+main[data-view='office'] .tiles {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 96px;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 10px;
+  background: #181425;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+main[data-view='office'] .tile {
+  align-self: start;
+  /* zugeklappt alle gleich hoch, aufgeklappt so hoch wie der Inhalt */
+  height: 96px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  padding: 8px 10px;
+  color: #ffffff;
+  background: #262b44;
+  border: 2px solid #3a4466;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px #181425;
+  outline: none;
+}
+main[data-view='office'] .tile:hover,
+main[data-view='office'] .tile:focus-within {
+  height: auto;
+  min-height: 96px;
+  /* ueber dem Buero, unter der klebenden Kopfzeile */
+  z-index: 4;
+  border-color: #5a6988;
+  box-shadow: inset 0 0 0 1px #181425, 0 6px 0 rgba(14, 12, 24, 0.6);
+}
+main[data-view='office'] .tile:focus-visible {
+  border-color: #0099db;
+}
+main[data-view='office'] .tile:has(.tile-note[data-level='warn']) {
+  border-color: #feae34;
+}
+main[data-view='office'] .tile:has(.tile-note[data-level='critical']) {
+  border-color: #e43b44;
+}
+main[data-view='office'] .tile:not(:hover):not(:focus-within) .tile-facts > div:not([data-hud]),
+main[data-view='office'] .tile:not(:hover):not(:focus-within) .tile-note {
+  display: none;
+}
+main[data-view='office'] .tile-label {
+  margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8b9bb4;
+}
+main[data-view='office'] .est {
+  font-size: 9px;
+  padding: 0 4px;
+  border-color: #3a4466;
+}
+main[data-view='office'] .tile-value,
+main[data-view='office'] .tile-hero .tile-value {
+  margin: 0 0 5px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: 0;
+  color: #ffffff;
+}
+main[data-view='office'] .tile-value[data-level='ok'] {
+  color: #63c74d;
+}
+main[data-view='office'] .tile-value[data-level='warn'] {
+  color: #feae34;
+}
+main[data-view='office'] .tile-value[data-level='critical'] {
+  color: #e43b44;
+}
+main[data-view='office'] .tile-value[data-level='unknown'] {
+  color: #c0cbdc;
+}
+/* Balken aus Pixelsegmenten: Luecken in der Farbe der Kachel. */
+main[data-view='office'] .meter {
+  position: relative;
+  height: 8px;
+  margin-bottom: 6px;
+  border-radius: 0;
+  background: #181425;
+}
+main[data-view='office'] .meter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 8px, #262b44 8px 10px);
+}
+main[data-view='office'] .meter-fill {
+  border-radius: 0;
+  background: #0099db;
+}
+main[data-view='office'] .meter[data-level='ok'] .meter-fill {
+  background: #63c74d;
+}
+main[data-view='office'] .meter[data-level='warn'] .meter-fill {
+  background: #feae34;
+}
+main[data-view='office'] .meter[data-level='critical'] .meter-fill {
+  background: #e43b44;
+}
+main[data-view='office'] .tile-facts > div {
+  font-size: 11px;
+}
+main[data-view='office'] .tile-facts dt {
+  color: #8b9bb4;
+}
+main[data-view='office'] .tile-facts dd {
+  color: #c0cbdc;
+}
+main[data-view='office'] .tile-note {
+  color: #8b9bb4;
+}
+main[data-view='office'] .tile-note[data-level='warn'] {
+  color: #feae34;
+}
+main[data-view='office'] .tile-note[data-level='critical'] {
+  color: #e43b44;
+}
+
+/* Darunter das Buero im selben dunklen Rahmen. */
+main[data-view='office'] #live-section .panel {
+  background: #181425;
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+main[data-view='office'] #live-section h2 {
+  color: #ffffff;
+}
+main[data-view='office'] #live-section .panel-sub,
+main[data-view='office'] #live-section .chart-empty {
+  color: #8b9bb4;
+}
+main[data-view='office'] #live-section .btn {
+  color: #c0cbdc;
+  background: #262b44;
+  border-color: #3a4466;
+}
+main[data-view='office'] #live-section .btn:hover {
+  color: #ffffff;
+  border-color: #5a6988;
+}
+main[data-view='office'] #live-section .btn[aria-pressed='true'],
+main[data-view='office'] #live-section .btn[data-on='1'] {
+  color: #2ce8f5;
+  border-color: #0099db;
+}
+main[data-view='office'] #live-section .replay-bar {
+  background: #262b44;
+  border-color: #3a4466;
+}
+main[data-view='office'] #live-section .replay-time {
+  color: #ffffff;
+}
+main[data-view='office'] #live-section .replay-note {
+  color: #8b9bb4;
+}
+.pixel-office {
+  justify-content: center;
+}
+.office-off {
+  margin: 0 0 16px;
+  padding: 18px 16px;
+  font-size: 13px;
+  color: #c0cbdc;
+  background: #181425;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.office-off[hidden] {
+  display: none;
+}
+
+/* Schmal: Kacheln umbrechen, Zeilen so hoch wie ihr Inhalt. */
+@media (max-width: 900px) {
+  main[data-view='office'] .tiles {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-auto-rows: auto;
+  }
+  main[data-view='office'] .tile {
+    height: auto;
+  }
 }
 
 /* --- Panels & Charts ---------------------------------------------------- */

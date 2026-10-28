@@ -87,6 +87,18 @@ unter `~/Library/LaunchAgents/` ein (macOS). Beides braucht keine Admin-Rechte.
 
 ## Ansichten
 
+Die Kopfzeile wechselt zwischen zwei Seiten: **Büro** (Standard) und **Statistik**
+(`#statistik` an der Adresse führt direkt hin).
+
+Im **Büro** steht das Büro aus „Gerade aktiv“ im Mittelpunkt. Die fünf Statuskacheln liegen als
+Leiste darüber, im selben dunklen Rahmen und in den Farben der Pixelgrafik: Wert, Balken und je
+eine Kernangabe (Reset, Requests, Prognose, Gegenwert). Beim Zeigen oder Antippen klappt eine
+Kachel mit allen Angaben über das Büro auf. Eine Warnung färbt ihren Rahmen gelb oder rot. Ist
+nur ein Raum offen, wird er vierfach statt dreifach vergrößert.
+
+Die **Statistik** zeigt die Kacheln in voller Größe mit allen Diagrammen und Tabellen; das ist
+die Seite, die unten unter „Dashboard“ beschrieben ist.
+
 ### Dashboard
 
 ![Dashboard im Dark Mode](docs/dashboard-dark.png)
@@ -117,7 +129,7 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 
 ### Gerade aktiv
 
-Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum. Es
+Unter der Kennzahlen-Leiste liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum. Es
 gibt das Büro in zwei Ansichten: als **Pixel-Büro** (Standard, siehe unten) und als klassisches
 Büro mit Robotern, das hier zuerst beschrieben ist. „Klassisch“ bzw. „Pixel“ im Kopf des Bereichs
 schaltet um, der Browser merkt sich die Wahl. Die Töne spielt immer das klassische Büro, auch

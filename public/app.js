@@ -416,6 +416,24 @@ const replay = createReplay({
 });
 applyView();
 
+// Zwei Seiten: das Buero mit den Kennzahlen als Leiste (Standard) und die
+// Statistik mit Diagrammen und Tabellen. Die Adresse merkt sich die Seite.
+function applyPage() {
+  const page = location.hash === '#statistik' ? 'stats' : 'office';
+  $('app').dataset.view = page;
+  for (const tab of document.querySelectorAll('.view-tab')) {
+    if (tab.dataset.page === page) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  }
+  tooltip.hide();
+  if (page === 'office') pixelOffice.tick();
+}
+window.addEventListener('hashchange', () => {
+  applyPage();
+  window.scrollTo(0, 0);
+});
+applyPage();
+
 // Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
 // bei einem Klick - ohne Nutzergeste laesst der Browser ihn nicht anlaufen.
 const soundBtn = $('sound-toggle');
@@ -454,9 +472,11 @@ function renderActivity(s) {
   // der Bereich weg, statt dauerhaft "nichts offen" zu behaupten.
   if (!act?.available) {
     section.hidden = true;
+    $('office-off').hidden = false;
     return;
   }
   section.hidden = false;
+  $('office-off').hidden = true;
   const c = act.counts ?? {};
   const parts = [
     c.busy
