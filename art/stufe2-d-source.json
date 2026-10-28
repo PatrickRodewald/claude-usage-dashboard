@@ -1,0 +1,578 @@
+{
+  "file": "art/raw/stufe2-d-surfaces.png",
+  "sha256": "01128baaf603c066844dac1d94bff58f1be4121064b889d93d691847ca9954cd",
+  "size": [
+    1254,
+    1254
+  ],
+  "prompt": "art/prompts/stufe2-d-surfaces.txt",
+  "references": [
+    "art/style-anchor.png",
+    "art/references/walls-8x.png"
+  ],
+  "crops": {
+    "carpet-blue": [
+      174,
+      49,
+      369,
+      242
+    ],
+    "carpet-green": [
+      412,
+      49,
+      605,
+      242
+    ],
+    "carpet-wine": [
+      650,
+      49,
+      842,
+      242
+    ],
+    "tile-lobby": [
+      886,
+      49,
+      1081,
+      242
+    ],
+    "runner-top-left": [
+      397,
+      296,
+      541,
+      441
+    ],
+    "runner-top": [
+      551,
+      296,
+      703,
+      441
+    ],
+    "runner-top-right": [
+      713,
+      296,
+      857,
+      441
+    ],
+    "runner-left": [
+      397,
+      451,
+      541,
+      598
+    ],
+    "runner-center": [
+      551,
+      451,
+      703,
+      598
+    ],
+    "runner-right": [
+      713,
+      451,
+      857,
+      598
+    ],
+    "runner-bottom-left": [
+      397,
+      609,
+      541,
+      747
+    ],
+    "runner-bottom": [
+      551,
+      609,
+      703,
+      747
+    ],
+    "runner-bottom-right": [
+      713,
+      609,
+      857,
+      747
+    ],
+    "wall-brick": [
+      148,
+      795,
+      342,
+      1175
+    ],
+    "wall-glass": [
+      404,
+      795,
+      597,
+      1175
+    ],
+    "wall-wood": [
+      658,
+      795,
+      851,
+      1175
+    ],
+    "wall-green": [
+      914,
+      795,
+      1107,
+      1175
+    ]
+  },
+  "targetImage": {
+    "file": "tiles/surfaces.png",
+    "size": [
+      64,
+      96
+    ],
+    "sha256": "483ffc115a31f8a901e76f5443854d56d6e92265e8818b02485466bae3033601"
+  },
+  "normalization": {
+    "sampling": "area-mode palette reduction; source alpha >= 192; native coverage >= 50%",
+    "palette": "ENDESGA 32",
+    "alpha": [
+      0,
+      255
+    ],
+    "displayScale": 3,
+    "carpetPalettes": {
+      "carpet-blue": [
+        "3a4466",
+        "5a6988"
+      ],
+      "carpet-green": [
+        "265c42",
+        "3e8948"
+      ],
+      "carpet-wine": [
+        "a22633",
+        "733e39"
+      ]
+    },
+    "carpetPattern": {
+      "carpetRepeatPixels": 8,
+      "carpetDotPositionsInRepeat": [
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "lobbyRepeatPixels": 8,
+      "runnerBorderPixels": 3,
+      "wallTrimRows": [
+        0,
+        1,
+        2,
+        3,
+        29,
+        30,
+        31
+      ]
+    },
+    "lobbyPalette": [
+      "ffffff",
+      "c0cbdc",
+      "8b9bb4"
+    ],
+    "woodPalette": [
+      "e4a672",
+      "b86f50",
+      "733e39"
+    ],
+    "runnerPalette": [
+      "181425",
+      "a22633",
+      "feae34",
+      "fee761"
+    ],
+    "glassPalette": [
+      "181425",
+      "c0cbdc",
+      "8b9bb4",
+      "2ce8f5",
+      "ffffff"
+    ],
+    "glassClearPixels": 152,
+    "glassReflectionStrokes": [
+      [
+        [
+          3,
+          15
+        ],
+        [
+          11,
+          7
+        ]
+      ],
+      [
+        [
+          4,
+          22
+        ],
+        [
+          12,
+          14
+        ]
+      ]
+    ],
+    "cleanup": [
+      "shared carpet weave sampled from source blue carpet, snapped to an 8px period and recolored for all three carpets",
+      "no standalone outlines along repeated floor cut edges",
+      "stone grout and highlight snapped to an 8px period",
+      "runner pieces retain only the outer contour and thin gold border; inner cut-edge frames removed",
+      "runner corners and repeated edges aligned to a 3px perimeter band",
+      "wall body joints snapped to periodic brick courses and wood boards",
+      "all wall top rows 0-3 and base rows 29-31 copied from approved wall-plain",
+      "glass center cleared to alpha 0; frame and two single-pixel reflection strokes stay opaque"
+    ]
+  },
+  "targets": {
+    "carpet-blue": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        0
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "carpet-green": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        0
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "carpet-wine": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        32,
+        0
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "tile-lobby": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        48,
+        0
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-top-left": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-top": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        16
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-top-right": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        32,
+        16
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-left": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-center": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        32
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-right": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        32,
+        32
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-bottom-left": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        48
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-bottom": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        48
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "runner-bottom-right": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        32,
+        48
+      ],
+      "placement": "floor",
+      "blocksMovement": false,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "againstWall": false
+    },
+    "wall-brick": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        0,
+        64
+      ],
+      "placement": "wall",
+      "blocksMovement": true,
+      "wallY": 0
+    },
+    "wall-glass": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        16,
+        64
+      ],
+      "placement": "wall",
+      "blocksMovement": true,
+      "wallY": 0
+    },
+    "wall-wood": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        32,
+        64
+      ],
+      "placement": "wall",
+      "blocksMovement": true,
+      "wallY": 0
+    },
+    "wall-green": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        48,
+        64
+      ],
+      "placement": "wall",
+      "blocksMovement": true,
+      "wallY": 0
+    }
+  },
+  "runnerNineSlice": {
+    "tileSize": 16,
+    "borderPixels": 3,
+    "minimumTiles": [
+      3,
+      3
+    ],
+    "parts": [
+      [
+        "runner-top-left",
+        "runner-top",
+        "runner-top-right"
+      ],
+      [
+        "runner-left",
+        "runner-center",
+        "runner-right"
+      ],
+      [
+        "runner-bottom-left",
+        "runner-bottom",
+        "runner-bottom-right"
+      ]
+    ],
+    "testedSizes": [
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        4,
+        12
+      ],
+      [
+        11,
+        4
+      ],
+      [
+        7,
+        5
+      ]
+    ]
+  }
+}

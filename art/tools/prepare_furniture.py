@@ -236,7 +236,7 @@ def validate() -> dict:
             assert 0 <= pos[0] and pos[0] + prop_width <= width
             prop_height = 24 if key == "espresso" else 16
             assert pos[1] + prop_height <= atlas["sprites"][surface]["surfaceBottomY"]
-    assert json.loads((ROOT / "art/checks/architecture-quality.json").read_text())["status"] == "passed"
+    assert json.loads((ROOT / "art/checks/architecture-quality.json").read_text(encoding="utf-8"))["status"] == "passed"
     return {"status": "passed", "totalSprites": 53, "workplaceSprites": 14, "kitchenSprites": 10,
             "totalAnimations": 5, "palette": "ENDESGA 32", "alphaLevels": [0, 255],
             "atlasBoundsAndOverlap": "passed", "dimensions": "passed", "mountPointWidths": "passed",

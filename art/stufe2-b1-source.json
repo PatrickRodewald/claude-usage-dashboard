@@ -1,0 +1,163 @@
+{
+  "file": "art/raw/stufe2-b1-decor.png",
+  "size": [
+    1254,
+    1254
+  ],
+  "sha256": "a7ecb6f062e8a5ed07894cdfa961779227d1c1f6f637a91bbd50943efef56b25",
+  "crops": {
+    "plant-tall": [
+      82,
+      49,
+      327,
+      435
+    ],
+    "plant-bush": [
+      392,
+      169,
+      598,
+      435
+    ],
+    "plant-palm": [
+      639,
+      67,
+      880,
+      435
+    ],
+    "plant-desk": [
+      933,
+      330,
+      1023,
+      438
+    ],
+    "cactus-desk": [
+      1090,
+      330,
+      1177,
+      438
+    ],
+    "bookshelf": [
+      225,
+      489,
+      550,
+      849
+    ],
+    "bookshelf-low": [
+      669,
+      517,
+      1031,
+      849
+    ],
+    "filing-cabinet": [
+      416,
+      895,
+      563,
+      1210
+    ],
+    "coat-rack": [
+      677,
+      898,
+      825,
+      1202
+    ]
+  },
+  "references": [
+    "art/style-anchor.png",
+    "art/references/furniture-8x.png"
+  ],
+  "targetImage": {
+    "file": "decor/decor-a.png",
+    "size": [
+      64,
+      96
+    ]
+  },
+  "normalization": {
+    "method": "area-mode palette quantization; binary alpha; closed navy contour; native bottom alignment",
+    "leafPalette": [
+      "63c74d",
+      "3e8948",
+      "265c42"
+    ],
+    "woodPalette": [
+      "e4a672",
+      "b86f50",
+      "733e39"
+    ],
+    "metalPalette": [
+      "c0cbdc",
+      "8b9bb4",
+      "5a6988"
+    ],
+    "cleanup": [
+      "material masks separate wood frames from colored book spines",
+      "three normalized cabinet drawer faces with blank handles",
+      "one upper-left native leaf highlight added where a green shade was lost"
+    ]
+  },
+  "targets": {
+    "plant-tall": {
+      "size": [
+        16,
+        32
+      ],
+      "placement": "floor"
+    },
+    "plant-bush": {
+      "size": [
+        16,
+        24
+      ],
+      "placement": "floor"
+    },
+    "plant-palm": {
+      "size": [
+        16,
+        32
+      ],
+      "placement": "floor"
+    },
+    "plant-desk": {
+      "size": [
+        8,
+        12
+      ],
+      "placement": "desk"
+    },
+    "cactus-desk": {
+      "size": [
+        8,
+        12
+      ],
+      "placement": "desk"
+    },
+    "bookshelf": {
+      "size": [
+        32,
+        32
+      ],
+      "placement": "floor"
+    },
+    "bookshelf-low": {
+      "size": [
+        32,
+        24
+      ],
+      "placement": "floor"
+    },
+    "filing-cabinet": {
+      "size": [
+        16,
+        32
+      ],
+      "placement": "floor"
+    },
+    "coat-rack": {
+      "size": [
+        16,
+        32
+      ],
+      "placement": "floor"
+    }
+  }
+}

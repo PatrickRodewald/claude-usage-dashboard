@@ -1,0 +1,130 @@
+{
+  "status": "passed",
+  "package": "D",
+  "newSprites": 17,
+  "newFloorTiles": 13,
+  "newWallTiles": 4,
+  "newAnimations": 0,
+  "totalSprites": 223,
+  "totalAnimations": 29,
+  "schemaVersion": 2,
+  "image": "tiles/surfaces.png",
+  "imageSize": [
+    64,
+    96
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "opaqueWalkableFloorTiles": "passed",
+  "floorCutEdgesWithoutOutline": "passed",
+  "floorHorizontalAndVerticalSeams": "passed",
+  "floorPeriodPixels": 8,
+  "carpetsShareDotPattern": "passed",
+  "carpetDotPixelsPerTile": 32,
+  "wallHorizontalSeams": "passed",
+  "wallCapsAndBaseboardMatchApproved": "passed",
+  "wallYAndStructuralCollisionFlags": "passed",
+  "glassClearPixels": 152,
+  "glassReflectionStrokeLengths": [
+    9,
+    9
+  ],
+  "glassBinaryTransparency": "passed",
+  "runnerNineSliceNamesAndConnections": "passed",
+  "runnerStretchSizesTested": [
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      4,
+      12
+    ],
+    [
+      11,
+      4
+    ],
+    [
+      7,
+      5
+    ]
+  ],
+  "runnerContinuousGoldBorder": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 25,
+  "normalization": {
+    "carpetRepeatPixels": 8,
+    "carpetDotPositionsInRepeat": [
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        1,
+        5
+      ]
+    ],
+    "lobbyRepeatPixels": 8,
+    "runnerBorderPixels": 3,
+    "wallTrimRows": [
+      0,
+      1,
+      2,
+      3,
+      29,
+      30,
+      31
+    ]
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 17,
+  "previewPixelsMatchAtlas": true,
+  "tilingPreviewPatchesChecked": 11,
+  "roomNativeSize": [
+    384,
+    240
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "allNewFloorAndWallTypesMountedInRoom": true,
+  "roomRunnerSizeTiles": [
+    4,
+    12
+  ]
+}

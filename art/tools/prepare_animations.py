@@ -390,7 +390,7 @@ def validate(atlas: dict, gait: dict) -> dict:
     assert all(np.array_equal(p[13:], books[0][13:]) for p in books[1:])
     notes = [sprites[f"notepad-write-{i}"] for i in range(3)]
     assert len({p.tobytes() for p in notes}) == 3
-    assert json.loads((ROOT / "art/checks/characters-quality.json").read_text())["status"] == "passed"
+    assert json.loads((ROOT / "art/checks/characters-quality.json").read_text(encoding="utf-8"))["status"] == "passed"
     return {"status": "passed", "totalSprites": 118, "totalAnimations": 23, "newCharacterFrames": 52,
             "newPropFrames": 7, "frameSize": [16, 32], "feetBaseline": 32, "palette": "ENDESGA 32",
             "alphaLevels": [0, 255], "headsMatchApprovedWalkingViews": "passed", "distinctWalkingLegPoses": "passed",

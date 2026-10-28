@@ -1,0 +1,239 @@
+{
+  "status": "passed",
+  "package": "E",
+  "newLooks": [
+    "look-03",
+    "look-04",
+    "look-05",
+    "look-06"
+  ],
+  "newSprites": 116,
+  "newAnimations": 32,
+  "totalSprites": 390,
+  "totalAnimations": 82,
+  "totalLooks": 6,
+  "newPngFiles": 28,
+  "totalPngFiles": 65,
+  "schemaVersion": 2,
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "frameSize": [
+    16,
+    32
+  ],
+  "footAnchor": [
+    8,
+    32
+  ],
+  "rawImages": 12,
+  "sourceChecksumsAndCrops": "passed",
+  "atlasBoundsAndUnusedCells": "passed",
+  "navyContours": 116,
+  "clothingMasksExact": "passed",
+  "recolorChangesOnlyClothing": "passed",
+  "accessoriesUseNoClothingKeys": "passed",
+  "walkHeadsStable": "passed",
+  "workForegroundMatchesPose": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 37,
+  "restAndActionScope": "look-01 and look-02, as previously delivered in F",
+  "detail": {
+    "look-03": {
+      "role": "main-session",
+      "actions": {
+        "walk-front": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-back": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-right": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "idle": {
+          "frames": 2,
+          "shoulderSilhouetteMoves": true
+        },
+        "type": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "read": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "write": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "think": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        }
+      }
+    },
+    "look-04": {
+      "role": "main-session",
+      "actions": {
+        "walk-front": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-back": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-right": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "idle": {
+          "frames": 2,
+          "shoulderSilhouetteMoves": true
+        },
+        "type": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "read": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "write": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "think": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        }
+      }
+    },
+    "look-05": {
+      "role": "subagent",
+      "actions": {
+        "walk-front": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-back": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-right": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "idle": {
+          "frames": 2,
+          "shoulderSilhouetteMoves": true
+        },
+        "type": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "read": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "write": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "think": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        }
+      }
+    },
+    "look-06": {
+      "role": "subagent",
+      "actions": {
+        "walk-front": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-back": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "walk-right": {
+          "frames": 4,
+          "distinctLegSilhouettes": 4,
+          "headStable": true
+        },
+        "idle": {
+          "frames": 2,
+          "shoulderSilhouetteMoves": true
+        },
+        "type": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "read": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "write": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        },
+        "think": {
+          "frames": 3,
+          "chairAndFeetStable": true,
+          "foregroundMatchesPose": true
+        }
+      }
+    }
+  },
+  "previewScale": 3,
+  "spritePreviewFrames": 116,
+  "recolorPreviewPanels": 16,
+  "staticPreviewScale": 3,
+  "animationPreviewFrames": 77,
+  "animationPreviewCycleMs": 4200,
+  "animationPreviewExactTimings": "passed",
+  "animationPreviewPixelsMatchAtlas": true,
+  "animationStatesShown": 104,
+  "animationPreviewScale": 3,
+  "roomNativeSize": [
+    384,
+    224
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "workForegroundCompositesChecked": 48,
+  "allSixLooksMountedInRoom": true
+}

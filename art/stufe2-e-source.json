@@ -1,0 +1,1893 @@
+{
+  "looks": {
+    "look-03": {
+      "role": "main-session",
+      "appearance": "Frau, mittelbraune Haut, langer dunkler Pferdeschwanz, Blazer über weißem Shirt",
+      "identity": "a woman with MEDIUM warm brown skin and a LONG DARK PONYTAIL, wearing a CYAN BLAZER over a plain WHITE shirt. No glasses. The tied ponytail remains clearly visible in the back and right views; keep it in deep navy/near-black shades, never blue/cyan.",
+      "outfit": "The blazer, including its long sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). The shirt is white/light grey. Dark grey trousers and dark shoes.",
+      "hair": [
+        "181425",
+        "262b44",
+        "3a4466"
+      ],
+      "skin": [
+        "b86f50",
+        "c28569",
+        "e8b796"
+      ]
+    },
+    "look-04": {
+      "role": "main-session",
+      "appearance": "Mann, helle Haut, rote kurze Haare, Bart, eckige Brille, Strickweste über Hemd",
+      "identity": "a man with LIGHT skin, SHORT RED hair and a RED BEARD, wearing small SQUARE dark-navy glasses and a CYAN KNITTED VEST over a plain LIGHT shirt. His hair is red/copper, not brown. The glasses have rectangular lenses and tiny light-grey highlights, no blue reflections.",
+      "outfit": "Only the knitted vest uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). The plain light shirt and its sleeves are white/light grey. Dark grey trousers and dark shoes.",
+      "hair": [
+        "be4a2f",
+        "d77643",
+        "e4a672"
+      ],
+      "skin": [
+        "ead4aa",
+        "e8b796",
+        "c28569"
+      ]
+    },
+    "look-05": {
+      "role": "subagent",
+      "appearance": "Person, dunkle Haut, kurze lila Haare, Kopfhörer um den Hals, T-Shirt",
+      "identity": "an androgynous person with DARK warm brown skin, SHORT PURPLE hair and GREY HEADPHONES resting AROUND THE NECK, wearing a plain CYAN T-SHIRT. No glasses. The headphones remain around the neck, not over the ears. Purple hair uses purple/pink palette tones and no blue/cyan. Headphones use navy/grey, never the clothing colors.",
+      "outfit": "The entire plain T-shirt, including short sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). No vest, jacket or white shirt collar. Dark grey trousers and dark shoes.",
+      "hair": [
+        "68386c",
+        "b55088",
+        "f6757a"
+      ],
+      "skin": [
+        "733e39",
+        "b86f50",
+        "c28569"
+      ]
+    },
+    "look-06": {
+      "role": "subagent",
+      "appearance": "Frau, helle Haut, blonder Bob, Haarspange, T-Shirt",
+      "identity": "a woman with LIGHT skin, a BLONDE BOB haircut and a small RED HAIR CLIP, wearing a plain CYAN T-SHIRT. No glasses, no ponytail. The bob is yellow/blonde with warm gold shadows; the hair clip is red, never blue/cyan.",
+      "outfit": "The entire plain T-shirt, including short sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). No vest, jacket or white shirt collar. Dark grey trousers and dark shoes.",
+      "hair": [
+        "fee761",
+        "feae34",
+        "d77643"
+      ],
+      "skin": [
+        "ead4aa",
+        "e8b796",
+        "c28569"
+      ]
+    }
+  },
+  "sources": {
+    "look-03": {
+      "file": "art/raw/stufe2-e-look-03.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "ca334b30cbf7b70eea2c5954f5ae7e0c79c72183c6636f45655fa7e3e62f4297",
+      "prompt": "art/prompts/look-03.txt",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            52,
+            312,
+            379,
+            1022
+          ],
+          "torsoY": [
+            298,
+            512
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            479,
+            312,
+            753,
+            1022
+          ],
+          "torsoY": [
+            320,
+            512
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            840,
+            312,
+            1205,
+            1022
+          ],
+          "torsoY": [
+            298,
+            512
+          ]
+        }
+      ]
+    },
+    "look-04": {
+      "file": "art/raw/stufe2-e-look-04.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "b6e5cd759c3e1d322349edd64407ab23cc17f39b814e22f7a5bac29d5d6bb2c4",
+      "prompt": "art/prompts/look-04.txt",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            102,
+            357,
+            400,
+            1064
+          ],
+          "torsoY": [
+            291,
+            519
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            491,
+            357,
+            771,
+            1064
+          ],
+          "torsoY": [
+            291,
+            519
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            868,
+            357,
+            1166,
+            1064
+          ],
+          "torsoY": [
+            291,
+            519
+          ]
+        }
+      ]
+    },
+    "look-05": {
+      "file": "art/raw/stufe2-e-look-05.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "bd4cbac4b48790a6db26d0fef6d9ccfac06e3e6e8a14d58058e0a2614c921755",
+      "prompt": "art/prompts/look-05.txt",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            60,
+            265,
+            390,
+            1082
+          ],
+          "torsoY": [
+            295,
+            535
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            476,
+            265,
+            785,
+            1082
+          ],
+          "torsoY": [
+            295,
+            535
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            892,
+            265,
+            1209,
+            1082
+          ],
+          "torsoY": [
+            295,
+            535
+          ]
+        }
+      ]
+    },
+    "look-06": {
+      "file": "art/raw/stufe2-e-look-06.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "df02782f51a67b4cd591d338c3c770ba060ef125bed952424af91aa75ec3e1ae",
+      "prompt": "art/prompts/look-06.txt",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            56,
+            264,
+            413,
+            1143
+          ],
+          "torsoY": [
+            336,
+            564
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            453,
+            264,
+            801,
+            1143
+          ],
+          "torsoY": [
+            336,
+            564
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            837,
+            264,
+            1194,
+            1143
+          ],
+          "torsoY": [
+            336,
+            564
+          ]
+        }
+      ]
+    },
+    "look-03-walk": {
+      "file": "art/raw/stufe2-e-look-03-walk.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "ae3786f1d2b2c6a416bee0d674c07615c463f7add39188680629b6c428a15d78",
+      "prompt": "art/prompts/look-03-walk.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            202,
+            65,
+            344,
+            324
+          ],
+          "torsoY": [
+            122,
+            183
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            434,
+            65,
+            576,
+            324
+          ],
+          "torsoY": [
+            122,
+            183
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            666,
+            65,
+            808,
+            324
+          ],
+          "torsoY": [
+            122,
+            183
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 3,
+          "box": [
+            900,
+            65,
+            1044,
+            324
+          ],
+          "torsoY": [
+            122,
+            183
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            210,
+            366,
+            349,
+            643
+          ],
+          "torsoY": [
+            129,
+            190
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            444,
+            366,
+            582,
+            643
+          ],
+          "torsoY": [
+            129,
+            188
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            674,
+            366,
+            810,
+            643
+          ],
+          "torsoY": [
+            129,
+            190
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 3,
+          "box": [
+            907,
+            366,
+            1044,
+            643
+          ],
+          "torsoY": [
+            129,
+            190
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            192,
+            670,
+            361,
+            929
+          ],
+          "torsoY": [
+            122,
+            191
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            422,
+            671,
+            595,
+            929
+          ],
+          "torsoY": [
+            121,
+            190
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            658,
+            670,
+            822,
+            930
+          ],
+          "torsoY": [
+            123,
+            191
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 3,
+          "box": [
+            899,
+            670,
+            1064,
+            930
+          ],
+          "torsoY": [
+            123,
+            191
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            204,
+            959,
+            345,
+            1219
+          ],
+          "torsoY": [
+            116,
+            180
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            436,
+            963,
+            579,
+            1216
+          ],
+          "torsoY": [
+            112,
+            176
+          ]
+        }
+      ]
+    },
+    "look-03-desk-work": {
+      "file": "art/raw/stufe2-e-look-03-desk-work.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "0202fd190bfcc565d929bdfb354dd915249d40f9ccabcc6464746aaae97c1f4e",
+      "prompt": "art/prompts/look-03-desk-work.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            117,
+            22,
+            305,
+            366
+          ],
+          "torsoY": [
+            152,
+            223
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            413,
+            22,
+            609,
+            366
+          ],
+          "torsoY": [
+            152,
+            223
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            720,
+            22,
+            915,
+            366
+          ],
+          "torsoY": [
+            152,
+            223
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            112,
+            402,
+            306,
+            750
+          ],
+          "torsoY": [
+            155,
+            228
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            416,
+            402,
+            610,
+            750
+          ],
+          "torsoY": [
+            155,
+            228
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            720,
+            402,
+            917,
+            750
+          ],
+          "torsoY": [
+            155,
+            228
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            112,
+            790,
+            306,
+            1127
+          ],
+          "torsoY": [
+            151,
+            214
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            415,
+            790,
+            610,
+            1127
+          ],
+          "torsoY": [
+            151,
+            215
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            718,
+            790,
+            914,
+            1127
+          ],
+          "torsoY": [
+            151,
+            214
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            110,
+            1159,
+            309,
+            1513
+          ],
+          "torsoY": [
+            155,
+            228
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            412,
+            1167,
+            614,
+            1513
+          ],
+          "torsoY": [
+            147,
+            220
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 2,
+          "box": [
+            710,
+            1159,
+            919,
+            1513
+          ],
+          "torsoY": [
+            101,
+            228
+          ]
+        }
+      ]
+    },
+    "look-04-walk": {
+      "file": "art/raw/stufe2-e-look-04-walk.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "719979ef13b9c5ff2a0ea8cd77f0b88cdb3aaefa8c50aabaf74e6c1717ef0cdb",
+      "prompt": "art/prompts/look-04-walk.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            248,
+            64,
+            388,
+            331
+          ],
+          "torsoY": [
+            130,
+            188
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            457,
+            64,
+            595,
+            331
+          ],
+          "torsoY": [
+            130,
+            187
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            668,
+            64,
+            807,
+            331
+          ],
+          "torsoY": [
+            130,
+            187
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 3,
+          "box": [
+            873,
+            64,
+            1012,
+            327
+          ],
+          "torsoY": [
+            130,
+            187
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            245,
+            362,
+            389,
+            646
+          ],
+          "torsoY": [
+            132,
+            195
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            455,
+            362,
+            597,
+            646
+          ],
+          "torsoY": [
+            133,
+            195
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            664,
+            362,
+            808,
+            646
+          ],
+          "torsoY": [
+            132,
+            195
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 3,
+          "box": [
+            868,
+            362,
+            1011,
+            646
+          ],
+          "torsoY": [
+            132,
+            195
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            241,
+            673,
+            383,
+            939
+          ],
+          "torsoY": [
+            126,
+            190
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            451,
+            673,
+            592,
+            939
+          ],
+          "torsoY": [
+            126,
+            190
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            660,
+            673,
+            805,
+            938
+          ],
+          "torsoY": [
+            126,
+            190
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 3,
+          "box": [
+            867,
+            675,
+            1009,
+            941
+          ],
+          "torsoY": [
+            124,
+            189
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            248,
+            964,
+            387,
+            1221
+          ],
+          "torsoY": [
+            124,
+            178
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            456,
+            963,
+            595,
+            1221
+          ],
+          "torsoY": [
+            125,
+            179
+          ]
+        }
+      ]
+    },
+    "look-04-desk-work": {
+      "file": "art/raw/stufe2-e-look-04-desk-work.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "6be3257237887630e1db78731f67e8c51610549384840343d084186b1af9fc92",
+      "prompt": "art/prompts/look-04-desk-work.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            133,
+            76,
+            316,
+            392
+          ],
+          "torsoY": [
+            142,
+            211
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            421,
+            75,
+            604,
+            392
+          ],
+          "torsoY": [
+            143,
+            212
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            709,
+            76,
+            892,
+            392
+          ],
+          "torsoY": [
+            142,
+            211
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            133,
+            429,
+            316,
+            748
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            421,
+            429,
+            604,
+            748
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            709,
+            429,
+            892,
+            748
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            133,
+            785,
+            316,
+            1102
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            421,
+            785,
+            604,
+            1102
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            709,
+            785,
+            892,
+            1102
+          ],
+          "torsoY": [
+            143,
+            213
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            133,
+            1138,
+            316,
+            1459
+          ],
+          "torsoY": [
+            145,
+            215
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            421,
+            1138,
+            604,
+            1459
+          ],
+          "torsoY": [
+            143,
+            215
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 2,
+          "box": [
+            709,
+            1138,
+            895,
+            1459
+          ],
+          "torsoY": [
+            142,
+            215
+          ]
+        }
+      ]
+    },
+    "look-05-walk": {
+      "file": "art/raw/stufe2-e-look-05-walk.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "9dd284defde41e14ad49ee3bd9d2e077621ac763e6826f2a5e4e9e4ab3afcb2b",
+      "prompt": "art/prompts/look-05-walk.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            201,
+            30,
+            349,
+            312
+          ],
+          "torsoY": [
+            137,
+            193
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            432,
+            30,
+            580,
+            312
+          ],
+          "torsoY": [
+            137,
+            193
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            672,
+            30,
+            818,
+            312
+          ],
+          "torsoY": [
+            137,
+            193
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 3,
+          "box": [
+            902,
+            30,
+            1050,
+            312
+          ],
+          "torsoY": [
+            137,
+            193
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            195,
+            334,
+            349,
+            623
+          ],
+          "torsoY": [
+            136,
+            196
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            433,
+            334,
+            585,
+            623
+          ],
+          "torsoY": [
+            136,
+            197
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            666,
+            334,
+            818,
+            623
+          ],
+          "torsoY": [
+            136,
+            196
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 3,
+          "box": [
+            903,
+            334,
+            1055,
+            623
+          ],
+          "torsoY": [
+            136,
+            196
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            188,
+            644,
+            337,
+            920
+          ],
+          "torsoY": [
+            134,
+            195
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            430,
+            644,
+            580,
+            921
+          ],
+          "torsoY": [
+            134,
+            196
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            666,
+            644,
+            818,
+            921
+          ],
+          "torsoY": [
+            134,
+            196
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 3,
+          "box": [
+            905,
+            644,
+            1055,
+            921
+          ],
+          "torsoY": [
+            134,
+            196
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            195,
+            942,
+            345,
+            1227
+          ],
+          "torsoY": [
+            139,
+            196
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            432,
+            942,
+            582,
+            1227
+          ],
+          "torsoY": [
+            139,
+            197
+          ]
+        }
+      ]
+    },
+    "look-05-desk-work": {
+      "file": "art/raw/stufe2-e-look-05-desk-work.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "b8150614f874e687d3efc8e79c352593e7536874f1e22a8f44c765033bd2bbcf",
+      "prompt": "art/prompts/look-05-desk-work.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            153,
+            46,
+            351,
+            383
+          ],
+          "torsoY": [
+            148,
+            204
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            416,
+            48,
+            613,
+            383
+          ],
+          "torsoY": [
+            147,
+            217
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            684,
+            47,
+            881,
+            383
+          ],
+          "torsoY": [
+            148,
+            218
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            153,
+            400,
+            351,
+            738
+          ],
+          "torsoY": [
+            148,
+            219
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            415,
+            401,
+            614,
+            738
+          ],
+          "torsoY": [
+            147,
+            218
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            683,
+            400,
+            882,
+            738
+          ],
+          "torsoY": [
+            148,
+            219
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            153,
+            757,
+            351,
+            1091
+          ],
+          "torsoY": [
+            148,
+            217
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            415,
+            759,
+            613,
+            1091
+          ],
+          "torsoY": [
+            146,
+            204
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            684,
+            757,
+            883,
+            1091
+          ],
+          "torsoY": [
+            148,
+            217
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            153,
+            1110,
+            351,
+            1443
+          ],
+          "torsoY": [
+            142,
+            216
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            416,
+            1105,
+            614,
+            1443
+          ],
+          "torsoY": [
+            148,
+            221
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 2,
+          "box": [
+            684,
+            1106,
+            883,
+            1443
+          ],
+          "torsoY": [
+            134,
+            220
+          ]
+        }
+      ]
+    },
+    "look-06-walk": {
+      "file": "art/raw/stufe2-e-look-06-walk.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "bbc05a62b387c0ccce83b60c9c3d211ca28a24513f0325ca62cf76c0e216e425",
+      "prompt": "art/prompts/look-06-walk.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            206,
+            31,
+            362,
+            316
+          ],
+          "torsoY": [
+            130,
+            191
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            441,
+            30,
+            597,
+            315
+          ],
+          "torsoY": [
+            128,
+            189
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            667,
+            30,
+            821,
+            315
+          ],
+          "torsoY": [
+            128,
+            191
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 3,
+          "box": [
+            902,
+            30,
+            1061,
+            315
+          ],
+          "torsoY": [
+            128,
+            189
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            202,
+            339,
+            361,
+            632
+          ],
+          "torsoY": [
+            137,
+            199
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            433,
+            339,
+            595,
+            630
+          ],
+          "torsoY": [
+            138,
+            200
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            666,
+            339,
+            825,
+            630
+          ],
+          "torsoY": [
+            138,
+            199
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 3,
+          "box": [
+            903,
+            339,
+            1064,
+            630
+          ],
+          "torsoY": [
+            140,
+            200
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            200,
+            651,
+            355,
+            938
+          ],
+          "torsoY": [
+            134,
+            204
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            437,
+            651,
+            593,
+            938
+          ],
+          "torsoY": [
+            134,
+            204
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            667,
+            651,
+            823,
+            939
+          ],
+          "torsoY": [
+            134,
+            203
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 3,
+          "box": [
+            908,
+            651,
+            1065,
+            939
+          ],
+          "torsoY": [
+            134,
+            204
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            206,
+            958,
+            363,
+            1238
+          ],
+          "torsoY": [
+            130,
+            195
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            437,
+            958,
+            591,
+            1238
+          ],
+          "torsoY": [
+            129,
+            194
+          ]
+        }
+      ]
+    },
+    "look-06-desk-work": {
+      "file": "art/raw/stufe2-e-look-06-desk-work.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "8a13a92fabdfb41988dd3776bf5b370bb17edc69d7a837927d6f273a6ece67ef",
+      "prompt": "art/prompts/look-06-desk-work.txt",
+      "frames": [
+        {
+          "row": 0,
+          "frame": 0,
+          "box": [
+            149,
+            25,
+            328,
+            362
+          ],
+          "torsoY": [
+            142,
+            196
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 1,
+          "box": [
+            419,
+            25,
+            595,
+            362
+          ],
+          "torsoY": [
+            142,
+            211
+          ]
+        },
+        {
+          "row": 0,
+          "frame": 2,
+          "box": [
+            695,
+            25,
+            870,
+            362
+          ],
+          "torsoY": [
+            142,
+            211
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 0,
+          "box": [
+            148,
+            386,
+            328,
+            730
+          ],
+          "torsoY": [
+            142,
+            215
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 1,
+          "box": [
+            419,
+            386,
+            597,
+            730
+          ],
+          "torsoY": [
+            142,
+            215
+          ]
+        },
+        {
+          "row": 1,
+          "frame": 2,
+          "box": [
+            694,
+            386,
+            873,
+            730
+          ],
+          "torsoY": [
+            142,
+            216
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 0,
+          "box": [
+            148,
+            765,
+            328,
+            1108
+          ],
+          "torsoY": [
+            142,
+            194
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 1,
+          "box": [
+            418,
+            765,
+            597,
+            1108
+          ],
+          "torsoY": [
+            142,
+            214
+          ]
+        },
+        {
+          "row": 2,
+          "frame": 2,
+          "box": [
+            695,
+            765,
+            874,
+            1108
+          ],
+          "torsoY": [
+            142,
+            194
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 0,
+          "box": [
+            148,
+            1135,
+            327,
+            1485
+          ],
+          "torsoY": [
+            143,
+            219
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 1,
+          "box": [
+            418,
+            1135,
+            597,
+            1485
+          ],
+          "torsoY": [
+            143,
+            212
+          ]
+        },
+        {
+          "row": 3,
+          "frame": 2,
+          "box": [
+            692,
+            1135,
+            876,
+            1485
+          ],
+          "torsoY": [
+            130,
+            219
+          ]
+        }
+      ]
+    }
+  },
+  "templateSources": [
+    "art/prompts/look-01.txt",
+    "art/prompts/look-01-walk.txt",
+    "art/prompts/look-01-desk-work.txt"
+  ],
+  "scope": "Four new looks with base, walk and desk-work sheets; rest/action sheets are only provided for the two earlier looks.",
+  "targets": {
+    "files": {
+      "public/assets/office/characters/look-03/desk-work-hands.png": "33a9dd85cdee41dd2259ae8addcbf7419b42225ab9bdb1b9db059eba1cec7ea6",
+      "public/assets/office/characters/look-03/desk-work-recolor-mask.png": "c4d0bf42f8c4a6b9e96846baee4f8dcc39407ac79fb427f2e3324b08d5f1a89a",
+      "public/assets/office/characters/look-03/desk-work.png": "d10ac61f544e9405c0771a720a7bd9b6e827772817bfb59e5dc566d627d71786",
+      "public/assets/office/characters/look-03/recolor-mask.png": "66d6631cfe648320cc932fd02f92d5df0f01045fe17d6b41701996df00b8bb61",
+      "public/assets/office/characters/look-03/sheet.png": "757804755aef74a15f0bb6bb516feeedc9760835d02abb87e3c20e61d300f540",
+      "public/assets/office/characters/look-03/walk-recolor-mask.png": "979868668f8ca046ff6c0eb585ef9a8a0175fdf75bd1b4b9567467dc3edb8c39",
+      "public/assets/office/characters/look-03/walk.png": "7250484c0f654b7be60409ab47faa2b48dfd389eeab80b07140fa93c719b59fd",
+      "public/assets/office/characters/look-04/desk-work-hands.png": "e4a052cbdc4691928f07b75f997eef4847b0418710be1f9b9f4a2658af5495e4",
+      "public/assets/office/characters/look-04/desk-work-recolor-mask.png": "999dc19f6a3401561ede3bd607ebfb4071d3e5738e88119e7b8b40a16d459759",
+      "public/assets/office/characters/look-04/desk-work.png": "bcae227884b260867ced77dc75fef3d21d1c68e1564dc87c7d55586363cf921b",
+      "public/assets/office/characters/look-04/recolor-mask.png": "3d19c2f22f1283893db5648bc3617ca03e0d69d11bd51577aad7d96078b3766d",
+      "public/assets/office/characters/look-04/sheet.png": "79743151c4b3bf5e69a49fba57bbdd75339abd2b470b0aa261e003a4f408515e",
+      "public/assets/office/characters/look-04/walk-recolor-mask.png": "7917e86f8de8b686782a85c718c575bf447678a9339275ac59e4b659b989f445",
+      "public/assets/office/characters/look-04/walk.png": "dc69866d639eae1fedc223eec7e321f4ffe58827cab769a04f434fb52c01c722",
+      "public/assets/office/characters/look-05/desk-work-hands.png": "edafe05130790662dca13b219c5104a5ed22b2ea8814633b9fa733609abc6817",
+      "public/assets/office/characters/look-05/desk-work-recolor-mask.png": "eb84f1f4546800081cbdb3e90b3fd831c449b0d2ab3a198c71873ca66e2ebc60",
+      "public/assets/office/characters/look-05/desk-work.png": "c9f5658e771ef9e0577169d523c20ad50bafe0988115958ddf0aa4eb459fbe88",
+      "public/assets/office/characters/look-05/recolor-mask.png": "a0c2e9097fe62259741ba7616b334734cfdf18a69b3d9fed934f5581ac48a89a",
+      "public/assets/office/characters/look-05/sheet.png": "8db04200af4f9df0ba0324532856d99b0e13e1e500815a4411696c46c9e9771d",
+      "public/assets/office/characters/look-05/walk-recolor-mask.png": "864b364d14c35c15730b36bafbbb12ddd438b7466fcaa1365c5f83da8311346d",
+      "public/assets/office/characters/look-05/walk.png": "ccbef39eec771f087f4b3edaced777efb718f70e8681d791d38056e151486201",
+      "public/assets/office/characters/look-06/desk-work-hands.png": "dfa432148f71e02d2e12033725003629c94bdc1a7bc190395b09ee273b9965de",
+      "public/assets/office/characters/look-06/desk-work-recolor-mask.png": "084828d391868d03c5fed3dc125327b1cffb3904a1dfaba18057dcaa22b9475e",
+      "public/assets/office/characters/look-06/desk-work.png": "bafea18ad78d0cd60e34c1a18c5c7c6e6ecea8ca5110488f93367c265027e874",
+      "public/assets/office/characters/look-06/recolor-mask.png": "32376c31de75da9dacb72a4866333a12ca78c0534659a2e7a6e6a3993730b369",
+      "public/assets/office/characters/look-06/sheet.png": "6501c50a79b72adb1ed54b9cb09ba33b13e0410ab16e06cdc6658e49845a8655",
+      "public/assets/office/characters/look-06/walk-recolor-mask.png": "2469274c426b2b9938312d0aa10c6b72c051b2871e79273cd0ce48100c9821f2",
+      "public/assets/office/characters/look-06/walk.png": "6f4672a124e49c8555c85d28d36570ccfc941bcf533d0ba85a18250c96abfb8c"
+    },
+    "newSprites": 116,
+    "newAnimations": 32,
+    "frameSize": [
+      16,
+      32
+    ],
+    "footAnchor": [
+      8,
+      32
+    ],
+    "sheets": {
+      "sheet.png": [
+        48,
+        32
+      ],
+      "walk.png": [
+        64,
+        128
+      ],
+      "desk-work.png": [
+        48,
+        128
+      ]
+    }
+  },
+  "normalization": {
+    "sampling": "area-mode rasterization, alpha threshold 192, ENDESGA 32, native contours #181425",
+    "identity": "approved base heads are frozen across walking; ponytail, neckphones and bob carried into torso strip",
+    "walk": "each look uses its own generated gait; all three directions retain four distinct leg silhouettes",
+    "walkRepairs": {
+      "look-03": {},
+      "look-04": {},
+      "look-05": {},
+      "look-06": {}
+    },
+    "work": "one fixed chair/lower-body per look, canonical torso, three source gestures per task",
+    "foreground": "exposed hand skin plus immediate navy contour, exact subset of the final pose; neck/collar excluded",
+    "glasses": "look-04 square 3x3 rims and one light-grey center pixel per lens",
+    "raisedSleeve": "look-03 think-2 retains clothing keys on the raised blazer sleeve above torso height",
+    "nativeRetouch": "shoulder silhouette breathes by one pixel; preserve all three garment shades after sampling",
+    "sourceCrops": "padded connected silhouettes at alpha >=192; torso split from garment bounds, shared median per row"
+  }
+}

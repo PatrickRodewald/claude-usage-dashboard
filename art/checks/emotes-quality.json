@@ -39,6 +39,5 @@
   "previewScale": 3,
   "officePreviewGifFrames": 60,
   "exportedGifPixelsMatchAtlas": true,
-  "textSeparateFromSpriteSheet": true,
-  "previousAssetImagesByteIdentical": 20
+  "textSeparateFromSpriteSheet": true
 }

@@ -32,6 +32,10 @@ import {
   OUTFITS,
   KEY_COLORS,
   outfitFor,
+  lookFor,
+  windowSprite,
+  FURNITURE,
+  WALL_ART,
 } from '../public/pixel/world.js';
 import { ERRAND_IDLE_MS, PACE_AFTER_MS, VISIT_AFTER_MS } from '../public/agents.js';
 
@@ -114,7 +118,11 @@ test('Waende trennen die Raeume: von Raum zu Raum geht es durch Tueren und Flur'
   const L = layoutBuilding([named('A', session('a')), named('B', session('b'))]);
   const [, A, B] = L.rooms;
   assert.equal(A.c0 + A.cols, B.c0, 'nebeneinander');
-  const row = A.r0 + A.rows - 1;
+  // Zwei freie Kacheln direkt an der Wand zwischen A und B (die Ecken koennen moebliert sein).
+  const row = [...Array(A.rows).keys()]
+    .map((i) => A.r0 + i)
+    .find((r) => walkable(L, A.c0 + A.cols - 1, r) && walkable(L, B.c0, r));
+  assert.ok(row != null, 'an der Trennwand ist irgendwo Platz');
   const left = { col: A.c0 + A.cols - 1, row };
   const right = { col: B.c0, row };
   const path = findPath(L, left, right);
@@ -123,9 +131,88 @@ test('Waende trennen die Raeume: von Raum zu Raum geht es durch Tueren und Flur'
   assert.ok(path.some((t) => t.col === A.door.col && t.row === A.face), 'durch die eigene Tuer hinaus');
   assert.ok(path.some((t) => t.col === B.door.col && t.row === B.face), 'durch die andere Tuer hinein');
   // Auch die Kueche ist ein eigener Raum.
-  const kitchen = L.rooms[0];
-  const k = findPath(L, { col: A.c0, row }, { col: kitchen.c0 + kitchen.cols - 1, row });
+  const k = findPath(L, L.seats[0], L.kitchen.coffee);
   assert.ok(k.length > 1 && k.some((t) => !roomAt(L, t.col, t.row)));
+});
+
+test('Einrichtung: Moebel versperren keinen Weg, stehen auf dem Boden und nie auf einem Platz', () => {
+  let seed = 11;
+  const rnd = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+  for (let iter = 0; iter < 150; iter++) {
+    const projects = Array.from({ length: Math.floor(rnd() * 6) }, (_, p) =>
+      named(
+        `${rnd() < 0.5 ? 'p' : 'projekt-mit-langem-namen-'}${p}`,
+        ...Array.from({ length: 1 + Math.floor(rnd() * 3) }, (_, s) => session(`p${p}s${s}`, many(Math.floor(rnd() * 9), `p${p}s${s}a`))),
+      ),
+    );
+    const L = layoutBuilding(projects, 10 + Math.floor(rnd() * 70));
+    const targets = [...L.seats, L.kitchen.coffee, L.kitchen.water, L.lounge.kicker.left, L.lounge.kicker.right, ...L.lounge.sofa.map((s) => s.from)];
+    for (const t of targets) assert.ok(findPath(L, L.entrance, t), `${iter}: ${JSON.stringify(t)} erreichbar`);
+    const taken = new Set();
+    for (const it of L.items) {
+      for (let c = it.col; c < it.col + it.w; c++) {
+        const key = `${c},${it.row}`;
+        assert.ok(!taken.has(key), `${iter}: ${it.name} steht nicht auf anderem`);
+        taken.add(key);
+        assert.ok(L.floor[it.row * L.cols + c], `${iter}: ${it.name} steht auf dem Boden`);
+        assert.equal(roomAt(L, c, it.row), roomAt(L, it.col, it.row), `${iter}: ${it.name} in einem Raum`);
+      }
+    }
+    for (const s of L.seats) assert.ok(!taken.has(`${s.col},${s.row}`), `${iter}: Platz ${s.id} frei`);
+  }
+});
+
+test('gleiche Projekte, gleiche Einrichtung - egal in welcher Reihenfolge der Server sie meldet', () => {
+  const a = named('alpha', session('a1', many(3, 'x')));
+  const b = named('beta', session('b1'), session('b2'));
+  const one = layoutBuilding([a, b], 40);
+  const two = layoutBuilding([b, a], 40);
+  assert.deepEqual(two.rooms.map((r) => r.key), one.rooms.map((r) => r.key), 'Raeume nach Namen');
+  assert.deepEqual(two.items, one.items);
+  assert.deepEqual(two.wall, one.wall);
+  assert.equal(buildingSignature([a, b]), buildingSignature([b, a]), 'kein Umbau, nur weil ein Projekt anfaengt zu arbeiten');
+  // Kueche und Lounge stehen fest, auch wenn die Reihe hoeher wird.
+  const tall = layoutBuilding([named('alpha', session('a1', many(8, 'x')))], 40);
+  assert.deepEqual(tall.kitchen, one.kitchen);
+  assert.deepEqual(tall.lounge, one.lounge);
+});
+
+test('Wandschmuck: an einer Wand, nicht ueber Tueren und nicht ueber dem Namensschild', () => {
+  const L = layoutBuilding([named('claude-usage-dashboard', session('a', many(4, 'a')), session('b')), named('x', session('c'))], 60);
+  const kinds = new Set(L.wall.map((w) => w.kind));
+  for (const k of ['window', 'clock', 'tv', 'calendar', 'whiteboard']) assert.ok(kinds.has(k), `${k} haengt`);
+  for (const w of L.wall) {
+    const c0 = w.x / TILE;
+    const c1 = c0 + w.w / TILE - 1;
+    const face = L.faces.find((f) => w.y >= f.row * TILE && w.y + w.h <= (f.row + WALL_ROWS) * TILE && c0 >= f.c0 && c1 <= f.c1);
+    assert.ok(face, `${w.name} auf einer Wand`);
+    for (const d of L.doors) assert.ok(d.row !== face.row || d.col < c0 || d.col > c1, `${w.name} nicht ueber einer Tuer`);
+    const room = L.rooms.find((r) => r.key === w.room);
+    if (room?.kind === 'project') assert.ok(c0 > room.door.col + room.plateCols, `${w.name} rechts vom Schild`);
+  }
+  assert.ok(L.wall.filter((w) => w.kind === 'window').every((w) => w.y < WALL_ROWS * TILE), 'Fenster in der Aussenwand');
+});
+
+test('Fenster nach Tageszeit', () => {
+  assert.equal(windowSprite(12), 'window-day');
+  assert.equal(windowSprite(6), 'window-dawn');
+  assert.equal(windowSprite(18), 'window-dusk');
+  assert.equal(windowSprite(23), 'window-night');
+  assert.equal(windowSprite(2), 'window-night');
+  assert.equal(windowSprite(26), 'window-night');
+});
+
+test('Looks: fest je Figur, Sitzungen und Subagents getrennt', () => {
+  assert.equal(lookFor('session', { sessionId: 's1' }), lookFor('session', { sessionId: 's1' }));
+  const sessions = new Set(Array.from({ length: 40 }, (_, i) => lookFor('session', { sessionId: `s${i}` })));
+  const agents = new Set(Array.from({ length: 40 }, (_, i) => lookFor('agent', { id: `a${i}` })));
+  assert.equal(sessions.size, 3, 'drei Gesichter fuer Sitzungen');
+  assert.equal(agents.size, 3, 'drei fuer Subagents');
+  for (const look of sessions) assert.ok(!agents.has(look), `${look} nur einmal vergeben`);
+  for (const look of [...sessions, ...agents]) assert.equal(atlas.characters[look]?.role, sessions.has(look) ? 'main-session' : 'subagent');
 });
 
 test('Reihen: Restbreite wird geteilt, ein breiter Raum bekommt trotzdem Platz', () => {
@@ -217,7 +304,7 @@ test('was ein Subagent zeigt; beendete gehen', () => {
 test('Besorgungen: Kaffee nach einer Weile, auf und ab beim Nachdenken, Besuch beim Delegieren', () => {
   assert.equal(pixelErrands({ kind: 'session', state: 'idle', stateMs: ERRAND_IDLE_MS - 1 }), null);
   const idle = pixelErrands({ kind: 'session', state: 'idle', stateMs: ERRAND_IDLE_MS });
-  assert.deepEqual(idle.options.map(([n]) => n), ['coffee', 'water', 'stroll']);
+  assert.deepEqual(idle.options.map(([n]) => n), ['coffee', 'water', 'stroll', 'sofa', 'kicker']);
   assert.deepEqual(pixelErrands({ kind: 'agent', state: 'thinking', stateMs: PACE_AFTER_MS }).options, [['pace', 1]]);
   assert.equal(pixelErrands({ kind: 'session', state: 'delegating', stateMs: VISIT_AFTER_MS }, { agentsRunning: 0 }), null);
   assert.deepEqual(
@@ -303,12 +390,26 @@ test('alles, was der Renderer zeichnet, steht im Atlas', () => {
     ),
     ...['alert', 'error', 'sweat', 'done', 'heart', 'coffee', 'question', 'idea', 'waiting'].map((e) => `emote-${e}`),
   ];
-  for (const look of ['look-01', 'look-02']) need.push(`${look}-back`, `${look}-right`, `${look}-think-0`);
+  const looks = ['look-01', 'look-02', 'look-03', 'look-04', 'look-05', 'look-06'];
+  for (const look of looks) need.push(`${look}-back`, `${look}-right`, `${look}-think-0`);
+  // Stufe 2: Waende, Boeden, Moebel, Wandschmuck, was auf Flaechen steht.
+  need.push(
+    'wall-brick', 'wall-wood', 'wall-green', 'carpet-blue', 'carpet-green', 'carpet-wine', 'doormat',
+    'window-day', 'window-dawn', 'window-dusk', 'window-night',
+    'microwave', 'fruit-bowl', 'cactus-desk', 'floor-lamp-on', 'vending-0', 'server-0', 'printer-idle', 'kicker-0',
+    ...Object.keys(FURNITURE),
+    ...Object.keys(WALL_ART).filter((n) => n !== 'window'),
+  );
   for (const name of need) assert.ok(sprites.has(name), `Sprite fehlt: ${name}`);
 
-  const needAnims = ['espresso', 'cooler-bubble', 'mug-steam', 'sleep-z'];
-  for (const look of ['look-01', 'look-02']) {
+  const needAnims = ['espresso', 'cooler-bubble', 'mug-steam', 'sleep-z', 'vending-glow', 'server-blink', 'printer-print', 'kicker-play'];
+  needAnims.push('plane-right', 'plane-up', 'plane-down', 'confetti', 'sparkle', 'dust', 'paper');
+  for (const look of looks) {
     for (const a of ['walk-front', 'walk-back', 'walk-right', 'idle', 'type', 'read', 'write', 'think']) needAnims.push(`${look}-${a}`);
+  }
+  // Ruhe- und Aktionsbilder (Paket F) gibt es fuer die ersten beiden Looks.
+  for (const look of ['look-01', 'look-02']) {
+    for (const a of ['sleep', 'sip', 'cheer', 'talk', 'drink', 'kicker', 'sofa']) needAnims.push(`${look}-${a}`);
   }
   for (const name of needAnims) {
     const a = anims[name];
@@ -325,4 +426,21 @@ test('alles, was der Renderer zeichnet, steht im Atlas', () => {
     assert.ok(fs.existsSync(new URL(`../public/assets/office/${file}`, import.meta.url)), `Datei fehlt: ${file}`);
   }
   assert.equal(WALL_ROWS * TILE, atlas.sprites['wall-plain'].height, 'Rueckwand so hoch wie ihre Kacheln');
+  for (const style of ['brick', 'wood', 'green']) assert.equal(atlas.sprites[`wall-${style}`].height, WALL_ROWS * TILE);
+});
+
+test('Masse von Moebeln und Wandschmuck stimmen mit dem Atlas', () => {
+  for (const [name, [w, h]] of Object.entries(FURNITURE)) {
+    const s = atlas.sprites[name];
+    assert.equal(Math.ceil(s.width / TILE), w, `${name}: Breite`);
+    assert.equal(s.height, h, `${name}: Hoehe`);
+    if (s.footprintTiles) assert.equal(s.footprintTiles[0], w, `${name}: Grundflaeche`);
+  }
+  for (const [name, [w, y, h]] of Object.entries(WALL_ART)) {
+    const s = atlas.sprites[name === 'window' ? 'window-day' : name];
+    assert.equal(s.width, w * TILE, `${name}: Breite`);
+    assert.equal(s.wallY, y, `${name}: Abstand von oben`);
+    assert.equal(s.height, h, `${name}: Hoehe`);
+    assert.ok(y + h <= WALL_ROWS * TILE, `${name} passt an die Wand`);
+  }
 });

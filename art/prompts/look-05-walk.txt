@@ -1,0 +1,33 @@
+Use case: identity-preserve
+Asset type: walking animation sprite sheet for approved office character LOOK 05.
+Input image 1: office STYLE REFERENCE.
+Input image 2: the original identity reference for this person: an androgynous person with DARK warm brown skin, SHORT PURPLE hair and GREY HEADPHONES resting AROUND THE NECK, wearing a plain CYAN T-SHIRT. No glasses. The headphones remain around the neck, not over the ears. Purple hair uses purple/pink palette tones and no blue/cyan. Headphones use navy/grey, never the clothing colors.
+Input image 3: the APPROVED PRODUCTION SPRITES enlarged 8x, ordered front, back, right. Their compact head/body proportions and colors are authoritative. Keep this exact character; do not redesign this person or return to an oversized portrait head.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Draw one square transparent sprite sheet with EXACTLY FOUR ROWS.
+Every frame is one 16x32 logical-pixel cell, feet at the bottom of the cell. Same size in all frames. Coarse compact pixel clusters. Use a consistent grid and leave clear transparent separation between cells; no drawn grid lines.
+The head, face, defining hair/accessories, outfit and trousers stay consistent across every frame. Head about 11 logical pixels high. Only walking limbs and very small breathing movements change. No objects or furniture. The entire plain T-shirt, including short sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). No vest, jacket or white shirt collar. Dark grey trousers and dark shoes. Nothing else uses those three key colors. No blue reflections in accessories.
+
+ROW 1: WALKING TOWARD THE VIEWER, FOUR frames left to right.
+A readable looping four-step cycle: left foot forward/right arm forward; passing pose; right foot forward/left arm forward; passing pose. Alternate the legs clearly, with restrained arm swing. Keep a supporting foot at the same ground baseline.
+ROW 2: WALKING AWAY FROM THE VIEWER, FOUR frames, same four-step rhythm seen from behind.
+ROW 3: WALKING TO THE RIGHT, FOUR frames, true right-facing profile. Nose points right in every frame. Alternating forward and backward legs, arms counter-swing. No left-facing poses.
+ROW 4: IDLE facing the viewer, TWO frames only. Standing with a subtle chest/shoulder breathing change, feet unmoving. Leave the last two positions of this row empty.
+
+Exactly FOUR + FOUR + FOUR + TWO = FOURTEEN frames. Each row is clearly separated, every person complete, no clipped feet, no additional directions or duplicate extra frames. No props, floor or shadows outside the individual frame cells.
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044 #feae34 #fee761
+#63c74d #3e8948 #265c42 #193c3e #124e89 #0099db #2ce8f5
+#ffffff #c0cbdc #8b9bb4 #5a6988 #3a4466 #262b44 #181425
+#68386c #b55088 #f6757a

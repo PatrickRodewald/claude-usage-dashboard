@@ -1,0 +1,35 @@
+Use case: stylized-concept
+Asset type: neutral character turnaround sheet for look 05, the subagent office worker.
+Input image 1: STYLE REFERENCE ONLY for the office's cozy low-resolution aesthetic, perspective and colors. This is a new character, with the exact appearance specified below.
+Output: square 1024x1024 transparent PNG, one row of exactly three full-body views with generous transparent gutters.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Character sheet for ONE office worker. Every view is 16x32 logical art pixels, enlarged exactly 8x. Compact simple game-sprite silhouette with only a handful of large pixels per facial feature. Head about TEN logical pixels tall, one third of the full 32-pixel body height. Do not draw a large detailed portrait, oversized anime head or tiny complex hair strands.
+
+Look: an androgynous person with DARK warm brown skin, SHORT PURPLE hair and GREY HEADPHONES resting AROUND THE NECK, wearing a plain CYAN T-SHIRT. No glasses. The headphones remain around the neck, not over the ears. Purple hair uses purple/pink palette tones and no blue/cyan. Headphones use navy/grey, never the clothing colors.
+Outfit: The entire plain T-shirt, including short sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). No vest, jacket or white shirt collar. Dark grey trousers and dark shoes. Nothing except the described cyan garment may use these three colors: never hair, skin, glasses, beard, headphones, hair clip, trousers, shoes, outlines or shadows. Do not add ties, logos, badges, buttons or additional accessories. Calm neutral friendly expression.
+
+Three views, LEFT TO RIGHT:
+1. facing the viewer, standing neutrally, arms relaxed beside torso
+2. facing away, showing back of the same hair and outfit
+3. facing RIGHT, side profile, nose pointing right
+Exactly the same body proportions, outfit, hairstyle, skin tone and height in every view. Feet on one shared baseline, no change in pose or scale. No held objects, no props, no chair or floor tile. A small compact pixel silhouette, with enough transparent margin to keep each complete view separate.
+
+Honor the 16-by-32 logical design: head approximately rows 1–11, neck and torso through row 23, trousers and shoes to row 31. Use legible small pixel clusters; eyes and spectacle details are only a few pixels. Feet and hands must remain recognizable at original 16x32 size.
+Exact allowed palette:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044 #feae34 #fee761
+#63c74d #3e8948 #265c42 #193c3e #124e89 #0099db #2ce8f5
+#ffffff #c0cbdc #8b9bb4 #5a6988 #3a4466 #262b44 #181425
+#68386c #b55088 #f6757a
+
+Input image 2: existing approved character sheet, BODY SCALE AND PIXEL DENSITY REFERENCE ONLY. This is a different new person; use the identity and outfit above.

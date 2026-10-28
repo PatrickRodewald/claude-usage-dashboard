@@ -1,0 +1,20 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Small effect sprites. Output: one square transparent PNG, target 1024x1024. Exactly FIVE separated rows, each art pixel a solid 8x8 block.
+
+ROW 1: white paper airplane, 8x8 each: 2 frames flying to the right (wings flap by one pixel), 2 frames flying up (seen from below), 2 frames flying down.
+ROW 2: confetti burst, 16x16 each, 6 frames: tiny squares in red, yellow, cyan, green and pink burst out from the centre and fall down, fewer pieces in the last frames.
+ROW 3: sparkle, 8x8, 3 frames: a small white and yellow four-pointed star growing and shrinking.
+ROW 4: dust puff, 8x8, 3 frames: a small light grey cloud appearing, growing, fading to two pixels.
+ROW 5: a single white sheet of paper, 8x8, 3 frames: tumbling in the air.
+
+Input image roles: Image 1 is the approved office STYLE REFERENCE ONLY. Image 2 is the approved tiny effect/icon sheet enlarged 8x, REFERENCE ONLY for the coarse pixel density, navy outline and scale. Do not reproduce the speech bubbles or icons. Effects are loose overlays on genuine transparency, with no enclosing tile, panel or ground shadow. Keep all dust pixels opaque or transparent, never faded by partial alpha. Confetti pieces are separate tiny solid squares, no ribbons or symbols. The final dust frame has exactly TWO visible art pixels, no surrounding cloud. No extra symbols, text or UI.

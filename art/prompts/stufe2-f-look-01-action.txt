@@ -1,0 +1,26 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Animation sheet for the attached approved character. Use the attached native character reference as the exact identity: same head silhouette, hair, face, skin, accessories, clothes, colours and proportions. Each frame is 16 wide x 32 tall art pixels, feet on the bottom edge of its own cell, drawn at 8x. Frames left to right, plenty of transparent space between frames; bottom-align each row. Only the described body parts move. Keep head shape and clothing design pixel-identical across frames. Character identity: Frau, dunkle Haut, kurze schwarze Locken, runde Brille, Weste über hellem Hemd.
+
+Output one portrait transparent PNG, target 1024x1536. Exactly FIVE separated rows with TWO frames per row, ten complete character frames total. Same native scale in every row.
+
+ROW 1: standing, front view, cheering with both arms raised above the shoulders. 2 frames; hands and forearms move by one pixel.
+ROW 2: standing, front view, talking: one hand gestures at chest height. 2 frames.
+ROW 3: standing, front view, holding a small plain white mug and sipping. 2 frames: chest height and at the mouth.
+ROW 4: standing, SIDE VIEW FACING RIGHT, both hands reach forward at hip height to rest on invisible foosball rods, leaning in. 2 frames; forearms extend/retract by one pixel.
+ROW 5: sitting on an invisible sofa, FRONT VIEW, relaxed, hands resting on the knees and knees bent. 2 frames: breathing, shoulders move by one pixel. The chair and sofa are NOT drawn in either frame.
+
+No chair, sofa, desk, table, foosball table, rods, ball or other furniture in ANY action frame. Only the person, and the mug in ROW 3, on true transparency.
+
+Clothing only in the three key colours #2ce8f5 #0099db #124e89, exactly as in the approved reference. Hair, skin, glasses, beard, trousers, shoes, chair and mug must never use those three colours. Match the vest over a white shirt for look-01, or the short-sleeve T-shirt for look-02, as appropriate to this one character. No text, numbers, logos, symbols or background.
+
+Input image roles: Image 1 is the exact approved character in front, right and two seated work poses at 8x, plus furniture for pose context, REFERENCE ONLY. The top row fixes the character identity. Image 2 is the original office STYLE REFERENCE ONLY; do not copy any person from image 2.

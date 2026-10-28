@@ -1,0 +1,696 @@
+{
+  "status": "passed",
+  "package": "G",
+  "newSprites": 21,
+  "newAnimations": 7,
+  "totalSprites": 274,
+  "totalAnimations": 50,
+  "schemaVersion": 2,
+  "image": "fx/effects.png",
+  "imageSize": [
+    96,
+    48
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndUnusedCells": "passed",
+  "effectAnchorsAndNoMovementCollision": "passed",
+  "outlinedEffectFrames": 14,
+  "unoutlinedParticleFrames": 7,
+  "navyEffectContours": "passed",
+  "planeBodiesAndNosesStable": "passed",
+  "planeWingChangedPixels": {
+    "right": 6,
+    "up": 14,
+    "down": 10
+  },
+  "planeLeftFromMirroredRight": "passed",
+  "confettiParticleCounts": [
+    12,
+    12,
+    10,
+    8,
+    5,
+    3
+  ],
+  "confettiContainsAllFiveColors": "passed",
+  "confettiExpandsAndFalls": "passed",
+  "sparkleAreas": [
+    13,
+    25,
+    5
+  ],
+  "dustAreas": [
+    20,
+    37,
+    2
+  ],
+  "finalDustHasExactlyTwoOpaquePixels": "passed",
+  "paperPoseWidths": [
+    4,
+    8,
+    3
+  ],
+  "singlePlayConfettiAndDust": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 36,
+  "normalization": {
+    "confettiParticles": {
+      "confetti-0": [
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            59.2,
+            101.82
+          ],
+          "sourceArea": 488,
+          "nativePosition": [
+            7,
+            6
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            119.84,
+            99.19
+          ],
+          "sourceArea": 476,
+          "nativePosition": [
+            9,
+            6
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            91.04,
+            124.69
+          ],
+          "sourceArea": 372,
+          "nativePosition": [
+            8,
+            6
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            107.5,
+            43.5
+          ],
+          "sourceArea": 168,
+          "nativePosition": [
+            9,
+            4
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            62.45,
+            136.32
+          ],
+          "sourceArea": 173,
+          "nativePosition": [
+            7,
+            7
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            119.78,
+            134.85
+          ],
+          "sourceArea": 432,
+          "nativePosition": [
+            9,
+            7
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            161.0,
+            69.0
+          ],
+          "sourceArea": 361,
+          "nativePosition": [
+            10,
+            5
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            75.5,
+            60.0
+          ],
+          "sourceArea": 342,
+          "nativePosition": [
+            8,
+            4
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            75.44,
+            162.87
+          ],
+          "sourceArea": 337,
+          "nativePosition": [
+            8,
+            8
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            35.08,
+            143.5
+          ],
+          "sourceArea": 335,
+          "nativePosition": [
+            6,
+            7
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            17.53,
+            78.47
+          ],
+          "sourceArea": 253,
+          "nativePosition": [
+            6,
+            5
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            102.0,
+            180.0
+          ],
+          "sourceArea": 225,
+          "nativePosition": [
+            8,
+            7
+          ]
+        }
+      ],
+      "confetti-1": [
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            52.6,
+            116.22
+          ],
+          "sourceArea": 332,
+          "nativePosition": [
+            5,
+            8
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            86.5,
+            80.5
+          ],
+          "sourceArea": 360,
+          "nativePosition": [
+            8,
+            6
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            144.97,
+            99.48
+          ],
+          "sourceArea": 307,
+          "nativePosition": [
+            13,
+            7
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            127.52,
+            57.3
+          ],
+          "sourceArea": 250,
+          "nativePosition": [
+            11,
+            4
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            124.79,
+            131.38
+          ],
+          "sourceArea": 265,
+          "nativePosition": [
+            11,
+            9
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            71.0,
+            172.5
+          ],
+          "sourceArea": 306,
+          "nativePosition": [
+            6,
+            12
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            28.0,
+            145.5
+          ],
+          "sourceArea": 210,
+          "nativePosition": [
+            2,
+            10
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            74.5,
+            34.5
+          ],
+          "sourceArea": 196,
+          "nativePosition": [
+            7,
+            2
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            145.19,
+            171.41
+          ],
+          "sourceArea": 187,
+          "nativePosition": [
+            13,
+            12
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            99.5,
+            123.0
+          ],
+          "sourceArea": 156,
+          "nativePosition": [
+            9,
+            9
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            32.23,
+            73.51
+          ],
+          "sourceArea": 154,
+          "nativePosition": [
+            3,
+            5
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            55.5,
+            192.5
+          ],
+          "sourceArea": 144,
+          "nativePosition": [
+            5,
+            14
+          ]
+        }
+      ],
+      "confetti-2": [
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            61.69,
+            126.97
+          ],
+          "sourceArea": 349,
+          "nativePosition": [
+            5,
+            9
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            88.52,
+            86.03
+          ],
+          "sourceArea": 343,
+          "nativePosition": [
+            8,
+            6
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            131.0,
+            53.5
+          ],
+          "sourceArea": 306,
+          "nativePosition": [
+            12,
+            4
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            146.5,
+            115.5
+          ],
+          "sourceArea": 324,
+          "nativePosition": [
+            13,
+            8
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            112.03,
+            156.46
+          ],
+          "sourceArea": 241,
+          "nativePosition": [
+            10,
+            11
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            35.0,
+            144.0
+          ],
+          "sourceArea": 289,
+          "nativePosition": [
+            3,
+            10
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            53.97,
+            44.03
+          ],
+          "sourceArea": 288,
+          "nativePosition": [
+            5,
+            3
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            26.0,
+            93.0
+          ],
+          "sourceArea": 225,
+          "nativePosition": [
+            2,
+            7
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            136.0,
+            186.5
+          ],
+          "sourceArea": 210,
+          "nativePosition": [
+            12,
+            13
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            61.12,
+            192.59
+          ],
+          "sourceArea": 153,
+          "nativePosition": [
+            5,
+            14
+          ]
+        }
+      ],
+      "confetti-3": [
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            135.5,
+            158.0
+          ],
+          "sourceArea": 342,
+          "nativePosition": [
+            12,
+            11
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            62.82,
+            157.82
+          ],
+          "sourceArea": 320,
+          "nativePosition": [
+            6,
+            11
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            99.0,
+            116.0
+          ],
+          "sourceArea": 289,
+          "nativePosition": [
+            9,
+            8
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            145.0,
+            78.5
+          ],
+          "sourceArea": 272,
+          "nativePosition": [
+            13,
+            6
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            61.5,
+            55.42
+          ],
+          "sourceArea": 198,
+          "nativePosition": [
+            5,
+            4
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            76.84,
+            195.25
+          ],
+          "sourceArea": 160,
+          "nativePosition": [
+            7,
+            14
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            32.54,
+            96.46
+          ],
+          "sourceArea": 145,
+          "nativePosition": [
+            3,
+            7
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            99.0,
+            107.0
+          ],
+          "sourceArea": 17,
+          "nativePosition": [
+            9,
+            7
+          ]
+        }
+      ],
+      "confetti-4": [
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            44.5,
+            134.93
+          ],
+          "sourceArea": 242,
+          "nativePosition": [
+            4,
+            10
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            93.5,
+            186.07
+          ],
+          "sourceArea": 242,
+          "nativePosition": [
+            8,
+            13
+          ]
+        },
+        {
+          "color": "f6757a",
+          "sourceCenter": [
+            68.5,
+            75.5
+          ],
+          "sourceArea": 196,
+          "nativePosition": [
+            6,
+            5
+          ]
+        },
+        {
+          "color": "2ce8f5",
+          "sourceCenter": [
+            138.5,
+            123.0
+          ],
+          "sourceArea": 182,
+          "nativePosition": [
+            12,
+            9
+          ]
+        },
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            61.0,
+            75.5
+          ],
+          "sourceArea": 14,
+          "nativePosition": [
+            5,
+            5
+          ]
+        }
+      ],
+      "confetti-5": [
+        {
+          "color": "e43b44",
+          "sourceCenter": [
+            47.5,
+            155.55
+          ],
+          "sourceArea": 322,
+          "nativePosition": [
+            4,
+            11
+          ]
+        },
+        {
+          "color": "fee761",
+          "sourceCenter": [
+            92.0,
+            94.0
+          ],
+          "sourceArea": 289,
+          "nativePosition": [
+            8,
+            7
+          ]
+        },
+        {
+          "color": "63c74d",
+          "sourceCenter": [
+            132.03,
+            172.54
+          ],
+          "sourceArea": 211,
+          "nativePosition": [
+            12,
+            12
+          ]
+        }
+      ]
+    }
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 21,
+  "previewPixelsMatchAtlas": true,
+  "animationPreviewFrames": 66,
+  "animationPreviewScale": 3,
+  "animationPreviewCycleMs": 3600,
+  "animationPreviewExactTimings": "passed",
+  "animationPreviewPixelsMatchAtlas": true,
+  "all21StatesSeenInAnimationPreview": true,
+  "oneShotEffectsHiddenAfterPlayback": true,
+  "previewRetriggerIntervalMs": 1200,
+  "roomNativeSize": [
+    384,
+    224
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "effectMountsChecked": 8,
+  "all7EffectAnimationsMountedInRoom": true,
+  "leftFlightFromMirroredRightMounted": true
+}

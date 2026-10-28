@@ -61,6 +61,94 @@
       "fx/bubbles.png": {
         "width": 64,
         "height": 64
+      },
+      "decor/wall.png": {
+        "width": 128,
+        "height": 96
+      },
+      "decor/decor-a.png": {
+        "width": 64,
+        "height": 96
+      },
+      "decor/lounge.png": {
+        "width": 192,
+        "height": 96
+      },
+      "decor/decor-b.png": {
+        "width": 64,
+        "height": 112
+      },
+      "tiles/surfaces.png": {
+        "width": 64,
+        "height": 96
+      },
+      "characters/look-01/rest.png": {
+        "width": 48,
+        "height": 64
+      },
+      "characters/look-01/action.png": {
+        "width": 64,
+        "height": 160
+      },
+      "characters/look-02/rest.png": {
+        "width": 48,
+        "height": 64
+      },
+      "characters/look-02/action.png": {
+        "width": 64,
+        "height": 160
+      },
+      "fx/effects.png": {
+        "width": 96,
+        "height": 48
+      },
+      "characters/look-03/sheet.png": {
+        "width": 48,
+        "height": 32
+      },
+      "characters/look-03/walk.png": {
+        "width": 64,
+        "height": 128
+      },
+      "characters/look-03/desk-work.png": {
+        "width": 48,
+        "height": 128
+      },
+      "characters/look-04/sheet.png": {
+        "width": 48,
+        "height": 32
+      },
+      "characters/look-04/walk.png": {
+        "width": 64,
+        "height": 128
+      },
+      "characters/look-04/desk-work.png": {
+        "width": 48,
+        "height": 128
+      },
+      "characters/look-05/sheet.png": {
+        "width": 48,
+        "height": 32
+      },
+      "characters/look-05/walk.png": {
+        "width": 64,
+        "height": 128
+      },
+      "characters/look-05/desk-work.png": {
+        "width": 48,
+        "height": 128
+      },
+      "characters/look-06/sheet.png": {
+        "width": 48,
+        "height": 32
+      },
+      "characters/look-06/walk.png": {
+        "width": 64,
+        "height": 128
+      },
+      "characters/look-06/desk-work.png": {
+        "width": 48,
+        "height": 128
       }
     }
   },
@@ -2312,6 +2400,4225 @@
         8
       ],
       "layer": "above-character"
+    },
+    "window-day": {
+      "image": "decor/wall.png",
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3
+    },
+    "window-dawn": {
+      "image": "decor/wall.png",
+      "x": 32,
+      "y": 0,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3
+    },
+    "window-dusk": {
+      "image": "decor/wall.png",
+      "x": 64,
+      "y": 0,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3
+    },
+    "window-night": {
+      "image": "decor/wall.png",
+      "x": 96,
+      "y": 0,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3
+    },
+    "whiteboard": {
+      "image": "decor/wall.png",
+      "x": 0,
+      "y": 24,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3,
+      "contentRect": [
+        3,
+        3,
+        42,
+        16
+      ]
+    },
+    "corkboard": {
+      "image": "decor/wall.png",
+      "x": 48,
+      "y": 24,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 4
+    },
+    "wall-tv": {
+      "image": "decor/wall.png",
+      "x": 80,
+      "y": 24,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 3,
+      "contentRect": [
+        3,
+        3,
+        26,
+        17
+      ]
+    },
+    "wall-clock": {
+      "image": "decor/wall.png",
+      "x": 0,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "wall",
+      "wallY": 4,
+      "handsCenter": [
+        8,
+        8
+      ]
+    },
+    "calendar": {
+      "image": "decor/wall.png",
+      "x": 16,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "wall",
+      "wallY": 6,
+      "contentRect": [
+        3,
+        6,
+        10,
+        8
+      ]
+    },
+    "picture-landscape": {
+      "image": "decor/wall.png",
+      "x": 32,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "wall",
+      "wallY": 6
+    },
+    "picture-abstract": {
+      "image": "decor/wall.png",
+      "x": 48,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "wall",
+      "wallY": 6
+    },
+    "poster-mountain": {
+      "image": "decor/wall.png",
+      "x": 64,
+      "y": 48,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "wall",
+      "wallY": 4
+    },
+    "wall-shelf": {
+      "image": "decor/wall.png",
+      "x": 0,
+      "y": 80,
+      "width": 32,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "wall",
+      "wallY": 6
+    },
+    "plant-tall": {
+      "image": "decor/decor-a.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "plant-bush": {
+      "image": "decor/decor-a.png",
+      "x": 16,
+      "y": 8,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "plant-palm": {
+      "image": "decor/decor-a.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "plant-desk": {
+      "image": "decor/decor-a.png",
+      "x": 48,
+      "y": 20,
+      "width": 8,
+      "height": 12,
+      "frames": 1,
+      "anchor": [
+        0,
+        12
+      ],
+      "placement": "desk"
+    },
+    "cactus-desk": {
+      "image": "decor/decor-a.png",
+      "x": 56,
+      "y": 20,
+      "width": 8,
+      "height": 12,
+      "frames": 1,
+      "anchor": [
+        0,
+        12
+      ],
+      "placement": "desk"
+    },
+    "bookshelf": {
+      "image": "decor/decor-a.png",
+      "x": 0,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        2,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "bookshelf-low": {
+      "image": "decor/decor-a.png",
+      "x": 32,
+      "y": 40,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        2,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "filing-cabinet": {
+      "image": "decor/decor-a.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "coat-rack": {
+      "image": "decor/decor-a.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "sofa": {
+      "image": "decor/lounge.png",
+      "x": 0,
+      "y": 0,
+      "width": 48,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": 8,
+          "dy": -2,
+          "facing": "front"
+        },
+        {
+          "name": "middle",
+          "dx": 24,
+          "dy": -2,
+          "facing": "front"
+        },
+        {
+          "name": "right",
+          "dx": 40,
+          "dy": -2,
+          "facing": "front"
+        }
+      ]
+    },
+    "armchair": {
+      "image": "decor/lounge.png",
+      "x": 48,
+      "y": 8,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "seat",
+          "dx": 8,
+          "dy": -2,
+          "facing": "front"
+        }
+      ]
+    },
+    "coffee-table": {
+      "image": "decor/lounge.png",
+      "x": 64,
+      "y": 16,
+      "width": 32,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        2,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "surfaceBottomY": 11
+    },
+    "kitchen-table": {
+      "image": "decor/lounge.png",
+      "x": 96,
+      "y": 8,
+      "width": 32,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        2,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": -8,
+          "dy": 0,
+          "facing": "right"
+        },
+        {
+          "name": "right",
+          "dx": 40,
+          "dy": 0,
+          "facing": "left"
+        }
+      ],
+      "surfaceBottomY": 14
+    },
+    "stool": {
+      "image": "decor/lounge.png",
+      "x": 128,
+      "y": 16,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "seat",
+          "dx": 8,
+          "dy": 0,
+          "facing": "front"
+        }
+      ]
+    },
+    "counter-sink": {
+      "image": "decor/lounge.png",
+      "x": 144,
+      "y": 8,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true,
+      "surfaceBottomY": 10
+    },
+    "microwave": {
+      "image": "decor/lounge.png",
+      "x": 0,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "counter"
+    },
+    "fruit-bowl": {
+      "image": "decor/lounge.png",
+      "x": 16,
+      "y": 56,
+      "width": 16,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        0,
+        8
+      ],
+      "placement": "counter"
+    },
+    "vending-0": {
+      "image": "decor/lounge.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "vending-1": {
+      "image": "decor/lounge.png",
+      "x": 48,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "kicker-0": {
+      "image": "decor/lounge.png",
+      "x": 0,
+      "y": 64,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": -8,
+          "dy": 0,
+          "facing": "right"
+        },
+        {
+          "name": "right",
+          "dx": 56,
+          "dy": 0,
+          "facing": "left"
+        }
+      ]
+    },
+    "kicker-1": {
+      "image": "decor/lounge.png",
+      "x": 48,
+      "y": 64,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": -8,
+          "dy": 0,
+          "facing": "right"
+        },
+        {
+          "name": "right",
+          "dx": 56,
+          "dy": 0,
+          "facing": "left"
+        }
+      ]
+    },
+    "kicker-2": {
+      "image": "decor/lounge.png",
+      "x": 96,
+      "y": 64,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": -8,
+          "dy": 0,
+          "facing": "right"
+        },
+        {
+          "name": "right",
+          "dx": 56,
+          "dy": 0,
+          "facing": "left"
+        }
+      ]
+    },
+    "kicker-3": {
+      "image": "decor/lounge.png",
+      "x": 144,
+      "y": 64,
+      "width": 48,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        3,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "left",
+          "dx": -8,
+          "dy": 0,
+          "facing": "right"
+        },
+        {
+          "name": "right",
+          "dx": 56,
+          "dy": 0,
+          "facing": "left"
+        }
+      ]
+    },
+    "printer-idle": {
+      "image": "decor/decor-b.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-1": {
+      "image": "decor/decor-b.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-2": {
+      "image": "decor/decor-b.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-3": {
+      "image": "decor/decor-b.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-0": {
+      "image": "decor/decor-b.png",
+      "x": 0,
+      "y": 24,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-1": {
+      "image": "decor/decor-b.png",
+      "x": 16,
+      "y": 24,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-2": {
+      "image": "decor/decor-b.png",
+      "x": 32,
+      "y": 24,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-3": {
+      "image": "decor/decor-b.png",
+      "x": 48,
+      "y": 24,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "trash-bin": {
+      "image": "decor/decor-b.png",
+      "x": 0,
+      "y": 72,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "trash-bin-full": {
+      "image": "decor/decor-b.png",
+      "x": 16,
+      "y": 72,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "floor-lamp-off": {
+      "image": "decor/decor-b.png",
+      "x": 32,
+      "y": 56,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "floor-lamp-on": {
+      "image": "decor/decor-b.png",
+      "x": 48,
+      "y": 56,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "beanbag": {
+      "image": "decor/decor-b.png",
+      "x": 0,
+      "y": 88,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false,
+      "spots": [
+        {
+          "name": "seat",
+          "dx": 8,
+          "dy": -1,
+          "facing": "front"
+        }
+      ]
+    },
+    "doormat": {
+      "image": "decor/decor-b.png",
+      "x": 16,
+      "y": 88,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "carpet-blue": {
+      "image": "tiles/surfaces.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "carpet-green": {
+      "image": "tiles/surfaces.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "carpet-wine": {
+      "image": "tiles/surfaces.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "tile-lobby": {
+      "image": "tiles/surfaces.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-top-left": {
+      "image": "tiles/surfaces.png",
+      "x": 0,
+      "y": 16,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-top": {
+      "image": "tiles/surfaces.png",
+      "x": 16,
+      "y": 16,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-top-right": {
+      "image": "tiles/surfaces.png",
+      "x": 32,
+      "y": 16,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-left": {
+      "image": "tiles/surfaces.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-center": {
+      "image": "tiles/surfaces.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-right": {
+      "image": "tiles/surfaces.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-bottom-left": {
+      "image": "tiles/surfaces.png",
+      "x": 0,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-bottom": {
+      "image": "tiles/surfaces.png",
+      "x": 16,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "runner-bottom-right": {
+      "image": "tiles/surfaces.png",
+      "x": 32,
+      "y": 48,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        16
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    },
+    "wall-brick": {
+      "image": "tiles/surfaces.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "wall",
+      "wallY": 0,
+      "blocksMovement": true
+    },
+    "wall-glass": {
+      "image": "tiles/surfaces.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "wall",
+      "wallY": 0,
+      "blocksMovement": true
+    },
+    "wall-wood": {
+      "image": "tiles/surfaces.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "wall",
+      "wallY": 0,
+      "blocksMovement": true
+    },
+    "wall-green": {
+      "image": "tiles/surfaces.png",
+      "x": 48,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        32
+      ],
+      "placement": "wall",
+      "wallY": 0,
+      "blocksMovement": true
+    },
+    "look-01-sleep-0": {
+      "image": "characters/look-01/rest.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-sleep-1": {
+      "image": "characters/look-01/rest.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-sip-0": {
+      "image": "characters/look-01/rest.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-sip-1": {
+      "image": "characters/look-01/rest.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-sip-2": {
+      "image": "characters/look-01/rest.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-cheer-0": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-cheer-1": {
+      "image": "characters/look-01/action.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-talk-0": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-talk-1": {
+      "image": "characters/look-01/action.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-drink-0": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-drink-1": {
+      "image": "characters/look-01/action.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-kicker-0": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-kicker-1": {
+      "image": "characters/look-01/action.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-sofa-0": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-01-sofa-1": {
+      "image": "characters/look-01/action.png",
+      "x": 16,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-sleep-0": {
+      "image": "characters/look-02/rest.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-sleep-1": {
+      "image": "characters/look-02/rest.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-sip-0": {
+      "image": "characters/look-02/rest.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-sip-1": {
+      "image": "characters/look-02/rest.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-sip-2": {
+      "image": "characters/look-02/rest.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-cheer-0": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-cheer-1": {
+      "image": "characters/look-02/action.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-talk-0": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-talk-1": {
+      "image": "characters/look-02/action.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-drink-0": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-drink-1": {
+      "image": "characters/look-02/action.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-kicker-0": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-kicker-1": {
+      "image": "characters/look-02/action.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-sofa-0": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "look-02-sofa-1": {
+      "image": "characters/look-02/action.png",
+      "x": 16,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": false
+    },
+    "plane-right-0": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "plane-right-1": {
+      "image": "fx/effects.png",
+      "x": 8,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "plane-up-0": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "plane-up-1": {
+      "image": "fx/effects.png",
+      "x": 24,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "plane-down-0": {
+      "image": "fx/effects.png",
+      "x": 32,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "plane-down-1": {
+      "image": "fx/effects.png",
+      "x": 40,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-0": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-1": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-2": {
+      "image": "fx/effects.png",
+      "x": 32,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-3": {
+      "image": "fx/effects.png",
+      "x": 48,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-4": {
+      "image": "fx/effects.png",
+      "x": 64,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "confetti-5": {
+      "image": "fx/effects.png",
+      "x": 80,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "sparkle-0": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 24,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "sparkle-1": {
+      "image": "fx/effects.png",
+      "x": 8,
+      "y": 24,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "sparkle-2": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 24,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "dust-0": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 32,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "dust-1": {
+      "image": "fx/effects.png",
+      "x": 8,
+      "y": 32,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "dust-2": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 32,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        8
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "paper-0": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 40,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "paper-1": {
+      "image": "fx/effects.png",
+      "x": 8,
+      "y": 40,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "paper-2": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 40,
+      "width": 8,
+      "height": 8,
+      "frames": 1,
+      "anchor": [
+        4,
+        4
+      ],
+      "kind": "effect",
+      "blocksMovement": false
+    },
+    "look-03-front": {
+      "image": "characters/look-03/sheet.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-back": {
+      "image": "characters/look-03/sheet.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-right": {
+      "image": "characters/look-03/sheet.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-front-0": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-front-1": {
+      "image": "characters/look-03/walk.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-front-2": {
+      "image": "characters/look-03/walk.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-front-3": {
+      "image": "characters/look-03/walk.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-back-0": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-back-1": {
+      "image": "characters/look-03/walk.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-back-2": {
+      "image": "characters/look-03/walk.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-back-3": {
+      "image": "characters/look-03/walk.png",
+      "x": 48,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-right-0": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-right-1": {
+      "image": "characters/look-03/walk.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-right-2": {
+      "image": "characters/look-03/walk.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-walk-right-3": {
+      "image": "characters/look-03/walk.png",
+      "x": 48,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-idle-0": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-idle-1": {
+      "image": "characters/look-03/walk.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-03-type-0": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-type-1": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-type-2": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-read-0": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-read-1": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-read-2": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-write-0": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-write-1": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-write-2": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-think-0": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-think-1": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-03-think-2": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 32,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-04-front": {
+      "image": "characters/look-04/sheet.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-back": {
+      "image": "characters/look-04/sheet.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-right": {
+      "image": "characters/look-04/sheet.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-front-0": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-front-1": {
+      "image": "characters/look-04/walk.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-front-2": {
+      "image": "characters/look-04/walk.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-front-3": {
+      "image": "characters/look-04/walk.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-back-0": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-back-1": {
+      "image": "characters/look-04/walk.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-back-2": {
+      "image": "characters/look-04/walk.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-back-3": {
+      "image": "characters/look-04/walk.png",
+      "x": 48,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-right-0": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-right-1": {
+      "image": "characters/look-04/walk.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-right-2": {
+      "image": "characters/look-04/walk.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-walk-right-3": {
+      "image": "characters/look-04/walk.png",
+      "x": 48,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-idle-0": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-idle-1": {
+      "image": "characters/look-04/walk.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-04-type-0": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-type-1": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-type-2": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-read-0": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-read-1": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-read-2": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-write-0": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-write-1": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-write-2": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-think-0": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-think-1": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-04-think-2": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 32,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-05-front": {
+      "image": "characters/look-05/sheet.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-back": {
+      "image": "characters/look-05/sheet.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-right": {
+      "image": "characters/look-05/sheet.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-front-0": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-front-1": {
+      "image": "characters/look-05/walk.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-front-2": {
+      "image": "characters/look-05/walk.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-front-3": {
+      "image": "characters/look-05/walk.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-back-0": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-back-1": {
+      "image": "characters/look-05/walk.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-back-2": {
+      "image": "characters/look-05/walk.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-back-3": {
+      "image": "characters/look-05/walk.png",
+      "x": 48,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-right-0": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-right-1": {
+      "image": "characters/look-05/walk.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-right-2": {
+      "image": "characters/look-05/walk.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-walk-right-3": {
+      "image": "characters/look-05/walk.png",
+      "x": 48,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-idle-0": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-idle-1": {
+      "image": "characters/look-05/walk.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-05-type-0": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-type-1": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-type-2": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-read-0": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-read-1": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-read-2": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-write-0": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-write-1": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-write-2": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-think-0": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-think-1": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-05-think-2": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 32,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-06-front": {
+      "image": "characters/look-06/sheet.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-back": {
+      "image": "characters/look-06/sheet.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-right": {
+      "image": "characters/look-06/sheet.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-front-0": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-front-1": {
+      "image": "characters/look-06/walk.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-front-2": {
+      "image": "characters/look-06/walk.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-front-3": {
+      "image": "characters/look-06/walk.png",
+      "x": 48,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-back-0": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-back-1": {
+      "image": "characters/look-06/walk.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-back-2": {
+      "image": "characters/look-06/walk.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-back-3": {
+      "image": "characters/look-06/walk.png",
+      "x": 48,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-right-0": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-right-1": {
+      "image": "characters/look-06/walk.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-right-2": {
+      "image": "characters/look-06/walk.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-walk-right-3": {
+      "image": "characters/look-06/walk.png",
+      "x": 48,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-idle-0": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-idle-1": {
+      "image": "characters/look-06/walk.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ]
+    },
+    "look-06-type-0": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-type-1": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 16,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-type-2": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 32,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-read-0": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-read-1": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 16,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-read-2": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 32,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-write-0": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-write-1": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 16,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-write-2": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 32,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-think-0": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-think-1": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 16,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
+    },
+    "look-06-think-2": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 32,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 1,
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
     }
   },
   "nineSlice": {
@@ -2396,6 +6703,31 @@
         3,
         3,
         3
+      ]
+    },
+    "runner": {
+      "tileSize": 16,
+      "borderPixels": 3,
+      "minimumTiles": [
+        3,
+        3
+      ],
+      "parts": [
+        [
+          "runner-top-left",
+          "runner-top",
+          "runner-top-right"
+        ],
+        [
+          "runner-left",
+          "runner-center",
+          "runner-right"
+        ],
+        [
+          "runner-bottom-left",
+          "runner-bottom",
+          "runner-bottom-right"
+        ]
       ]
     }
   },
@@ -2959,6 +7291,1271 @@
         8
       ],
       "layer": "above-character"
+    },
+    "vending-glow": {
+      "states": [
+        "vending-0",
+        "vending-1"
+      ],
+      "frameDurationMs": 600,
+      "loop": true
+    },
+    "kicker-play": {
+      "states": [
+        "kicker-0",
+        "kicker-1",
+        "kicker-2",
+        "kicker-3"
+      ],
+      "frameDurationMs": 150,
+      "loop": true
+    },
+    "printer-print": {
+      "states": [
+        "printer-idle",
+        "printer-1",
+        "printer-2",
+        "printer-3"
+      ],
+      "frameDurationMs": 200,
+      "loop": false
+    },
+    "server-blink": {
+      "states": [
+        "server-0",
+        "server-1",
+        "server-2",
+        "server-3"
+      ],
+      "frameDurationMs": 180,
+      "loop": true
+    },
+    "look-01-sleep": {
+      "image": "characters/look-01/rest.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-01-sleep-0",
+        "look-01-sleep-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/rest-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png"
+    },
+    "look-01-sip": {
+      "image": "characters/look-01/rest.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 300,
+      "loop": true,
+      "states": [
+        "look-01-sip-0",
+        "look-01-sip-1",
+        "look-01-sip-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/rest-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-01/rest-hands.png",
+      "includesMug": true
+    },
+    "look-01-cheer": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 300,
+      "loop": true,
+      "states": [
+        "look-01-cheer-0",
+        "look-01-cheer-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-01-talk": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 350,
+      "loop": true,
+      "states": [
+        "look-01-talk-0",
+        "look-01-talk-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-01-drink": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 600,
+      "loop": true,
+      "states": [
+        "look-01-drink-0",
+        "look-01-drink-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/action-recolor-mask.png",
+      "includesChair": false,
+      "includesMug": true
+    },
+    "look-01-kicker": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 150,
+      "loop": true,
+      "states": [
+        "look-01-kicker-0",
+        "look-01-kicker-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-01-sofa": {
+      "image": "characters/look-01/action.png",
+      "x": 0,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 900,
+      "loop": true,
+      "states": [
+        "look-01-sofa-0",
+        "look-01-sofa-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-01/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-02-sleep": {
+      "image": "characters/look-02/rest.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-02-sleep-0",
+        "look-02-sleep-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/rest-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png"
+    },
+    "look-02-sip": {
+      "image": "characters/look-02/rest.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 300,
+      "loop": true,
+      "states": [
+        "look-02-sip-0",
+        "look-02-sip-1",
+        "look-02-sip-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/rest-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-02/rest-hands.png",
+      "includesMug": true
+    },
+    "look-02-cheer": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 300,
+      "loop": true,
+      "states": [
+        "look-02-cheer-0",
+        "look-02-cheer-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-02-talk": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 350,
+      "loop": true,
+      "states": [
+        "look-02-talk-0",
+        "look-02-talk-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-02-drink": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 600,
+      "loop": true,
+      "states": [
+        "look-02-drink-0",
+        "look-02-drink-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/action-recolor-mask.png",
+      "includesChair": false,
+      "includesMug": true
+    },
+    "look-02-kicker": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 150,
+      "loop": true,
+      "states": [
+        "look-02-kicker-0",
+        "look-02-kicker-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "look-02-sofa": {
+      "image": "characters/look-02/action.png",
+      "x": 0,
+      "y": 128,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 900,
+      "loop": true,
+      "states": [
+        "look-02-sofa-0",
+        "look-02-sofa-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-02/action-recolor-mask.png",
+      "includesChair": false
+    },
+    "plane-right": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 2,
+      "states": [
+        "plane-right-0",
+        "plane-right-1"
+      ],
+      "frameDurationMs": 120,
+      "loop": true,
+      "anchor": [
+        4,
+        4
+      ]
+    },
+    "plane-up": {
+      "image": "fx/effects.png",
+      "x": 16,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 2,
+      "states": [
+        "plane-up-0",
+        "plane-up-1"
+      ],
+      "frameDurationMs": 120,
+      "loop": true,
+      "anchor": [
+        4,
+        4
+      ]
+    },
+    "plane-down": {
+      "image": "fx/effects.png",
+      "x": 32,
+      "y": 0,
+      "width": 8,
+      "height": 8,
+      "frames": 2,
+      "states": [
+        "plane-down-0",
+        "plane-down-1"
+      ],
+      "frameDurationMs": 120,
+      "loop": true,
+      "anchor": [
+        4,
+        4
+      ]
+    },
+    "confetti": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 8,
+      "width": 16,
+      "height": 16,
+      "frames": 6,
+      "states": [
+        "confetti-0",
+        "confetti-1",
+        "confetti-2",
+        "confetti-3",
+        "confetti-4",
+        "confetti-5"
+      ],
+      "frameDurationMs": 90,
+      "loop": false,
+      "anchor": [
+        8,
+        8
+      ]
+    },
+    "sparkle": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 24,
+      "width": 8,
+      "height": 8,
+      "frames": 3,
+      "states": [
+        "sparkle-0",
+        "sparkle-1",
+        "sparkle-2"
+      ],
+      "frameDurationMs": 120,
+      "loop": true,
+      "anchor": [
+        4,
+        4
+      ]
+    },
+    "dust": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 32,
+      "width": 8,
+      "height": 8,
+      "frames": 3,
+      "states": [
+        "dust-0",
+        "dust-1",
+        "dust-2"
+      ],
+      "frameDurationMs": 100,
+      "loop": false,
+      "anchor": [
+        4,
+        8
+      ]
+    },
+    "paper": {
+      "image": "fx/effects.png",
+      "x": 0,
+      "y": 40,
+      "width": 8,
+      "height": 8,
+      "frames": 3,
+      "states": [
+        "paper-0",
+        "paper-1",
+        "paper-2"
+      ],
+      "frameDurationMs": 150,
+      "loop": true,
+      "anchor": [
+        4,
+        4
+      ]
+    },
+    "look-03-walk-front": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-03-walk-front-0",
+        "look-03-walk-front-1",
+        "look-03-walk-front-2",
+        "look-03-walk-front-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/walk-recolor-mask.png"
+    },
+    "look-03-walk-back": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-03-walk-back-0",
+        "look-03-walk-back-1",
+        "look-03-walk-back-2",
+        "look-03-walk-back-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/walk-recolor-mask.png"
+    },
+    "look-03-walk-right": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-03-walk-right-0",
+        "look-03-walk-right-1",
+        "look-03-walk-right-2",
+        "look-03-walk-right-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/walk-recolor-mask.png"
+    },
+    "look-03-idle": {
+      "image": "characters/look-03/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-03-idle-0",
+        "look-03-idle-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/walk-recolor-mask.png"
+    },
+    "look-03-type": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-03-type-0",
+        "look-03-type-1",
+        "look-03-type-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "sprite": "laptop-back-open"
+      }
+    },
+    "look-03-read": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 220,
+      "loop": true,
+      "states": [
+        "look-03-read-0",
+        "look-03-read-1",
+        "look-03-read-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "book-page-turn",
+        "frameMap": [
+          0,
+          1,
+          3
+        ]
+      }
+    },
+    "look-03-write": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-03-write-0",
+        "look-03-write-1",
+        "look-03-write-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "notepad-write",
+        "frameMap": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    "look-03-think": {
+      "image": "characters/look-03/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 500,
+      "loop": true,
+      "states": [
+        "look-03-think-0",
+        "look-03-think-1",
+        "look-03-think-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-03/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-03/desk-work-hands.png"
+    },
+    "look-04-walk-front": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-04-walk-front-0",
+        "look-04-walk-front-1",
+        "look-04-walk-front-2",
+        "look-04-walk-front-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/walk-recolor-mask.png"
+    },
+    "look-04-walk-back": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-04-walk-back-0",
+        "look-04-walk-back-1",
+        "look-04-walk-back-2",
+        "look-04-walk-back-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/walk-recolor-mask.png"
+    },
+    "look-04-walk-right": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-04-walk-right-0",
+        "look-04-walk-right-1",
+        "look-04-walk-right-2",
+        "look-04-walk-right-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/walk-recolor-mask.png"
+    },
+    "look-04-idle": {
+      "image": "characters/look-04/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-04-idle-0",
+        "look-04-idle-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/walk-recolor-mask.png"
+    },
+    "look-04-type": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-04-type-0",
+        "look-04-type-1",
+        "look-04-type-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "sprite": "laptop-back-open"
+      }
+    },
+    "look-04-read": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 220,
+      "loop": true,
+      "states": [
+        "look-04-read-0",
+        "look-04-read-1",
+        "look-04-read-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "book-page-turn",
+        "frameMap": [
+          0,
+          1,
+          3
+        ]
+      }
+    },
+    "look-04-write": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-04-write-0",
+        "look-04-write-1",
+        "look-04-write-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "notepad-write",
+        "frameMap": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    "look-04-think": {
+      "image": "characters/look-04/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 500,
+      "loop": true,
+      "states": [
+        "look-04-think-0",
+        "look-04-think-1",
+        "look-04-think-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-04/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-04/desk-work-hands.png"
+    },
+    "look-05-walk-front": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-05-walk-front-0",
+        "look-05-walk-front-1",
+        "look-05-walk-front-2",
+        "look-05-walk-front-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/walk-recolor-mask.png"
+    },
+    "look-05-walk-back": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-05-walk-back-0",
+        "look-05-walk-back-1",
+        "look-05-walk-back-2",
+        "look-05-walk-back-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/walk-recolor-mask.png"
+    },
+    "look-05-walk-right": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-05-walk-right-0",
+        "look-05-walk-right-1",
+        "look-05-walk-right-2",
+        "look-05-walk-right-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/walk-recolor-mask.png"
+    },
+    "look-05-idle": {
+      "image": "characters/look-05/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-05-idle-0",
+        "look-05-idle-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/walk-recolor-mask.png"
+    },
+    "look-05-type": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-05-type-0",
+        "look-05-type-1",
+        "look-05-type-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "sprite": "laptop-back-open"
+      }
+    },
+    "look-05-read": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 220,
+      "loop": true,
+      "states": [
+        "look-05-read-0",
+        "look-05-read-1",
+        "look-05-read-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "book-page-turn",
+        "frameMap": [
+          0,
+          1,
+          3
+        ]
+      }
+    },
+    "look-05-write": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-05-write-0",
+        "look-05-write-1",
+        "look-05-write-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "notepad-write",
+        "frameMap": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    "look-05-think": {
+      "image": "characters/look-05/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 500,
+      "loop": true,
+      "states": [
+        "look-05-think-0",
+        "look-05-think-1",
+        "look-05-think-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-05/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-05/desk-work-hands.png"
+    },
+    "look-06-walk-front": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-06-walk-front-0",
+        "look-06-walk-front-1",
+        "look-06-walk-front-2",
+        "look-06-walk-front-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/walk-recolor-mask.png"
+    },
+    "look-06-walk-back": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-06-walk-back-0",
+        "look-06-walk-back-1",
+        "look-06-walk-back-2",
+        "look-06-walk-back-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/walk-recolor-mask.png"
+    },
+    "look-06-walk-right": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 4,
+      "frameDurationMs": 120,
+      "loop": true,
+      "states": [
+        "look-06-walk-right-0",
+        "look-06-walk-right-1",
+        "look-06-walk-right-2",
+        "look-06-walk-right-3"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/walk-recolor-mask.png"
+    },
+    "look-06-idle": {
+      "image": "characters/look-06/walk.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 2,
+      "frameDurationMs": 700,
+      "loop": true,
+      "states": [
+        "look-06-idle-0",
+        "look-06-idle-1"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/walk-recolor-mask.png"
+    },
+    "look-06-type": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-06-type-0",
+        "look-06-type-1",
+        "look-06-type-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "sprite": "laptop-back-open"
+      }
+    },
+    "look-06-read": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 32,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 220,
+      "loop": true,
+      "states": [
+        "look-06-read-0",
+        "look-06-read-1",
+        "look-06-read-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "book-page-turn",
+        "frameMap": [
+          0,
+          1,
+          3
+        ]
+      }
+    },
+    "look-06-write": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 64,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 160,
+      "loop": true,
+      "states": [
+        "look-06-write-0",
+        "look-06-write-1",
+        "look-06-write-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png",
+      "prop": {
+        "mount": [
+          0,
+          12
+        ],
+        "animation": "notepad-write",
+        "frameMap": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    "look-06-think": {
+      "image": "characters/look-06/desk-work.png",
+      "x": 0,
+      "y": 96,
+      "width": 16,
+      "height": 32,
+      "frames": 3,
+      "frameDurationMs": 500,
+      "loop": true,
+      "states": [
+        "look-06-think-0",
+        "look-06-think-1",
+        "look-06-think-2"
+      ],
+      "anchor": [
+        8,
+        32
+      ],
+      "recolorMask": "characters/look-06/desk-work-recolor-mask.png",
+      "includesChair": true,
+      "foregroundImage": "characters/look-06/desk-work-hands.png"
     }
   },
   "wallCaps": {
@@ -2978,6 +8575,12 @@
       "laptop-closed",
       "laptop-back-open",
       "laptop-front-open"
+    ],
+    "window": [
+      "window-day",
+      "window-dawn",
+      "window-dusk",
+      "window-night"
     ]
   },
   "mountPoints": {
@@ -3038,7 +8641,9 @@
       "recolorMask": "characters/look-01/recolor-mask.png",
       "animationMasks": {
         "walk": "characters/look-01/walk-recolor-mask.png",
-        "desk-work": "characters/look-01/desk-work-recolor-mask.png"
+        "desk-work": "characters/look-01/desk-work-recolor-mask.png",
+        "rest": "characters/look-01/rest-recolor-mask.png",
+        "action": "characters/look-01/action-recolor-mask.png"
       },
       "animations": {
         "walk-front": "look-01-walk-front",
@@ -3048,9 +8653,17 @@
         "type": "look-01-type",
         "read": "look-01-read",
         "write": "look-01-write",
-        "think": "look-01-think"
+        "think": "look-01-think",
+        "sleep": "look-01-sleep",
+        "sip": "look-01-sip",
+        "cheer": "look-01-cheer",
+        "talk": "look-01-talk",
+        "drink": "look-01-drink",
+        "kicker": "look-01-kicker",
+        "sofa": "look-01-sofa"
       },
-      "mirrorWalkLeftFrom": "look-01-walk-right"
+      "mirrorWalkLeftFrom": "look-01-walk-right",
+      "mirrorKickerLeftFrom": "look-01-kicker"
     },
     "look-02": {
       "role": "subagent",
@@ -3073,7 +8686,9 @@
       "recolorMask": "characters/look-02/recolor-mask.png",
       "animationMasks": {
         "walk": "characters/look-02/walk-recolor-mask.png",
-        "desk-work": "characters/look-02/desk-work-recolor-mask.png"
+        "desk-work": "characters/look-02/desk-work-recolor-mask.png",
+        "rest": "characters/look-02/rest-recolor-mask.png",
+        "action": "characters/look-02/action-recolor-mask.png"
       },
       "animations": {
         "walk-front": "look-02-walk-front",
@@ -3083,9 +8698,157 @@
         "type": "look-02-type",
         "read": "look-02-read",
         "write": "look-02-write",
-        "think": "look-02-think"
+        "think": "look-02-think",
+        "sleep": "look-02-sleep",
+        "sip": "look-02-sip",
+        "cheer": "look-02-cheer",
+        "talk": "look-02-talk",
+        "drink": "look-02-drink",
+        "kicker": "look-02-kicker",
+        "sofa": "look-02-sofa"
       },
-      "mirrorWalkLeftFrom": "look-02-walk-right"
+      "mirrorWalkLeftFrom": "look-02-walk-right",
+      "mirrorKickerLeftFrom": "look-02-kicker"
+    },
+    "look-03": {
+      "role": "main-session",
+      "appearance": "Frau, mittelbraune Haut, langer dunkler Pferdeschwanz, Blazer über weißem Shirt",
+      "views": {
+        "front": "look-03-front",
+        "back": "look-03-back",
+        "right": "look-03-right"
+      },
+      "mirrorLeftFrom": "right",
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "frameSize": [
+        16,
+        32
+      ],
+      "recolorMask": "characters/look-03/recolor-mask.png",
+      "animationMasks": {
+        "walk": "characters/look-03/walk-recolor-mask.png",
+        "desk-work": "characters/look-03/desk-work-recolor-mask.png"
+      },
+      "animations": {
+        "walk-front": "look-03-walk-front",
+        "walk-back": "look-03-walk-back",
+        "walk-right": "look-03-walk-right",
+        "idle": "look-03-idle",
+        "type": "look-03-type",
+        "read": "look-03-read",
+        "write": "look-03-write",
+        "think": "look-03-think"
+      },
+      "mirrorWalkLeftFrom": "look-03-walk-right"
+    },
+    "look-04": {
+      "role": "main-session",
+      "appearance": "Mann, helle Haut, rote kurze Haare, Bart, eckige Brille, Strickweste über Hemd",
+      "views": {
+        "front": "look-04-front",
+        "back": "look-04-back",
+        "right": "look-04-right"
+      },
+      "mirrorLeftFrom": "right",
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "frameSize": [
+        16,
+        32
+      ],
+      "recolorMask": "characters/look-04/recolor-mask.png",
+      "animationMasks": {
+        "walk": "characters/look-04/walk-recolor-mask.png",
+        "desk-work": "characters/look-04/desk-work-recolor-mask.png"
+      },
+      "animations": {
+        "walk-front": "look-04-walk-front",
+        "walk-back": "look-04-walk-back",
+        "walk-right": "look-04-walk-right",
+        "idle": "look-04-idle",
+        "type": "look-04-type",
+        "read": "look-04-read",
+        "write": "look-04-write",
+        "think": "look-04-think"
+      },
+      "mirrorWalkLeftFrom": "look-04-walk-right"
+    },
+    "look-05": {
+      "role": "subagent",
+      "appearance": "Person, dunkle Haut, kurze lila Haare, Kopfhörer um den Hals, T-Shirt",
+      "views": {
+        "front": "look-05-front",
+        "back": "look-05-back",
+        "right": "look-05-right"
+      },
+      "mirrorLeftFrom": "right",
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "frameSize": [
+        16,
+        32
+      ],
+      "recolorMask": "characters/look-05/recolor-mask.png",
+      "animationMasks": {
+        "walk": "characters/look-05/walk-recolor-mask.png",
+        "desk-work": "characters/look-05/desk-work-recolor-mask.png"
+      },
+      "animations": {
+        "walk-front": "look-05-walk-front",
+        "walk-back": "look-05-walk-back",
+        "walk-right": "look-05-walk-right",
+        "idle": "look-05-idle",
+        "type": "look-05-type",
+        "read": "look-05-read",
+        "write": "look-05-write",
+        "think": "look-05-think"
+      },
+      "mirrorWalkLeftFrom": "look-05-walk-right"
+    },
+    "look-06": {
+      "role": "subagent",
+      "appearance": "Frau, helle Haut, blonder Bob, Haarspange, T-Shirt",
+      "views": {
+        "front": "look-06-front",
+        "back": "look-06-back",
+        "right": "look-06-right"
+      },
+      "mirrorLeftFrom": "right",
+      "anchor": [
+        8,
+        32
+      ],
+      "feetBaseline": 32,
+      "frameSize": [
+        16,
+        32
+      ],
+      "recolorMask": "characters/look-06/recolor-mask.png",
+      "animationMasks": {
+        "walk": "characters/look-06/walk-recolor-mask.png",
+        "desk-work": "characters/look-06/desk-work-recolor-mask.png"
+      },
+      "animations": {
+        "walk-front": "look-06-walk-front",
+        "walk-back": "look-06-walk-back",
+        "walk-right": "look-06-walk-right",
+        "idle": "look-06-idle",
+        "type": "look-06-type",
+        "read": "look-06-read",
+        "write": "look-06-write",
+        "think": "look-06-think"
+      },
+      "mirrorWalkLeftFrom": "look-06-walk-right"
     }
   },
   "characterPaletteSwap": {
@@ -3131,6 +8894,116 @@
       "kind": "recolor-mask"
     },
     "characters/look-02/desk-work-hands.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "hand-foreground"
+    },
+    "characters/look-01/rest-recolor-mask.png": {
+      "width": 48,
+      "height": 64,
+      "kind": "recolor-mask"
+    },
+    "characters/look-01/rest-hands.png": {
+      "width": 48,
+      "height": 64,
+      "kind": "hand-foreground"
+    },
+    "characters/look-01/action-recolor-mask.png": {
+      "width": 64,
+      "height": 160,
+      "kind": "recolor-mask"
+    },
+    "characters/look-02/rest-recolor-mask.png": {
+      "width": 48,
+      "height": 64,
+      "kind": "recolor-mask"
+    },
+    "characters/look-02/rest-hands.png": {
+      "width": 48,
+      "height": 64,
+      "kind": "hand-foreground"
+    },
+    "characters/look-02/action-recolor-mask.png": {
+      "width": 64,
+      "height": 160,
+      "kind": "recolor-mask"
+    },
+    "characters/look-03/recolor-mask.png": {
+      "width": 48,
+      "height": 32,
+      "kind": "recolor-mask"
+    },
+    "characters/look-03/walk-recolor-mask.png": {
+      "width": 64,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-03/desk-work-recolor-mask.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-03/desk-work-hands.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "hand-foreground"
+    },
+    "characters/look-04/recolor-mask.png": {
+      "width": 48,
+      "height": 32,
+      "kind": "recolor-mask"
+    },
+    "characters/look-04/walk-recolor-mask.png": {
+      "width": 64,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-04/desk-work-recolor-mask.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-04/desk-work-hands.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "hand-foreground"
+    },
+    "characters/look-05/recolor-mask.png": {
+      "width": 48,
+      "height": 32,
+      "kind": "recolor-mask"
+    },
+    "characters/look-05/walk-recolor-mask.png": {
+      "width": 64,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-05/desk-work-recolor-mask.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-05/desk-work-hands.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "hand-foreground"
+    },
+    "characters/look-06/recolor-mask.png": {
+      "width": 48,
+      "height": 32,
+      "kind": "recolor-mask"
+    },
+    "characters/look-06/walk-recolor-mask.png": {
+      "width": 64,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-06/desk-work-recolor-mask.png": {
+      "width": 48,
+      "height": 128,
+      "kind": "recolor-mask"
+    },
+    "characters/look-06/desk-work-hands.png": {
       "width": 48,
       "height": 128,
       "kind": "hand-foreground"

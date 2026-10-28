@@ -6,9 +6,13 @@
  *
  * Grundriss: oben die Aussenwand mit dem Eingang, darunter ein Flur. Vom Flur
  * fuehrt in jeden Raum eine Tuer in dessen Rueckwand: zuerst die gemeinsame
- * Kueche, dann je Projekt ein Raum, getrennt durch Waende. Passen nicht alle
- * Raeume nebeneinander, folgt darunter die naechste Reihe mit eigenem Flur;
- * ein Laengsflur am linken Rand verbindet die Flure.
+ * Kueche mit Lounge, dann je Projekt ein Raum, getrennt durch Waende. Passen
+ * nicht alle Raeume nebeneinander, folgt darunter die naechste Reihe mit
+ * eigenem Flur; ein Laengsflur am linken Rand verbindet die Flure.
+ *
+ * Eingerichtet wird danach: Regale, Pflanzen, Drucker und Lampen an Waende
+ * und in Ecken, Bilder und Fenster an die Waende - immer so, dass jeder Platz
+ * erreichbar bleibt. Gleiche Raeume bekommen stets die gleiche Einrichtung.
  */
 
 import {
@@ -29,11 +33,14 @@ export const SIDE_PX = 4;
 export const SPINE = 2;
 const CORRIDOR_ROWS = 2;
 export const KITCHEN = 'kitchen';
-const KITCHEN_COLS = 8;
-const KITCHEN_ROWS = 4;
+/** Kueche vorn, Lounge mit Sofa und Kicker dahinter. */
+const KITCHEN_COLS = 10;
+const KITCHEN_ROWS = 5;
 const MIN_ROOM_COLS = 7;
 /** Tuer eines Projektraums: zweite Spalte, daneben das Namensschild. */
 const ROOM_DOOR = 1;
+/** So viele Spalten neben der Tuer gehoeren dem Namensschild. */
+export const PLATE_COLS = 4;
 const MAIN_SEAT_ROW = 1;
 /** Erste Subagent-Reihe: vor dem Haupttisch ein Laufweg und ein Gang. */
 const FIRST_AGENT_ROW = MAIN_SEAT_ROW + 4;
@@ -46,10 +53,18 @@ const MAIN_SLOT = 5;
 
 /* --- Gebaeude ---------------------------------------------------------------- */
 
+/**
+ * Raeume in fester Reihenfolge (nach Name): der Server stellt arbeitende
+ * Projekte nach vorn - das Gebaeude soll deshalb nicht umgebaut werden.
+ */
+function inOrder(projects) {
+  return [...projects].sort((a, b) => String(a.label ?? '').localeCompare(String(b.label ?? ''), 'de') || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+}
+
 /** Aendert sich das, wird das Gebaeude neu aufgebaut. */
 export function buildingSignature(projects) {
   return JSON.stringify(
-    projects.map((p) => [p.key, p.sessions.map((s) => [s.sessionId, orderAgents(s.agents ?? []).map((a) => a.id)])]),
+    inOrder(projects).map((p) => [p.key, p.sessions.map((s) => [s.sessionId, orderAgents(s.agents ?? []).map((a) => a.id)])]),
   );
 }
 
@@ -87,20 +102,24 @@ function roomSize(project) {
  *   seats [{ id, kind, owner, room, col, row, desk }], rugs [{col,row,w,h}],
  *   doors [{ key, col, row, kind }], faces [{ row, c0, c1, style }],
  *   dividers [{ col, r0, r1 }] (Wand links der Spalte), ledges [{ row, c0, c1 }] (Wand unter der Reihe),
+ *   items [{ name, col, row, w, kind? }] (Moebel; col/row: Kachel links unten),
+ *   wall [{ name, x, y, kind, room? }] (Wandschmuck, Pixel), mats [{ name, col, row }] (flach am Boden),
+ *   lounge { sofa: [{ x, y, from }], kicker: { left, right } },
  *   blocked, wallE, wallS (Uint8Array je Kachel), floor [Name je Kachel oder null]
  */
 export function layoutBuilding(projects, maxCols = Infinity) {
   const units = [
     { kind: 'kitchen', key: KITCHEN, cols: KITCHEN_COLS, rows: KITCHEN_ROWS },
-    ...projects.map((p) => ({ kind: 'project', key: p.key, project: p, ...roomSize(p) })),
+    ...inOrder(projects).map((p) => ({ kind: 'project', key: p.key, project: p, ...roomSize(p) })),
   ];
   const cap = Math.max(maxCols - SPINE, ...units.map((u) => u.cols));
+  // Jeder Raum in die erste Reihe, in der er noch Platz hat.
   const bands = [];
   for (const u of units) {
-    const last = bands[bands.length - 1];
-    if (last && last.width + u.cols <= cap) {
-      last.units.push(u);
-      last.width += u.cols;
+    const band = bands.find((b) => b.width + u.cols <= cap);
+    if (band) {
+      band.units.push(u);
+      band.width += u.cols;
     } else {
       bands.push({ units: [u], width: u.cols });
     }
@@ -148,16 +167,22 @@ export function layoutBuilding(projects, maxCols = Infinity) {
     faces: [],
     dividers: [],
     ledges: [],
+    items: [],
+    wall: [],
+    mats: [],
+    lounge: null,
     blocked,
     wallE,
     wallS,
     floor,
+    /** Schon eingerichtet oder freizuhalten (Plaetze, Tueren, Laufwege). */
+    used: new Uint8Array(cols * rows),
   };
 
   // Aussenwand mit dem Eingang.
   for (let r = 0; r < WALL_ROWS; r++) for (let c = 0; c < cols; c++) block(c, r);
   for (let r = 0; r < WALL_ROWS; r++) open(L.entrance.col, r);
-  L.faces.push({ row: 0, c0: 0, c1: cols - 1, style: 'plain' });
+  L.faces.push({ row: 0, c0: 0, c1: cols - 1, style: 'brick' });
   L.doors.push({ key: 'entrance', col: L.entrance.col, row: 0, kind: 'glass' });
 
   bands.forEach((b, bi) => {
@@ -170,6 +195,7 @@ export function layoutBuilding(projects, maxCols = Infinity) {
     }
     let x = SPINE;
     for (const u of b.units) {
+      const style = u.kind === 'kitchen' ? { wall: 'plain', floor: 'kitchen' } : ROOM_STYLES[hash(u.key) % ROOM_STYLES.length];
       const room = {
         key: u.key,
         kind: u.kind,
@@ -182,9 +208,10 @@ export function layoutBuilding(projects, maxCols = Infinity) {
         face: b.face,
         band: bi,
         door: { col: x + (u.kind === 'kitchen' ? KITCHEN_COLS - 1 : ROOM_DOOR), row: b.face },
+        style,
       };
       L.rooms.push(room);
-      L.faces.push({ row: b.face, c0: x, c1: x + u.cols - 1, style: 'wainscot' });
+      L.faces.push({ row: b.face, c0: x, c1: x + u.cols - 1, style: style.wall });
       L.doors.push({ key: u.key, col: room.door.col, row: b.face, kind: 'wood' });
       for (let r = b.face; r < b.top; r++) open(room.door.col, r);
       // Wand zum Nachbarn (bzw. zum Laengsflur) links.
@@ -192,7 +219,7 @@ export function layoutBuilding(projects, maxCols = Infinity) {
       L.dividers.push({ col: x, r0: b.top, r1: b.top + b.rows });
       for (let r = b.top; r < b.top + b.rows; r++) {
         for (let c = x; c < x + u.cols; c++) {
-          floor[at(c, r)] = u.kind === 'kitchen' ? 'kitchen' : (c + r) % 2 ? 'wood-a' : 'wood-b';
+          floor[at(c, r)] = style.floor === 'wood' ? ((c + r) % 2 ? 'wood-a' : 'wood-b') : style.floor;
         }
       }
       if (u.kind === 'kitchen') furnishKitchen(L, room, block);
@@ -205,13 +232,40 @@ export function layoutBuilding(projects, maxCols = Infinity) {
     if (!last) for (let c = SPINE; c < cols; c++) wallS[at(c, bottom)] = 1;
     L.ledges.push({ row: bottom, c0: last ? 0 : SPINE, c1: cols - 1 });
   });
+  decorate(L);
   return L;
 }
 
-/** Theke mit Espressomaschine, Kuehlschrank und Wasserspender an der Rueckwand. */
+/** Wand und Boden eines Projektraums, fest je Projekt. */
+const ROOM_STYLES = [
+  { wall: 'wainscot', floor: 'wood' },
+  { wall: 'green', floor: 'wood' },
+  { wall: 'wood', floor: 'carpet-blue' },
+  { wall: 'wainscot', floor: 'carpet-wine' },
+  { wall: 'wood', floor: 'carpet-green' },
+];
+
+/**
+ * Kueche an der Rueckwand: Automat, Theke mit Espressomaschine, Kuehlschrank,
+ * Wasserspender, Spuele. Davor die Lounge: Kicker, Sofa mit Sessel, Couchtisch
+ * und ein Esstisch mit Hockern.
+ *
+ *        0    1  2  3    4    5    6  7  8    9
+ *   r    A    [Theke]    K    W    [Spuele]   (Tuer)
+ *   r+1  .    .  C  .    .    W'   .  .  .    .        C, W' Kaffee und Wasser holen
+ *   r+2  S    [Kicker]   S    [Sofa   ]  Ss   .        S: Spieler, Ss: Sessel
+ *   r+3  .    .  .  .    .    .    .  .  .    .        hier setzt man sich aufs Sofa
+ *   r+4  H    [Tisch]    H    .  [Couch]  L    P       H: Hocker, L: Stehlampe
+ *
+ * Ist die Kueche hoeher (die Reihe ist es), rueckt nur der Esstisch nach unten:
+ * alles, wohin man geht, bleibt an seinem Platz - auch wenn umgebaut wird.
+ */
 function furnishKitchen(L, room, block) {
   const r = room.r0;
   const c = room.c0;
+  const sofaRow = r + 2;
+  const lowRow = r + 4;
+  const tableRow = r + room.rows - 1;
   L.kitchen = {
     counter: { col: c + 1, row: r },
     fridge: { col: c + 4, row: r },
@@ -220,6 +274,38 @@ function furnishKitchen(L, room, block) {
     water: { col: c + 5, row: r + 1 },
   };
   for (let x = c + 1; x <= c + 5; x++) block(x, r);
+  const put = (name, col, row, kind, blocks = true) => {
+    const w = widthOf(name);
+    L.items.push({ name, col, row, w, ...(kind ? { kind } : {}) });
+    for (let x = col; x < col + w; x++) {
+      if (blocks) block(x, row);
+      L.used[row * L.cols + x] = 1;
+    }
+  };
+  put('vending-0', c, r, 'vending');
+  put('counter-sink', c + 6, r, 'sink');
+  put('kicker-0', c + 1, r + 2, 'kicker');
+  put('sofa', c + 5, sofaRow, 'sofa');
+  put('armchair', c + 8, sofaRow, 'armchair');
+  put('stool', c, tableRow);
+  put('kitchen-table', c + 1, tableRow, 'table');
+  put('stool', c + 3, tableRow);
+  put('coffee-table', c + 6, lowRow);
+  put('floor-lamp-off', c + 8, lowRow, 'lamp');
+  put('plant-palm', c + 9, lowRow);
+  // Sitzplaetze: von der Reihe davor aus erreichbar.
+  const seat = (col, dx) => ({
+    x: col * TILE + dx,
+    y: (sofaRow + 1) * TILE - 2,
+    from: { col: col + Math.floor(dx / TILE), row: sofaRow + 1 },
+  });
+  L.lounge = {
+    sofa: [seat(c + 5, 8), seat(c + 5, 40), seat(c + 8, 8)],
+    kicker: { left: { col: c, row: r + 2 }, right: { col: c + 4, row: r + 2 } },
+  };
+  for (const t of [L.kitchen.coffee, L.kitchen.water, L.lounge.kicker.left, L.lounge.kicker.right, ...L.lounge.sofa.map((s) => s.from)]) {
+    L.used[t.row * L.cols + t.col] = 1;
+  }
 }
 
 /**
@@ -260,11 +346,278 @@ function furnishRoom(L, room, u, block) {
     const r1 = Math.min(room.r0 + room.rows - 1, rug.r1);
     L.rugs.push({ col: c0, row: r0, w: c1 - c0 + 1, h: r1 - r0 + 1 });
   }
+  // Das Namensschild neben der Tuer: so breit, wie der Name es braucht.
+  room.plateCols = Math.min(PLATE_COLS, Math.max(2, Math.ceil((room.label.length * 3 + 11) / TILE)));
+}
+
+/* --- Einrichtung ---------------------------------------------------------------- */
+
+/** Moebel: Breite in Kacheln, Hoehe in Pixeln (wie im Atlas). */
+export const FURNITURE = {
+  'vending-0': [1, 32],
+  'counter-sink': [3, 24],
+  'kicker-0': [3, 24],
+  sofa: [3, 32],
+  armchair: [1, 24],
+  stool: [1, 16],
+  'kitchen-table': [2, 24],
+  'coffee-table': [2, 16],
+  'floor-lamp-off': [1, 32],
+  'plant-tall': [1, 32],
+  'plant-palm': [1, 32],
+  'plant-bush': [1, 24],
+  bookshelf: [2, 32],
+  'bookshelf-low': [2, 24],
+  'filing-cabinet': [1, 32],
+  'coat-rack': [1, 32],
+  'printer-idle': [1, 24],
+  'server-0': [1, 32],
+  'trash-bin': [1, 16],
+  'trash-bin-full': [1, 16],
+  beanbag: [1, 16],
+};
+const widthOf = (name) => FURNITURE[name]?.[0] ?? 1;
+const heightOf = (name) => FURNITURE[name]?.[1] ?? 16;
+
+/** Wandschmuck: Breite in Kacheln, Abstand von der Oberkante und Hoehe in Pixeln. */
+export const WALL_ART = {
+  window: [2, 3, 24],
+  whiteboard: [3, 3, 24],
+  corkboard: [2, 4, 24],
+  'wall-tv': [2, 3, 24],
+  'wall-shelf': [2, 6, 16],
+  'wall-clock': [1, 4, 16],
+  calendar: [1, 6, 16],
+  'picture-landscape': [1, 6, 16],
+  'picture-abstract': [1, 6, 16],
+  'poster-mountain': [1, 4, 24],
+};
+
+/** Fensterbild zur Stunde: Morgenrot, Tag, Abend, Nacht. */
+export function windowSprite(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  if (h >= 7 && h < 17) return 'window-day';
+  if (h >= 5.5 && h < 7) return 'window-dawn';
+  if (h >= 17 && h < 20.5) return 'window-dusk';
+  return 'window-night';
+}
+
+/** Zufall mit festem Startwert: derselbe Raum wird immer gleich eingerichtet. */
+function seeded(text) {
+  let s = hash(text) || 1;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+function shuffled(list, rnd) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const range = (a, b) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
+
+/** Kacheln, die vom Eingang aus zu erreichen sind (1 je Kachel). */
+function reachable(L) {
+  const seen = new Uint8Array(L.cols * L.rows);
+  const start = L.entry.row * L.cols + L.entry.col;
+  const queue = [start];
+  seen[start] = 1;
+  for (let qi = 0; qi < queue.length; qi++) {
+    const c = queue[qi] % L.cols;
+    const r = (queue[qi] - c) / L.cols;
+    for (const [dc, dr] of DIRS) {
+      if (!canStep(L, c, r, dc, dr)) continue;
+      const n = (r + dr) * L.cols + c + dc;
+      if (!seen[n]) {
+        seen[n] = 1;
+        queue.push(n);
+      }
+    }
+  }
+  return seen;
+}
+
+/**
+ * Richtet das Gebaeude ein. Jedes Moebel wird nur gestellt, wenn danach noch
+ * jeder Platz, jede Tuer und jede Stelle in Kueche und Lounge erreichbar ist.
+ */
+function decorate(L) {
+  const at = (c, r) => r * L.cols + c;
+  const inside = (c, r) => c >= 0 && c < L.cols && r >= 0 && r < L.rows;
+  const keep = (c, r) => {
+    if (inside(c, r)) L.used[at(c, r)] = 1;
+  };
+  // Freihalten: Plaetze und der Weg dorthin, hinter Haupttischen Platz zum
+  // Auf- und Abgehen, Teppiche, Tueren beidseits, der Eingang.
+  for (const s of L.seats) {
+    keep(s.col, s.row);
+    const reach = s.kind === 'session' ? 2 : 0;
+    for (let d = -reach; d <= reach; d++) keep(s.col + d, s.row - 1);
+  }
+  for (const g of L.rugs) for (let r = g.row; r < g.row + g.h; r++) for (let c = g.col; c < g.col + g.w; c++) keep(c, r);
+  for (const room of L.rooms) {
+    keep(room.door.col, room.r0);
+    keep(room.door.col, room.r0 + 1);
+    for (let d = -1; d <= 1; d++) {
+      keep(room.door.col + d, room.face - 1);
+      keep(room.door.col + d, room.face - 2);
+    }
+  }
+  keep(L.entry.col, L.entry.row);
+  keep(L.entry.col, L.entry.row + 1);
+
+  const need = [
+    ...L.seats,
+    L.kitchen.coffee,
+    L.kitchen.water,
+    L.lounge.kicker.left,
+    L.lounge.kicker.right,
+    ...L.lounge.sofa.map((s) => s.from),
+    ...L.rooms.map((r) => ({ col: r.door.col, row: r.r0 })),
+  ];
+  const free = (c, r) => inside(c, r) && L.floor[at(c, r)] && !L.blocked[at(c, r)] && !L.used[at(c, r)];
+  const place = (name, col, row, kind) => {
+    const w = widthOf(name);
+    for (let c = col; c < col + w; c++) if (!free(c, row)) return false;
+    for (let c = col; c < col + w; c++) L.blocked[at(c, row)] = 1;
+    const seen = reachable(L);
+    if (!need.every((t) => seen[at(t.col, t.row)])) {
+      for (let c = col; c < col + w; c++) L.blocked[at(c, row)] = 0;
+      return false;
+    }
+    for (let c = col; c < col + w; c++) L.used[at(c, row)] = 1;
+    L.items.push({ name, col, row, w, ...(kind ? { kind } : {}) });
+    return true;
+  };
+
+  /** Wie weit Wandschmuck ueber einer Spalte hinunterreichen darf (Moebel davor). */
+  const wallRoom = (col, face) => {
+    let limit = WALL_ROWS * TILE;
+    for (const it of L.items) {
+      if (it.row === face + WALL_ROWS && col >= it.col && col < it.col + it.w) {
+        limit = Math.min(limit, (WALL_ROWS + 1) * TILE - heightOf(it.name));
+      }
+    }
+    return limit;
+  };
+  const hang = (name, col, face, kind, room, check = true) => {
+    const [w, y, h] = WALL_ART[name];
+    if (check && range(col, col + w - 1).some((c) => wallRoom(c, face) < y + h)) return false;
+    L.wall.push({ name, x: col * TILE, y: face * TILE + y, w: w * TILE, h, kind: kind ?? 'art', ...(room ? { room } : {}) });
+    return true;
+  };
+
+  // Eingang: Fussmatte, Garderobe; an der Aussenwand die Uhr und Fenster.
+  L.mats.push({ name: 'doormat', col: L.entry.col, row: L.entry.row });
+  place('coat-rack', 0, L.entry.row);
+  hang('wall-clock', L.entrance.col + 1, 0, 'clock', null, false);
+  const windows = [];
+  for (let c = L.entrance.col + 3; c + 1 < L.cols - 1; c += 4) {
+    hang('window', c, 0, 'window', null, false);
+    windows.push(c, c + 1);
+  }
+
+  // Flure: Pflanzen an der Wand, nicht vor Tueren und Fenstern.
+  const plants = ['plant-tall', 'plant-bush', 'plant-palm'];
+  L.bands.forEach((b, bi) => {
+    const blockedCols = new Set(bi === 0 ? [L.entrance.col + 1, ...windows] : []);
+    let n = bi;
+    for (let c = 4; c < L.cols - 1; c += 6) {
+      for (const cc of [c, c + 1, c - 1]) {
+        if (blockedCols.has(cc)) continue;
+        if (place(plants[n % plants.length], cc, b.corridor)) {
+          n++;
+          break;
+        }
+      }
+    }
+    place('plant-palm', L.cols - 1, b.corridor);
+  });
+  place('plant-tall', 0, L.rows - 1);
+
+  for (const room of L.rooms) {
+    const rnd = seeded(room.key);
+    const c0 = room.c0;
+    const c1 = room.c0 + room.cols - 1;
+    const r0 = room.r0;
+    const r1 = room.r0 + room.rows - 1;
+    const spots = {
+      wall: (w) => shuffled(range(c0, c1 - w + 1).map((c) => [c, r0]), rnd),
+      corner: (w) => shuffled([[c0, r1], [c1 - w + 1, r1], [c0, r0], [c1 - w + 1, r0]], rnd),
+      side: () => shuffled(range(r0 + 1, r1 - 1).flatMap((r) => [[c0, r], [c1, r]]), rnd),
+    };
+    // An Seitenwaenden nicht Stueck an Stueck, und nicht Ruecken an Ruecken mit dem Nachbarraum.
+    const covers = (it, c, r) => it.row === r && c >= it.col && c < it.col + it.w;
+    const crowded = (c, r) => L.items.some((it) => covers(it, c, r - 1) || covers(it, c, r + 1));
+    const across = (c, r) =>
+      L.items.some((it) => (covers(it, c - 1, r) && c === c0) || (covers(it, c + 1, r) && c === c1));
+    // In der Kueche bleiben Theke und Laufweg davor frei.
+    const open = room.kind === 'kitchen' ? (c, r) => r >= r0 + 2 || c >= c0 + KITCHEN_COLS : () => true;
+    const wish = (names, where, n = 1, kind) => {
+      for (let i = 0; i < n; i++) {
+        const name = names[Math.floor(rnd() * names.length)];
+        const w = widthOf(name);
+        const spot = where.flatMap((k) => spots[k](w).map((p) => [...p, k]));
+        const ok = (c, r, k) => open(c, r) && !(k === 'side' && crowded(c, r)) && !across(c, r) && !across(c + w - 1, r);
+        if (!spot.some(([c, r, k]) => ok(c, r, k) && place(name, c, r, kind))) return;
+      }
+    };
+    if (room.kind === 'kitchen') {
+      // Kueche: Fernseher ueber der Theke, Kalender ueber der Spuele.
+      hang('wall-tv', c0 + 2, room.face, 'tv', room.key, false);
+      hang('calendar', c0 + 7, room.face, 'calendar', room.key, false);
+      if (room.cols > KITCHEN_COLS || room.rows > KITCHEN_ROWS) {
+        wish(['plant-tall', 'plant-bush'], ['corner'], 2);
+        wish(['bookshelf-low', 'bookshelf'], ['wall'], 1);
+        wish(['beanbag'], ['corner', 'side'], 1);
+        wish(['trash-bin'], ['side', 'corner'], 1);
+      }
+      continue;
+    }
+    // Das Whiteboard zuerst: davor bleibt frei, damit man es sieht.
+    let col = room.door.col + 1 + room.plateCols;
+    if (col + 2 <= c1) {
+      hang('whiteboard', col, room.face, 'whiteboard', room.key, false);
+      for (let c = col; c < col + 3; c++) keep(c, r0);
+      col += 4;
+    }
+    wish(plants, ['corner'], 2);
+    wish(['bookshelf', 'bookshelf-low'], ['wall'], room.cols >= 12 ? 2 : 1);
+    if (rnd() < 0.7) wish(['printer-idle'], ['wall'], 1, 'printer');
+    if (rnd() < 0.5) wish(['server-0'], ['wall'], 1, 'server');
+    wish(['filing-cabinet', 'coat-rack'], ['wall', 'side'], 1);
+    wish(['floor-lamp-off'], ['corner', 'side'], 1, 'lamp');
+    wish(['trash-bin', 'trash-bin-full'], ['side', 'corner'], 1);
+    wish(['plant-bush', 'plant-tall', 'beanbag'], ['side', 'corner'], Math.max(0, room.rows - 6));
+    // Bilder rechts vom Namensschild, mit Luft dazwischen.
+    for (const name of shuffled(['corkboard', 'wall-shelf', 'picture-landscape', 'picture-abstract', 'poster-mountain'], rnd)) {
+      const w = WALL_ART[name][0];
+      for (let c = col; c + w - 1 <= c1; c++) {
+        if (hang(name, c, room.face, 'art', room.key)) {
+          col = c + w + 1;
+          break;
+        }
+      }
+    }
+  }
 }
 
 export function walkable(L, col, row) {
   return col >= 0 && col < L.cols && row >= 0 && row < L.rows && !L.blocked[row * L.cols + col];
 }
+
+const DIRS = [
+  [0, 1],
+  [1, 0],
+  [0, -1],
+  [-1, 0],
+];
 
 /** Ein Schritt zur Nachbarkachel: frei und keine Wand dazwischen. */
 function canStep(L, c, r, dc, dr) {
@@ -297,7 +650,7 @@ export function findPath(L, from, to) {
     if (cur === goal) break;
     const c = cur % cols;
     const r = (cur - c) / cols;
-    for (const [dc, dr] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+    for (const [dc, dr] of DIRS) {
       if (!canStep(L, c, r, dc, dr)) continue;
       const n = (r + dr) * cols + (c + dc);
       if (prev[n] !== -1) continue;
@@ -431,7 +784,9 @@ export function pixelErrands(fig, room = {}) {
       options: [
         ['coffee', 3],
         ['water', 2],
-        ['stroll', 2],
+        ['stroll', 1],
+        ['sofa', 2],
+        ['kicker', 2],
       ],
     };
   }
@@ -529,4 +884,13 @@ function hash(text) {
 export function outfitFor(kind, item) {
   if (kind === 'agent') return TYPE_OUTFIT[item.type] ?? SPARE_OUTFITS[hash(item.type) % SPARE_OUTFITS.length];
   return SESSION_OUTFITS[hash(item.sessionId) % SESSION_OUTFITS.length];
+}
+
+/** Figuren: Sitzungen und Subagents haben je drei Gesichter. */
+const SESSION_LOOKS = ['look-01', 'look-03', 'look-04'];
+const AGENT_LOOKS = ['look-02', 'look-05', 'look-06'];
+
+export function lookFor(kind, item) {
+  const list = kind === 'agent' ? AGENT_LOOKS : SESSION_LOOKS;
+  return list[hash(`look:${kind === 'agent' ? item.id : item.sessionId}`) % list.length];
 }

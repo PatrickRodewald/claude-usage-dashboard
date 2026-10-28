@@ -178,7 +178,7 @@ def validate(atlas: dict) -> dict:
         man = sprites[f"look-02-{view}"][:12]
         beard = np.all(man[:, :, :3] == rgba("be4a2f")[:3], axis=2) | np.all(man[:, :, :3] == rgba("d77643")[:3], axis=2)
         assert beard.any(), f"Red beard lost in {view}"
-    assert json.loads((ROOT / "art/checks/furniture-quality.json").read_text())["status"] == "passed"
+    assert json.loads((ROOT / "art/checks/furniture-quality.json").read_text(encoding="utf-8"))["status"] == "passed"
     return {"status": "passed", "totalSprites": 59, "characterLooks": 2, "characterViews": 6,
             "frameSize": [16, 32], "sheetSize": [48, 32], "feetBaseline": 32,
             "alphaLevels": [0, 255], "palette": "ENDESGA 32", "clothingKeyColors": ["#" + h for h in KEY_HEX],

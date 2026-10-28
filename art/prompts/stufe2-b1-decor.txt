@@ -1,0 +1,31 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Office plants and storage furniture sprite sheet, top-down 3/4 view like the attached desks and kitchen. Output: one square transparent PNG, target 1024x1024. Exactly THREE separated rows, each art pixel a solid 8x8 block. All objects bottom-aligned per row, same scale as a 16x32 character.
+
+ROW 1, PLANTS:
+1. tall monstera plant in a white cylindrical pot, 16 wide x 32 tall, big split leaves
+2. round bushy plant in a terracotta pot, 16x24
+3. small palm in a grey concrete pot, 16x32, thin fronds
+4. tiny succulent in a white cup for a desk, 8x12
+5. tiny cactus in a terracotta cup for a desk, 8x12
+
+ROW 2, SHELVES:
+1. tall wooden bookshelf 32 wide x 32 tall, seen from the front, three shelves full of colourful book spines, one shelf with a small box
+2. low wooden bookshelf 32x24, two shelves of books, a small plant standing on top
+
+ROW 3:
+1. grey-blue metal filing cabinet 16x32 with three drawers and small handles (same style as the cabinet in the style anchor)
+2. standing coat rack 16x32, dark wood, one dark blue jacket and a scarf hanging on it
+
+Leaves in 3 greens of the palette, pots with a 1-pixel highlight on the top left. No text on book spines.
+
+Reference image roles: Image 1 is the approved office STYLE REFERENCE ONLY. Image 2 shows existing furniture and two characters enlarged exactly 8x as SCALE AND LINE-WEIGHT REFERENCE ONLY. Do not copy either image into the output. Draw the nine requested objects only, in exactly the listed row order. The three large plants and storage furniture share the character scale; the two desk plants are much smaller. Keep all nine motifs complete and separated by true transparent space. The tall shelf must have exactly three book compartments; the low shelf exactly two, plus its plant. No names, labels, writing or numbers.

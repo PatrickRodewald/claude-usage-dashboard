@@ -235,9 +235,9 @@ def validate(atlas: dict, old_atlas: dict) -> dict:
 
 def main() -> None:
     previous.main()
-    atlas = json.loads((OUT / "atlas.json").read_text())
+    atlas = json.loads((OUT / "atlas.json").read_text(encoding="utf-8"))
     old_atlas = json.loads(json.dumps(atlas))
-    config = json.loads((ROOT / "art/emote-source.json").read_text())
+    config = json.loads((ROOT / "art/emote-source.json").read_text(encoding="utf-8"))
     shells = bodies(load(config["bubble-shells"]), config["bubble-shells"])
     emotes = icons(load(config["emote-icons"]), config["emote-icons"], shells["speech"])
     sleep, gears = animations(load(config["sleep-gear"]), config["sleep-gear"])

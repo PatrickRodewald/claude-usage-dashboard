@@ -262,45 +262,66 @@ im Hintergrund, hält das Büro alle Animationen an.
 Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas: ein einziges Gebäude, in dem
 alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und auf
 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
-in `art/README.md`, der Auftrag für die nächsten Grafiken (Einrichtung, Lounge, weitere Figuren) in
+in `art/README.md`, der Auftrag für Stufe 2 (Einrichtung, Lounge, weitere Figuren) in
 `art/auftrag-stufe-2.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
 so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
 
-- **Das Gebäude:** Oben die Außenwand mit der gläsernen Eingangstür, darunter ein Flur. Vom Flur
-  führt eine Tür in jeden Raum: zuerst die **gemeinsame Küche** mit Theke, Espressomaschine,
-  Kühlschrank und Wasserspender, daneben **ein Raum je Projekt** mit Messingschild an der Wand.
+- **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
+  (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden
+  Raum: zuerst **Küche und Lounge**, daneben **ein Raum je Projekt** mit Messingschild an der Wand.
   Wände trennen die Räume; von Raum zu Raum geht es durch die Türen und über den Flur. Passen
-  nicht alle Räume nebeneinander, folgt darunter eine weitere Reihe mit eigenem Flur, und ein
-  Längsflur am linken Rand verbindet alle.
+  nicht alle Räume nebeneinander, kommen sie in eine weitere Reihe mit eigenem Flur, und ein
+  Längsflur am linken Rand verbindet alle. Die Räume stehen nach Namen geordnet und behalten ihren
+  Platz, auch wenn gerade ein anderes Projekt arbeitet.
+- **Küche und Lounge:** Getränkeautomat, Theke mit Espressomaschine, Kühlschrank, Wasserspender,
+  Spüle mit Mikrowelle; davor Kicker, Sofa mit Sessel und Couchtisch, Stehlampe und ein Esstisch
+  mit Hockern. Über der Theke zeigt ein **Fernseher das 5h-Fenster** (Prozent und Balken, beim
+  Zeigen auch die Zeit bis zum Reset), daneben zählt ein **Kalender bis zum Wochen-Reset**.
 - **Im Projektraum:** Sitzungen arbeiten an großen Tischen, ihre Subagents davor an kleinen
-  Tischen auf einem Teppich. Das Schild nennt beim Zeigen Sitzungen, Subagents und Ordner.
+  Tischen auf einem Teppich. Das Schild nennt beim Zeigen Sitzungen, Subagents und Ordner. Auf dem
+  **Whiteboard** neben dem Schild stehen die Aufträge der laufenden Subagents. Jeder Raum hat
+  seine eigene Wand (Holz, Grün, Täfelung) und seinen Boden (Dielen oder Teppich) und wird
+  eingerichtet: Regale, Aktenschrank, Drucker (er druckt, wenn jemand zu schreiben beginnt),
+  Serverschrank (blinkt, solange im Raum gearbeitet wird), Pflanzen, Stehlampe, Papierkorb,
+  Bilder und Pinnwand. Eingerichtet wird nur so, dass jeder Platz erreichbar bleibt, und ein
+  Raum sieht immer gleich aus.
+- **Figuren:** Sechs Gesichter, drei für Sitzungen und drei für Subagents, fest je Figur; die
+  Kleidung färbt sich wie bisher nach Sitzung bzw. Subagent-Typ.
 - **Am Tisch:** Lesen und Suchen (`Read`, `Grep`, Web) mit einem Buch, dessen Seiten umblättern;
   Schreiben (`Edit`, `Write`, Todos) mit Block und Stift; Shell, Tests und andere Werkzeuge am
   Laptop; Nachdenken mit der Hand am Kinn und einer Denkblase. Die Sprechblase nennt Werkzeug
   und Ziel: `Read app.js`, `$ npm test`, `Grep createWorkshop`, `→ Tests schreiben` beim
-  Delegieren. Wer ruht, schläft mit „z“ und zugeklapptem Laptop.
+  Delegieren. Wer ruht, schläft mit „z“ und zugeklapptem Laptop (manche mit dem Kopf auf den
+  Armen); mit frischem Kaffee wird erst an der Tasse genippt. Nach einem Commit oder Push springt
+  die Figur auf und jubelt, mit Konfetti - auch Subagents.
 - **Symbole über dem Kopf:** „!“ bei einer neuen Nachricht von dir, ein Häkchen nach einem Commit,
   ein Herz nach einem Push, ein Kreuz bei einem Fehler, Schweißtropfen bei Drosselung, „?“ bei
   einer Sitzung ohne Lebenszeichen und eine Sanduhr für alle, wenn das 5h-Limit erreicht ist.
 - **Treiben:** Wer auf dich wartet, geht nach ein paar Sekunden ab und zu in die Küche, holt
-  einen Kaffee (danach dampft die Tasse am Platz) oder trinkt Wasser, oder vertritt sich im Raum
-  und auf dem Flur die Beine. An Maschine und Wasserspender steht immer nur einer. Wer lange
-  nachdenkt, geht hinter dem Tisch auf und ab; wer delegiert, stellt sich zu einem seiner
-  Subagents („?“), der eine Idee hat. Gelaufen wird per Wegfindung um Möbel und Wände herum.
-  Kommt Arbeit, eilt die Figur zurück; unterwegs sind höchstens 40 % aller Figuren, maximal sechs.
+  einen Kaffee (danach dampft die Tasse am Platz) oder trinkt Wasser, legt sich aufs Sofa, spielt
+  mit einer anderen wartenden Sitzung Kicker oder vertritt sich im Raum und auf dem Flur die
+  Beine. An Maschine und Wasserspender steht immer nur einer. Wer lange nachdenkt, geht hinter dem
+  Tisch auf und ab; wer delegiert, stellt sich zu einem seiner Subagents („?“), der eine Idee hat.
+  Gelaufen wird per Wegfindung um Möbel und Wände herum. Kommt Arbeit, eilt die Figur zurück und
+  wirbelt Staub auf; unterwegs sind höchstens 40 % aller Figuren, maximal sechs.
 - **Kommen und Gehen:** Neue Sitzungen und Subagents kommen durch den Eingang, gehen über den Flur
-  in ihren Raum und an ihren Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder
-  Kreuz) hinaus; sein Tisch bleibt leer stehen, bis er aus der Liste fällt. Kommt ein Projekt
-  hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit seinem Tisch um.
+  in ihren Raum und an ihren Platz; für einen neuen Subagent fliegt ein Papierflieger vom Tisch
+  seiner Sitzung zu seinem Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder
+  Kreuz) hinaus, an seinem Tisch funkelt es; der Tisch bleibt leer stehen, bis er aus der Liste
+  fällt. Kommt ein Projekt hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit
+  seinem Tisch um, wer in Küche oder Lounge ist, bleibt dort. Ist das Büro gerade nicht zu sehen,
+  wird nichts nachgeholt.
 - **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt.
-- **Licht:** Das Büro folgt der Ortszeit. Tagsüber ist es hell, ab dem späten Nachmittag wird es
-  violett, nachts dunkelblau. Dann leuchten die Schreibtischlampen derer, die arbeiten, die
-  Laptops werfen einen kalten Schein, im Flur brennen Deckenlampen, in der Küche geht das Licht
-  an, sobald jemand drin ist. Räume, in denen alle schlafen, bleiben dunkel. Figuren und Möbel
+- **Licht:** Das Büro folgt der Ortszeit: Die Fenster zeigen Morgenrot, Tag, Abend oder Nacht, die
+  Wanduhr die echte Zeit. Tagsüber ist es hell, ab dem späten Nachmittag wird es violett, nachts
+  dunkelblau. Dann leuchten die Schreibtischlampen derer, die arbeiten, Stehlampen gehen an, die
+  Laptops werfen einen kalten Schein, Automat und Fernseher glimmen, im Flur brennen Deckenlampen,
+  in der Küche geht das Licht an, sobald jemand drin ist. Räume, in denen alle schlafen, bleiben dunkel. Figuren und Möbel
   werfen kleine Schatten, Wände einen Saum auf den Boden.
 
-Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro. Im Hintergrund-Tab
-steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
+Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro (auf dem Tablet:
+antippen); über Uhr, Kalender, Fernseher und Whiteboard verrät er Uhrzeit, Reset und Aufträge.
+Gezeichnet wird mit höchstens 30 Bildern je Sekunde. Im Hintergrund-Tab steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
 da oder weg. Der Rückblick läuft vorerst im klassischen Büro.
 
 #### Tagesrückblick
@@ -633,7 +654,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-344 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+350 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

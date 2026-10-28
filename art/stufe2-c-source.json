@@ -1,0 +1,360 @@
+{
+  "file": "art/raw/stufe2-c-lounge.png",
+  "sha256": "4ffc44efa5baca6597311fe60e76ed02b3f7aa6d55546c4564edd03ec5d56198",
+  "size": [
+    1254,
+    1254
+  ],
+  "prompt": "art/prompts/stufe2-c-lounge.txt",
+  "references": [
+    "art/style-anchor.png",
+    "art/references/furniture-8x.png"
+  ],
+  "crops": {
+    "sofa": [
+      48,
+      87,
+      552,
+      325
+    ],
+    "armchair": [
+      598,
+      87,
+      795,
+      325
+    ],
+    "coffee-table": [
+      860,
+      171,
+      1188,
+      325
+    ],
+    "kitchen-table": [
+      42,
+      421,
+      279,
+      609
+    ],
+    "stool": [
+      321,
+      453,
+      425,
+      609
+    ],
+    "counter-sink": [
+      476,
+      383,
+      863,
+      601
+    ],
+    "microwave": [
+      907,
+      497,
+      1049,
+      611
+    ],
+    "fruit-bowl": [
+      1090,
+      510,
+      1213,
+      606
+    ],
+    "vending-0": [
+      444,
+      664,
+      594,
+      921
+    ],
+    "vending-1": [
+      658,
+      664,
+      808,
+      921
+    ],
+    "kicker-0": [
+      22,
+      963,
+      312,
+      1175
+    ],
+    "kicker-1": [
+      332,
+      962,
+      626,
+      1175
+    ],
+    "kicker-2": [
+      635,
+      963,
+      927,
+      1175
+    ],
+    "kicker-3": [
+      943,
+      963,
+      1234,
+      1175
+    ]
+  },
+  "targetImage": {
+    "file": "decor/lounge.png",
+    "size": [
+      192,
+      96
+    ],
+    "sha256": "8c6abc0ab601a0cad34c4386e1f40cc9ca869067929c08007bccb9bd82ee5104"
+  },
+  "normalization": {
+    "sampling": "area mode with alpha >= 192; 50% coverage",
+    "palette": "ENDESGA 32, maximum three tones per material plus navy contour",
+    "alpha": [
+      0,
+      255
+    ],
+    "displayScale": 3,
+    "method": "native raster reduction and local pixel cleanup; animation bodies shared from frame 0",
+    "clothPalette": [
+      "0099db",
+      "124e89",
+      "193c3e"
+    ],
+    "clothLuminanceThresholds": [
+      65,
+      102
+    ],
+    "woodPalette": [
+      "e4a672",
+      "b86f50",
+      "733e39"
+    ],
+    "metalPalette": [
+      "c0cbdc",
+      "8b9bb4",
+      "5a6988"
+    ],
+    "cleanup": [
+      "shared approved kitchen-counter body; only sink and tap replaced",
+      "three sofa cushions and armchair shading restored to three palette tones",
+      "small magazine remains blank without text",
+      "nine bottle shapes and blank keypad snapped to native grid",
+      "three readable fruits; closed bowl contour",
+      "one common vending body; only 57 glass-background pixels brighten",
+      "one common kicker case; native field lines, three rods, colored player pieces and ball retouched",
+      "all sprite contours closed; all objects aligned at their native bottom edge"
+    ]
+  },
+  "targets": {
+    "sofa": {
+      "size": [
+        48,
+        32
+      ],
+      "atlasXY": [
+        0,
+        0
+      ],
+      "placement": "floor"
+    },
+    "armchair": {
+      "size": [
+        16,
+        24
+      ],
+      "atlasXY": [
+        48,
+        8
+      ],
+      "placement": "floor"
+    },
+    "coffee-table": {
+      "size": [
+        32,
+        16
+      ],
+      "atlasXY": [
+        64,
+        16
+      ],
+      "placement": "floor"
+    },
+    "kitchen-table": {
+      "size": [
+        32,
+        24
+      ],
+      "atlasXY": [
+        96,
+        8
+      ],
+      "placement": "floor"
+    },
+    "stool": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        128,
+        16
+      ],
+      "placement": "floor"
+    },
+    "counter-sink": {
+      "size": [
+        48,
+        24
+      ],
+      "atlasXY": [
+        144,
+        8
+      ],
+      "placement": "floor"
+    },
+    "microwave": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        48
+      ],
+      "placement": "counter"
+    },
+    "fruit-bowl": {
+      "size": [
+        16,
+        8
+      ],
+      "atlasXY": [
+        16,
+        56
+      ],
+      "placement": "counter"
+    },
+    "vending-0": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        32,
+        32
+      ],
+      "placement": "floor"
+    },
+    "vending-1": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        48,
+        32
+      ],
+      "placement": "floor"
+    },
+    "kicker-0": {
+      "size": [
+        48,
+        24
+      ],
+      "atlasXY": [
+        0,
+        64
+      ],
+      "placement": "floor"
+    },
+    "kicker-1": {
+      "size": [
+        48,
+        24
+      ],
+      "atlasXY": [
+        48,
+        64
+      ],
+      "placement": "floor"
+    },
+    "kicker-2": {
+      "size": [
+        48,
+        24
+      ],
+      "atlasXY": [
+        96,
+        64
+      ],
+      "placement": "floor"
+    },
+    "kicker-3": {
+      "size": [
+        48,
+        24
+      ],
+      "atlasXY": [
+        144,
+        64
+      ],
+      "placement": "floor"
+    }
+  },
+  "animationNormalization": {
+    "vending": {
+      "sharedBodySource": "vending-0",
+      "glassBackgroundDim": "262b44",
+      "glassBackgroundLit": "3a4466",
+      "changedPixels": 57,
+      "bottlesIdentical": true
+    },
+    "kicker": {
+      "sharedBodySource": "kicker-0",
+      "rodRows": [
+        6,
+        10,
+        14
+      ],
+      "rodOffsets": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          -1,
+          1
+        ],
+        [
+          0,
+          1,
+          -1
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "ballCenters": [
+        [
+          22,
+          8
+        ],
+        [
+          23,
+          10
+        ],
+        [
+          27,
+          12
+        ],
+        [
+          30,
+          8
+        ]
+      ],
+      "caseAndAlphaIdentical": true
+    }
+  }
+}

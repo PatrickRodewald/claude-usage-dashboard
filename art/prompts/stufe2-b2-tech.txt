@@ -1,0 +1,28 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Office technology and small items sprite sheet, top-down 3/4 view. Output: one square transparent PNG, target 1024x1024. Exactly FOUR separated rows, each art pixel a solid 8x8 block, bottom-aligned.
+
+ROW 1, FOUR PRINTER FRAMES, each 16x24: a light grey office printer standing on a small dark cabinet. Frame 1 idle. Frames 2 to 4: a white sheet of paper slides out of the front slot, a little further each frame. Printer and cabinet pixel-identical in all four frames.
+
+ROW 2, FOUR SERVER RACK FRAMES, each 16x32: a dark navy server rack with five horizontal units. Small single-pixel status lights in green, cyan and yellow. The rack is pixel-identical in all frames; only which lights are on changes, like blinking.
+
+ROW 3:
+1. small grey trash bin 16x16, empty
+2. the same bin 16x16 with crumpled white paper balls sticking out
+3. floor lamp 16x32: thin dark pole, round base, fabric lampshade OFF (beige)
+4. the same floor lamp ON: identical silhouette, lampshade bright warm yellow; no light cone or halo
+
+ROW 4:
+1. round beanbag chair 16x16 in orange
+2. flat doormat 16x16, dark grey with a lighter border, seen from above
+
+Input image roles: Image 1 is the approved style anchor, REFERENCE ONLY. Image 2 shows approved native-scale furniture enlarged 8x, REFERENCE ONLY. Match the existing furniture proportions, deep navy contour, grey-blue metal and warm wood. Do not copy the reference layout. All objects isolated on a genuinely transparent background, no floor or wall behind them.
