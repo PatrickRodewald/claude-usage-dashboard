@@ -131,8 +131,8 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 Unter der Kennzahlen-Leiste liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum. Es
 gibt das Büro in zwei Ansichten: als **Pixel-Büro** (Standard, siehe unten) und als klassisches
 Büro mit Robotern, das hier zuerst beschrieben ist. „Klassisch“ bzw. „Pixel“ im Kopf des Bereichs
-schaltet um, der Browser merkt sich die Wahl. Die Töne spielt immer das klassische Büro, auch
-wenn es gerade verborgen ist.
+schaltet um, der Browser merkt sich die Wahl. Gezeichnet wird nur die Ansicht, die zu sehen ist;
+die andere zeigt beim Umschalten gleich den aktuellen Stand. Die Töne kommen unabhängig davon.
 
 - **An der Rückwand** hängt eine Tafel mit dem Projektnamen in Kreideschrift. Darunter stehen
   die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen, „–“
@@ -264,7 +264,8 @@ alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und 
 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
 in `art/README.md`, der Auftrag für Stufe 2 (Einrichtung, Lounge, weitere Figuren) in
 `art/auftrag-stufe-2.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
-so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
+so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach - und ist es dann noch
+zu breit, lässt es sich seitlich verschieben.
 
 - **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
   (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden
@@ -272,7 +273,8 @@ so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
   Wände trennen die Räume; von Raum zu Raum geht es durch die Türen und über den Flur. Passen
   nicht alle Räume nebeneinander, kommen sie in eine weitere Reihe mit eigenem Flur, und ein
   Längsflur am linken Rand verbindet alle. Die Räume stehen nach Namen geordnet und behalten ihren
-  Platz, auch wenn gerade ein anderes Projekt arbeitet.
+  Platz, auch wenn gerade ein anderes Projekt arbeitet. Bleibt in einer Reihe viel Platz übrig,
+  wird dort eine Lounge eingerichtet: Regale, Sitzgruppen, Pflanzen, Stehlampen, Bilder.
 - **Küche und Lounge:** Getränkeautomat, Theke mit Espressomaschine, Kühlschrank, Wasserspender,
   Spüle mit Mikrowelle; davor Kicker, Sofa mit Sessel und Couchtisch, Stehlampe und ein Esstisch
   mit Hockern. Über der Theke zeigt ein **Fernseher das 5h-Fenster** (Prozent und Balken, beim
@@ -629,8 +631,13 @@ Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergange
 Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet nur dieser Bereich, das übrige
 Dashboard läuft weiter. Zum laufenden Werkzeug liefert der Server ein kurzes Ziel mit: den
 Dateinamen ohne Pfad, das Suchmuster, die erste Zeile eines Shell-Befehls, den Host einer URL
-oder den Auftrag an einen Subagent, gekürzt auf 60 Zeichen. Das bleibt auf diesem Gerät, der
-Server bindet nur an 127.0.0.1.
+oder den Auftrag an einen Subagent, gekürzt auf 60 Zeichen. Was nach Zugangsdaten aussieht, wird
+vorher durch „•••“ ersetzt: `NAME=wert` bei Namen wie `API_KEY`, `TOKEN` oder `PASSWORD`,
+`--token`/`--password`, `Authorization:`-Kopfzeilen, Passwörter in Adressen und bekannte
+Schlüsselformen (`sk-…`, `ghp_…`, `xox…`, `AKIA…`, JWTs und andere lange Zeichenketten aus
+Groß- und Kleinbuchstaben und Ziffern). Das bleibt auf diesem Gerät: Der Server bindet nur an
+127.0.0.1 und antwortet nur auf Anfragen an `127.0.0.1` oder `localhost`. So kann keine fremde
+Webseite ihren Namen auf diesen Rechner umbiegen und mitlesen (DNS-Rebinding).
 
 **Tagesrückblick.** Der Server kennt ohnehin jeden Request mit Zeitstempel, Sitzung, Subagent,
 Kosten, Kontext und dem ersten aufgerufenen Werkzeug. `/api/replay` schneidet daraus einen Tag
@@ -654,7 +661,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-350 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+357 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -774,6 +781,7 @@ src/
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
   agents.js         Büro mit Figuren für „Gerade aktiv" (klassisch, SVG)
+  sounds.js         Töne des Büros: wann sie fällig sind, Web Audio
   pixel/world.js    Pixel-Büro ohne DOM: Grundriss, Wegfindung, was jede Figur zeigt
   pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
   assets/office/    Grafiken des Pixel-Büros mit atlas.json

@@ -225,6 +225,20 @@ test('Reihen: Restbreite wird geteilt, ein breiter Raum bekommt trotzdem Platz',
   assert.equal(one.bands.length, 1, 'ohne Grenze eine Reihe');
 });
 
+test('viel Restplatz in einer Reihe wird eine eingerichtete Lounge', () => {
+  const wide = named('W', session('w1', many(4, 'w')), session('w2', many(4, 'v')), session('w3', many(4, 'u')));
+  const L = layoutBuilding([wide], 20);
+  const kitchen = L.rooms.find((r) => r.kind === 'kitchen');
+  const lounge = L.rooms.find((r) => r.kind === 'lounge');
+  assert.ok(lounge, 'neben der Kueche ist Platz fuer eine Lounge');
+  assert.equal(lounge.band, kitchen.band);
+  assert.equal(kitchen.cols, 10, 'die Kueche wird nicht in die Breite gezogen');
+  assert.ok(L.items.filter((it) => roomAt(L, it.col, it.row) === lounge).length >= 4, 'die Lounge ist eingerichtet');
+  assert.ok(findPath(L, L.entrance, { col: lounge.door.col, row: lounge.r0 }), 'und erreichbar');
+  const total = (band) => L.rooms.filter((r) => r.band === band).reduce((n, r) => n + r.cols, 0);
+  for (let b = 0; b < L.bands.length; b++) assert.equal(total(b), L.cols - SPINE, `Reihe ${b} fuellt die Breite`);
+});
+
 test('Wegfindung: kuerzester Weg, schon da, unerreichbar', () => {
   const L = layoutBuilding([project(session('s1'))]);
   const from = { col: 3, row: L.bands[0].corridor };

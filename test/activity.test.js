@@ -18,6 +18,7 @@ import {
   STALE_BUSY_MS,
   commandKind,
   toolTarget,
+  hideSecrets,
   tailInfo,
   contextWindow,
 } from '../src/activity.js';
@@ -705,6 +706,26 @@ test('Woran ein Werkzeug arbeitet: Datei, Muster, Befehl, Host, Auftrag', () => 
   const long = toolTarget('Bash', { command: 'x'.repeat(200) });
   assert.equal(long.length, 60);
   assert.ok(long.endsWith('…'));
+});
+
+test('Geheimnisse in Befehlen werden ausgeblendet, harmlose Befehle bleiben', () => {
+  const hidden = [
+    ['export ANTHROPIC_API_KEY=sk-ant-api03-abcdefghijklmnop', 'export ANTHROPIC_API_KEY=•••'],
+    ['$env:GH_TOKEN = "ghp_abcdefghijklmnopqrstuvwxyz0123"', '$env:GH_TOKEN = •••'],
+    ['gh auth login --with-token ghp_abcdefghijklmnopqrstuvwxyz0123', 'gh auth login --with-token •••'],
+    ['curl -H "Authorization: Bearer abc.def" https://api.x.com', 'curl -H "Authorization: Bearer •••" https://api.x.com'],
+    ['git clone https://user:hunter2@github.com/a/b.git', 'git clone https://user:•••@github.com/a/b.git'],
+    ['mysql --password=geheim -u root', 'mysql --password=••• -u root'],
+    ['DB_PASSWORD="s3cret pass" npm start', 'DB_PASSWORD=••• npm start'],
+    ['echo wJalrXUtnFEMI2K7MDENGbPxRfiCYEXAMPLEKEY9', 'echo •••'],
+  ];
+  for (const [raw, shown] of hidden) assert.equal(hideSecrets(raw), shown, raw);
+  for (const ok of ['npm test', 'git commit -m "Fix token parsing"', 'grep -r TOKEN src', 'git show 33d163c0e9b1f2a3c4d5e6f708192a3b4c5d6e7f', 'cd C--Projekte-AntropicUsageDashboard']) {
+    assert.equal(hideSecrets(ok), ok, ok);
+  }
+  // Erst ausblenden, dann kuerzen: vom Schluessel bleibt auch am Rand nichts stehen.
+  const cmd = toolTarget('Bash', { command: `export OPENAI_API_KEY=sk-proj-${'a1B'.repeat(30)} && npm run dev` });
+  assert.equal(cmd, 'export OPENAI_API_KEY=••• && npm run dev');
 });
 
 // --- Messwerte: Kontext und Tempo ----------------------------------------------

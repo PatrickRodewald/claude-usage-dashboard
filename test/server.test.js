@@ -50,10 +50,10 @@ async function withServer(fn) {
  * Noetig, weil fetch() Pfade wie '/../x' clientseitig normalisiert - genau die
  * Angriffsform, die hier ankommen soll.
  */
-function rawGet(port, rawPath) {
+function rawGet(port, rawPath, host = '127.0.0.1') {
   return new Promise((resolve, reject) => {
     const sock = net.connect(port, '127.0.0.1', () => {
-      sock.write(`GET ${rawPath} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`);
+      sock.write(`GET ${rawPath} HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
     });
     let data = '';
     sock.setEncoding('utf8');
@@ -74,6 +74,19 @@ test('Server bindet nur an 127.0.0.1', async () => {
   await withServer((app) => {
     assert.equal(app.server.address().address, '127.0.0.1');
     assert.ok(app.port > 0, 'Port 0 wird zu einem echten Port aufgeloest');
+  });
+});
+
+test('fremde Hostnamen bekommen nichts (Schutz vor DNS-Rebinding)', async () => {
+  await withServer(async (app) => {
+    for (const host of ['evil.example', `evil.example:${app.port}`, '127.0.0.1.evil.example']) {
+      const res = await rawGet(app.port, '/api/snapshot', host);
+      assert.equal(res.status, 421, host);
+      assert.ok(!res.body.includes('activity'), 'kein Snapshot');
+    }
+    for (const host of [`127.0.0.1:${app.port}`, `localhost:${app.port}`, `[::1]:${app.port}`, 'LOCALHOST']) {
+      assert.equal((await rawGet(app.port, '/api/snapshot', host)).status, 200, host);
+    }
   });
 });
 

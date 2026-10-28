@@ -856,12 +856,15 @@ td.name {
 }
 /* Pixel-Buero: ein Gebaeude auf einer Zeichenflaeche. Die Groesse setzt der
    Code (ganzzahlig vergroessert), hier nur Rahmen. */
+/* Zu breit fuer das Fenster: seitlich schieben statt abschneiden. */
 .px-building {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  box-sizing: border-box;
   max-width: 100%;
   border: 1px solid #3a4466;
   border-radius: 4px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #181425;
 }
 .px-canvas {

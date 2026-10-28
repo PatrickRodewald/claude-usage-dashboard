@@ -7,6 +7,7 @@ import { renderColumnChart, renderStackedBar, createTooltip } from './charts.js'
 import { createWorkshop, entrypointLabel } from './agents.js';
 import { createReplay } from './replayView.js';
 import { createPixelOffice } from './pixel/office.js';
+import { createSound } from './sounds.js';
 
 const $ = (id) => document.getElementById(id);
 const tooltip = createTooltip();
@@ -367,8 +368,21 @@ const workshop = createWorkshop($('workshop'), {
   timeZone: () => snapshot?.timezone,
 });
 
-// Pixel-Buero: dieselben Daten als Pixelgrafik. Das klassische Buero laeuft
-// verborgen mit - es spielt die Toene und ist beim Umschalten sofort da.
+// Klassisches Buero: gezeichnet wird nur, solange es zu sehen ist. Kommt es
+// wieder, zeigt es den aktuellen Stand, ohne alle Wechsel nachzuspielen.
+let officeData = null;
+let classicStale = true;
+const classicVisible = () => officeView === 'classic' && !replay.active && $('app').dataset.view === 'office';
+function renderClassic() {
+  if (!officeData || !classicVisible()) {
+    classicStale = true;
+    return;
+  }
+  workshop.render(officeData.act, officeData.env, { quiet: classicStale });
+  classicStale = false;
+}
+
+// Pixel-Buero: dieselben Daten als Pixelgrafik (Standard).
 const pixelOffice = createPixelOffice($('pixel-office'), {
   tooltip,
   describe: describeFigure,
@@ -391,6 +405,7 @@ function applyView() {
   viewBtn.setAttribute('aria-pressed', String(!pixel));
   tooltip.hide();
   if (pixel) pixelOffice.tick();
+  else renderClassic();
 }
 viewBtn.addEventListener('click', () => {
   officeView = officeView === 'pixel' ? 'classic' : 'pixel';
@@ -430,7 +445,10 @@ function applyPage() {
     else tab.removeAttribute('aria-current');
   }
   tooltip.hide();
-  if (page === 'office') pixelOffice.tick();
+  if (page === 'office') {
+    pixelOffice.tick();
+    renderClassic();
+  }
 }
 window.addEventListener('hashchange', () => {
   applyPage();
@@ -438,8 +456,9 @@ window.addEventListener('hashchange', () => {
 });
 applyPage();
 
-// Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
+// Toene im Buero (sounds.js): opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
 // bei einem Klick - ohne Nutzergeste laesst der Browser ihn nicht anlaufen.
+const sound = createSound();
 const soundBtn = $('sound-toggle');
 let soundOn = false;
 try {
@@ -453,14 +472,14 @@ const syncSoundButton = () => {
 };
 syncSoundButton();
 if (soundOn) {
-  workshop.setSound(true);
+  sound.setSound(true);
   // Gemerkt "an", aber ohne Klick bleibt der Kontext stumm: beim ersten
   // Klick irgendwo auf der Seite aufwecken.
-  document.addEventListener('pointerdown', () => workshop.setSound(soundOn), { once: true });
+  document.addEventListener('pointerdown', () => sound.setSound(soundOn), { once: true });
 }
 soundBtn.addEventListener('click', () => {
   soundOn = !soundOn;
-  workshop.setSound(soundOn);
+  sound.setSound(soundOn);
   try {
     localStorage.setItem('cud-sound', soundOn ? '1' : '0');
   } catch {
@@ -495,7 +514,9 @@ function renderActivity(s) {
   if (!replay.active) $('live-sub').textContent = parts.join(' · ');
   // Das Buero reagiert auf das Limit (Warnlampe, Zwangspause, Kalender).
   const env = { fiveHour: s.live.fiveHour, week: s.live.week };
-  workshop.render(act, env);
+  officeData = { act, env };
+  sound.observe(act, env);
+  renderClassic();
   pixelOffice.render(act, env);
 }
 

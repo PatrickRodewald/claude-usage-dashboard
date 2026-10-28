@@ -27,6 +27,15 @@ const MIME = {
   '.png': 'image/png',
 };
 
+/**
+ * Nur Anfragen, die an diesen Rechner adressiert sind. Eine fremde Webseite
+ * koennte ihren eigenen Namen sonst auf 127.0.0.1 umbiegen (DNS-Rebinding) und
+ * Snapshot samt Befehlen und Dateinamen mitlesen - ihr Host-Header verraet sie.
+ */
+export function localHost(host) {
+  return /^(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?$/i.test(String(host ?? ''));
+}
+
 function sendJson(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -198,6 +207,10 @@ export async function startServer({
   }
 
   const server = http.createServer((req, res) => {
+    if (!localHost(req.headers.host)) {
+      sendJson(res, 421, { error: 'Nur unter 127.0.0.1 oder localhost erreichbar' });
+      return;
+    }
     const url = new URL(req.url, `http://${host}:${port}`);
 
     if (url.pathname === '/api/snapshot') {

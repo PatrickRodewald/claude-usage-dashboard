@@ -15,14 +15,7 @@
  * erreichbar bleibt. Gleiche Raeume bekommen stets die gleiche Einrichtung.
  */
 
-import {
-  toolActivity,
-  toolLabel,
-  orderAgents,
-  ERRAND_IDLE_MS,
-  PACE_AFTER_MS,
-  VISIT_AFTER_MS,
-} from '../agents.js';
+import { toolActivity, toolLabel, orderAgents, clip, sessionState, agentState, errandsFor } from '../agents.js';
 
 export const TILE = 16;
 /** Waende von vorn gesehen (Aussenwand, Rueckwand jedes Raums): zwei Kacheln hoch. */
@@ -126,6 +119,14 @@ export function layoutBuilding(projects, maxCols = Infinity) {
   }
   const inner = Math.max(...bands.map((b) => b.width));
   const cols = SPINE + inner;
+  // Viel Platz uebrig (eine Reihe ist kuerzer als die breiteste): dort eine
+  // Lounge, statt die Raeume leer in die Breite zu ziehen.
+  bands.forEach((b, bi) => {
+    const extra = inner - b.width;
+    if (extra < MIN_ROOM_COLS) return;
+    b.units.push({ kind: 'lounge', key: `lounge-${bi}`, cols: extra, rows: 0 });
+    b.width = inner;
+  });
   let row = WALL_ROWS;
   for (const b of bands) {
     b.corridor = row;
@@ -195,11 +196,16 @@ export function layoutBuilding(projects, maxCols = Infinity) {
     }
     let x = SPINE;
     for (const u of b.units) {
-      const style = u.kind === 'kitchen' ? { wall: 'plain', floor: 'kitchen' } : ROOM_STYLES[hash(u.key) % ROOM_STYLES.length];
+      const style =
+        u.kind === 'kitchen'
+          ? { wall: 'plain', floor: 'kitchen' }
+          : u.kind === 'lounge'
+            ? { wall: 'brick', floor: 'carpet-wine' }
+            : ROOM_STYLES[hash(u.key) % ROOM_STYLES.length];
       const room = {
         key: u.key,
         kind: u.kind,
-        label: u.project?.label ?? 'Küche',
+        label: u.project?.label ?? (u.kind === 'kitchen' ? 'Küche' : 'Lounge'),
         project: u.project ?? null,
         c0: x,
         r0: b.top,
@@ -223,7 +229,7 @@ export function layoutBuilding(projects, maxCols = Infinity) {
         }
       }
       if (u.kind === 'kitchen') furnishKitchen(L, room, block);
-      else furnishRoom(L, room, u, block);
+      else if (u.kind === 'project') furnishRoom(L, room, u, block);
       x += u.cols;
     }
     // Unten schliesst eine Wand die Reihe ab; nur der Laengsflur geht weiter.
@@ -422,17 +428,25 @@ function shuffled(list, rnd) {
 
 const range = (a, b) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
 
-/** Kacheln, die vom Eingang aus zu erreichen sind (1 je Kachel). */
-function reachable(L) {
+/**
+ * Kacheln, die vom Eingang aus zu erreichen sind (1 je Kachel). Mit room nur
+ * innerhalb dieses Raums, ab der Kachel hinter seiner Tuer - in einen Raum
+ * fuehrt kein anderer Weg, also genuegt das, und es geht viel schneller.
+ */
+function reachable(L, room = null) {
   const seen = new Uint8Array(L.cols * L.rows);
-  const start = L.entry.row * L.cols + L.entry.col;
+  const from = room ? { col: room.door.col, row: room.r0 } : L.entry;
+  const start = from.row * L.cols + from.col;
+  const inside = room
+    ? (c, r) => c >= room.c0 && c < room.c0 + room.cols && r >= room.r0 && r < room.r0 + room.rows
+    : () => true;
   const queue = [start];
   seen[start] = 1;
   for (let qi = 0; qi < queue.length; qi++) {
     const c = queue[qi] % L.cols;
     const r = (queue[qi] - c) / L.cols;
     for (const [dc, dr] of DIRS) {
-      if (!canStep(L, c, r, dc, dr)) continue;
+      if (!inside(c + dc, r + dr) || !canStep(L, c, r, dc, dr)) continue;
       const n = (r + dr) * L.cols + c + dc;
       if (!seen[n]) {
         seen[n] = 1;
@@ -482,12 +496,15 @@ function decorate(L) {
     ...L.rooms.map((r) => ({ col: r.door.col, row: r.r0 })),
   ];
   const free = (c, r) => inside(c, r) && L.floor[at(c, r)] && !L.blocked[at(c, r)] && !L.used[at(c, r)];
+  // Was in einem Raum erreichbar bleiben muss, haengt nur von diesem Raum ab.
+  const needIn = new Map(L.rooms.map((r) => [r, need.filter((t) => roomAt(L, t.col, t.row) === r)]));
   const place = (name, col, row, kind) => {
     const w = widthOf(name);
     for (let c = col; c < col + w; c++) if (!free(c, row)) return false;
     for (let c = col; c < col + w; c++) L.blocked[at(c, row)] = 1;
-    const seen = reachable(L);
-    if (!need.every((t) => seen[at(t.col, t.row)])) {
+    const room = roomAt(L, col, row);
+    const seen = reachable(L, room);
+    if (!(room ? needIn.get(room) : need).every((t) => seen[at(t.col, t.row)])) {
       for (let c = col; c < col + w; c++) L.blocked[at(c, row)] = 0;
       return false;
     }
@@ -577,6 +594,30 @@ function decorate(L) {
         wish(['bookshelf-low', 'bookshelf'], ['wall'], 1);
         wish(['beanbag'], ['corner', 'side'], 1);
         wish(['trash-bin'], ['side', 'corner'], 1);
+      }
+      continue;
+    }
+    if (room.kind === 'lounge') {
+      // Lounge: Regale an der Rueckwand, Sitzgruppen im Raum, Pflanzen und Lampen.
+      for (let c = room.door.col + 1; c + 1 <= c1; c += 3) place(Math.floor(c / 3) % 2 ? 'bookshelf' : 'bookshelf-low', c, r0);
+      if (room.rows >= 4) {
+        for (let c = c0 + 1; c + 3 <= c1 - 1; c += 6) {
+          if (place('armchair', c, r0 + 2) && !place('coffee-table', c + 1, r0 + 2)) continue;
+          place('armchair', c + 3, r0 + 2);
+        }
+      }
+      wish(plants, ['corner'], 4);
+      wish(['floor-lamp-off'], ['side', 'corner'], 2, 'lamp');
+      wish(['beanbag', 'plant-bush'], ['side'], Math.max(1, room.rows - 4));
+      let col = room.door.col + 2;
+      for (const name of shuffled(['picture-landscape', 'wall-clock', 'picture-abstract', 'poster-mountain', 'corkboard', 'wall-shelf'], rnd)) {
+        const w = WALL_ART[name][0];
+        for (let c = col; c + w - 1 <= c1; c++) {
+          if (hang(name, c, room.face, name === 'wall-clock' ? 'clock' : 'art', room.key)) {
+            col = c + w + 2;
+            break;
+          }
+        }
       }
       continue;
     }
@@ -706,34 +747,16 @@ export function poseFor(activity) {
   return POSE[activity] ?? 'type';
 }
 
-function clip(text, max) {
-  const t = String(text ?? '');
-  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
-}
-
 /**
  * Text der Sprechblase: Werkzeug und woran es arbeitet. Shell-Befehle als
  * Prompt, Auftraege an Subagents mit Pfeil.
  */
 export function speechText(tool, target, max = 28) {
   const activity = toolActivity(tool);
-  if (target && (activity === 'shell' || activity === 'test')) return clip(`$ ${target}`, max);
+  if (target && activity === 'shell') return clip(`$ ${target}`, max);
   if (activity === 'delegate') return clip(target ? `→ ${target}` : 'delegiert', max);
   const label = toolLabel(tool);
   return clip(target ? `${label} ${target}` : label, max);
-}
-
-/** Zustand der Hauptfigur einer Sitzung (wie im SVG-Buero). */
-export function sessionState(s) {
-  if (s.status === 'idle') return 'idle';
-  if (s.status === 'stale') return 'stale';
-  if (s.status !== 'busy') return 'other';
-  return s.doing?.kind === 'tool' || s.doing?.kind === 'delegating' ? s.doing.kind : 'thinking';
-}
-
-export function agentState(a) {
-  if (a.state !== 'running') return a.state; // completed | failed | stopped
-  return a.tool ? 'tool' : 'thinking';
 }
 
 const FINISH = { completed: 'done', failed: 'error' };
@@ -771,30 +794,28 @@ export function figureView(kind, item, { limit } = {}) {
 
 /* --- Treiben ------------------------------------------------------------------ */
 
+/** In der Pause fuehren die Wege im Pixel-Buero in Kueche und Lounge. */
+const LEISURE = [
+  ['coffee', 3],
+  ['water', 2],
+  ['stroll', 1],
+  ['sofa', 2],
+  ['kicker', 2],
+];
+
 /**
  * Welche Besorgungen eine Figur im Pixel-Buero machen kann: { rate (Chance je
- * Sekunde), options: [[name, gewicht], ...] } oder null.
+ * Sekunde), options: [[name, gewicht], ...] } oder null. Wann, entscheidet
+ * dieselbe Regel wie im klassischen Buero (errandsFor); nur die Ziele der
+ * Pause sind andere, und fertige Subagents gehen statt Pause zu machen.
  * fig = { kind, state, stateMs }, room = { agentsRunning }.
  */
 export function pixelErrands(fig, room = {}) {
-  if (fig.kind === 'session' && fig.state === 'idle') {
-    if (!(fig.stateMs >= ERRAND_IDLE_MS)) return null;
-    return {
-      rate: 1 / 12,
-      options: [
-        ['coffee', 3],
-        ['water', 2],
-        ['stroll', 1],
-        ['sofa', 2],
-        ['kicker', 2],
-      ],
-    };
-  }
-  if (fig.state === 'thinking' && fig.stateMs >= PACE_AFTER_MS) return { rate: 1 / 8, options: [['pace', 1]] };
-  if (fig.kind === 'session' && fig.state === 'delegating' && room.agentsRunning > 0 && fig.stateMs >= VISIT_AFTER_MS) {
-    return { rate: 1 / 12, options: [['visit', 1]] };
-  }
-  return null;
+  const e = errandsFor(fig, room);
+  if (!e) return null;
+  const busy = e.options.every(([name]) => name === 'pace' || name === 'visit');
+  if (busy) return e;
+  return fig.kind === 'session' ? { rate: e.rate, options: LEISURE } : null;
 }
 
 /* --- Licht -------------------------------------------------------------------- */

@@ -345,6 +345,37 @@ export function commandKind(toolName, input) {
 
 const TARGET_MAX = 60;
 
+const HIDDEN = '•••';
+
+/** Bekannte Schluesselformen: Anthropic, OpenAI, GitHub, GitLab, Slack, AWS, Google, npm, PyPI, JWT. */
+const TOKEN_RE =
+  /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,}|glpat-[A-Za-z0-9_-]{8,}|xox[abposr]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{12,}|AIza[0-9A-Za-z_-]{20,}|npm_[A-Za-z0-9]{16,}|pypi-[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]+)?)/g;
+/** NAME=wert, wenn der Name nach Geheimnis klingt (API_KEY, GH_TOKEN, DB_PASSWORD ...). */
+const ASSIGN_RE =
+  /\b([A-Za-z_][A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|PASS|AUTH|CREDENTIALS?)[A-Za-z0-9_]*)(\s*[=:]\s*)("[^"]*"?|'[^']*'?|[^\s;&|]+)/gi;
+/** --token wert, --password=wert, -H "Authorization: Bearer wert" ... */
+const FLAG_RE = /(--(?:token|password|passwd|secret|api-?key|auth|access-token)(?:=|\s+))("[^"]*"?|'[^']*'?|\S+)/gi;
+const HEADER_RE = /\b((?:Authorization|Proxy-Authorization|X-Api-Key|Api-Key)\s*:\s*(?:Bearer\s+|Basic\s+|Token\s+)?)[^\s"']+/gi;
+/** Zugangsdaten in Adressen: https://nutzer:passwort@host */
+const URL_AUTH_RE = /(:\/\/[^\s/:@]+:)[^\s/@]+@/g;
+/** Lange Zeichenketten aus Gross- und Kleinbuchstaben und Ziffern: so sehen Schluessel aus (Hashes und Ids nicht). */
+const LONG_RE = /[A-Za-z0-9_+=-]{32,}/g;
+const keyLike = (s) => /[0-9]/.test(s) && /[a-z]/.test(s) && /[A-Z]/.test(s);
+
+/**
+ * Blendet aus, was nach Zugangsdaten aussieht: Befehle stehen im Buero in der
+ * Sprechblase und im Snapshot - ein Schluessel gehoert dort nicht hin.
+ */
+export function hideSecrets(text) {
+  return String(text)
+    .replace(URL_AUTH_RE, `$1${HIDDEN}@`)
+    .replace(HEADER_RE, `$1${HIDDEN}`)
+    .replace(FLAG_RE, `$1${HIDDEN}`)
+    .replace(ASSIGN_RE, `$1$2${HIDDEN}`)
+    .replace(TOKEN_RE, HIDDEN)
+    .replace(LONG_RE, (s) => (keyLike(s) ? HIDDEN : s));
+}
+
 /** Dateiname ohne Pfad - "C:\x\y.js" wie "/x/y.js". */
 function baseName(p) {
   const parts = String(p).split(/[\\/]+/).filter(Boolean);
@@ -399,9 +430,10 @@ export function toolTarget(toolName, input) {
       return null;
   }
   if (typeof text !== 'string') return null;
-  // Erste Zeile, Leerraum zusammengezogen - mehrzeilige Befehle passen sonst nicht.
+  // Erste Zeile, Leerraum zusammengezogen - mehrzeilige Befehle passen sonst
+  // nicht. Geheimnisse vor dem Kuerzen ausblenden, damit kein Rest stehen bleibt.
   const line = text.split(/\r?\n/).find((l) => l.trim()) ?? '';
-  const flat = line.replace(/\s+/g, ' ').trim();
+  const flat = hideSecrets(line.replace(/\s+/g, ' ').trim());
   if (!flat) return null;
   return flat.length > TARGET_MAX ? `${flat.slice(0, TARGET_MAX - 1)}…` : flat;
 }

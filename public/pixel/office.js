@@ -17,7 +17,7 @@
  * Glaettung; nur Text entsteht in voller Aufloesung.
  */
 
-import { limitState, roomAsleep, errandStillFits, pickWeighted, calendarFace } from '../agents.js';
+import { limitState, roomAsleep, errandStillFits, pickWeighted, calendarFace, zonedTime } from '../agents.js';
 import {
   TILE,
   WALL_ROWS,
@@ -51,6 +51,8 @@ const HURRY_SPEED = 120;
 /** Ereignisse (Nachricht, Fehler, Feier) nur zeigen, solange sie frisch sind. */
 const EVENT_FRESH_MS = 60_000;
 const CELEBRATE_FRESH_MS = 90_000;
+/** So lange merkt sich das Buero gezeigte Ereignisse; danach sind sie ohnehin nicht mehr frisch. */
+const SEEN_KEEP_MS = 10 * 60_000;
 /** Hoechstens so viele sind gleichzeitig unterwegs (Anteil und absolut). */
 const AWAY_SHARE = 0.4;
 const AWAY_MAX = 6;
@@ -221,7 +223,7 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 /**
  * @param container  Element, das das Gebaeude aufnimmt
  * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText? }
- * @returns {{ render(activity, env), tick(), setSound(on), errand(id, name), ready: Promise }}
+ * @returns {{ render(activity, env), tick(), errand(id, name), ready: Promise }}
  */
 export function createPixelOffice(
   container,
@@ -235,7 +237,7 @@ export function createPixelOffice(
   },
 ) {
   /** Bereits gezeigte Ereignisse - jedes nur einmal. */
-  const seen = new Set();
+  const seen = new Map();
   let art = null;
   let failed = null;
   let last = null;
@@ -323,8 +325,11 @@ export function createPixelOffice(
     return L;
   }
 
+  /** Platz in der Breite (CSS-Pixel), abzueglich des Rahmens um das Gebaeude. */
+  const availWidth = () => (container.clientWidth || 1200) - 2;
+
   function plan() {
-    const availW = container.clientWidth || 1200;
+    const availW = availWidth();
     const availH = Math.max(360, window.innerHeight - 220);
     const sig = buildingSignature(B.projects);
     let pick = null;
@@ -332,7 +337,8 @@ export function createPixelOffice(
       const maxCols = Math.max(1, Math.floor((availW / css - 2 * SIDE_PX) / TILE));
       const L = layoutFor(sig, maxCols);
       pick = { L, sig, css, maxCols, w: L.cols * TILE + 2 * SIDE_PX, h: L.rows * TILE + SIDE_PX };
-      if (pick.w * css <= availW && pick.h * css <= availH) break;
+      pick.fitsW = pick.w * css <= availW;
+      if (pick.fitsW && pick.h * css <= availH) break;
     }
     return pick;
   }
@@ -341,7 +347,9 @@ export function createPixelOffice(
     const p = plan();
     const sig = `${p.sig}|${p.css}|${p.maxCols}`;
     const dpr = window.devicePixelRatio || 1;
-    const k = pixelScale(p.w, container.clientWidth || p.w * p.css, dpr, p.css);
+    // Passt es nicht einmal zweifach in die Breite, bleibt es zweifach und
+    // laesst sich seitlich schieben - kleiner wird es nicht lesbarer.
+    const k = p.fitsW ? pixelScale(p.w, availWidth(), dpr, p.css) : Math.max(1, Math.round(2 * dpr));
     // Nur anders skaliert (anderer Bildschirm, etwas schmaler): neu zeichnen, nicht umziehen.
     if (sig === B.sig) {
       if (k !== B.k || dpr !== B.dpr) resize(k, dpr);
@@ -813,7 +821,7 @@ export function createPixelOffice(
     if (!ev?.id) return false;
     const key = `${kind}:${ev.id}`;
     if (seen.has(key)) return false;
-    seen.add(key);
+    seen.set(key, now);
     if (ev.at == null || Date.now() - ev.at > freshMs) return false;
     f.emote = { name, until: now + ms };
     return true;
@@ -1269,21 +1277,8 @@ export function createPixelOffice(
   function updateDaylight(t) {
     if (t - hourAt < 1000) return;
     hourAt = t;
-    const d = new Date(clock());
-    let h = d.getHours();
-    let m = d.getMinutes();
-    try {
-      const parts = new Intl.DateTimeFormat('en-GB', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hourCycle: 'h23',
-        timeZone: timeZone(),
-      }).formatToParts(d);
-      h = Number(parts.find((p) => p.type === 'hour').value);
-      m = Number(parts.find((p) => p.type === 'minute').value);
-    } catch {
-      /* unbekannte Zeitzone: Ortszeit des Browsers */
-    }
+    // Unbekannte Zeitzone: Ortszeit des Browsers (wie im klassischen Buero).
+    const { h, m } = zonedTime(timeZone(), clock());
     B.clock = { h, m };
     B.daylight = daylight(h + m / 60);
   }
@@ -1524,15 +1519,23 @@ export function createPixelOffice(
     );
     relayout(now);
     const present = new Set();
+    const listed = new Set();
     for (const p of B.projects) {
       for (const s of p.sessions) {
+        listed.add(s.sessionId);
         present.add(take('session', s, now));
-        for (const a of s.agents) present.add(take('agent', a, now));
+        for (const a of s.agents) {
+          listed.add(a.id);
+          present.add(take('agent', a, now));
+        }
       }
     }
     for (const f of B.figs.values()) {
       if (!present.has(f.id) && !f.leaving) leave(f, now, null);
     }
+    // Was nicht mehr in der Liste steht, muss man sich nicht merken.
+    for (const id of B.departed) if (!listed.has(id)) B.departed.delete(id);
+    for (const [key, at] of seen) if (now - at > SEEN_KEEP_MS) seen.delete(key);
     // Der Tooltip der gezeigten Figur folgt dem neuen Stand; wer geht, verliert ihn.
     const shown = hovered && B.figs.get(hovered);
     if (shown && !shown.leaving && !shown.gone) {
@@ -1556,7 +1559,6 @@ export function createPixelOffice(
     render,
     /** Gezeichnet wird ohnehin laufend; nach dem Einblenden wieder anstossen. */
     tick: kick,
-    setSound() {},
     /** Eine Besorgung von Hand anstossen (zum Ausprobieren und fuer Tests). */
     errand(id, name) {
       const f = B.figs.get(id);
