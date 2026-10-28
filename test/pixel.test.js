@@ -1,6 +1,7 @@
 /**
- * Pixel-Buero ohne DOM (public/pixel/world.js): Raumaufbau, Wegfindung, was
- * jede Figur zeigt - und ob alles, was der Renderer zeichnet, im Atlas steht.
+ * Pixel-Buero ohne DOM (public/pixel/world.js): Grundriss des Gebaeudes,
+ * Wegfindung, was jede Figur zeigt - und ob alles, was der Renderer zeichnet,
+ * im Atlas steht.
  */
 
 import test from 'node:test';
@@ -10,10 +11,13 @@ import fs from 'node:fs';
 import {
   TILE,
   WALL_ROWS,
-  layoutRoom,
-  roomSignature,
+  SPINE,
+  KITCHEN,
+  layoutBuilding,
+  buildingSignature,
   findPath,
   walkable,
+  roomAt,
   feetOf,
   tileAt,
   facing,
@@ -40,58 +44,112 @@ const session = (id, agents = [], extra = {}) => ({
 });
 const agent = (id, extra = {}) => ({ id, type: 'general-purpose', state: 'running', tool: null, parentId: null, ...extra });
 const project = (...sessions) => ({ key: 'p', label: 'p', sessions });
+const named = (key, ...sessions) => ({ key, label: key, sessions });
+const many = (n, p) => Array.from({ length: n }, (_, i) => agent(`${p}${i}`));
 
-test('ein Raum mit einer Sitzung: Mindestgroesse, Tuer, Kaffeeecke, Platz', () => {
-  const room = layoutRoom(project(session('s1')));
-  assert.equal(room.cols, 14);
-  assert.equal(room.rows, 9);
-  assert.equal(room.seats.length, 1);
-  const [seat] = room.seats;
-  assert.deepEqual([seat.kind, seat.desk, seat.row], ['session', 'desk-large', 5]);
-  assert.ok(walkable(room, room.door.col, room.door.row), 'die Tuer ist ein Durchgang');
-  assert.ok(!walkable(room, room.door.col + 1, room.door.row), 'die Wand daneben nicht');
-  assert.ok(!walkable(room, room.kitchen.counter.col, room.kitchen.counter.row), 'die Theke steht im Weg');
-  assert.equal(room.rug, null, 'ohne Subagents kein Teppich');
+test('ein Gebaeude: Eingang, Flur, gemeinsame Kueche und ein Raum je Projekt', () => {
+  const L = layoutBuilding([project(session('s1'))]);
+  assert.deepEqual(L.rooms.map((r) => r.kind), ['kitchen', 'project']);
+  assert.equal(L.rooms[0].key, KITCHEN);
+  assert.equal(L.bands.length, 1);
+  assert.ok(walkable(L, L.entrance.col, L.entrance.row), 'der Eingang ist ein Durchgang');
+  assert.ok(!walkable(L, L.entrance.col + 1, L.entrance.row), 'die Aussenwand daneben nicht');
+  assert.equal(L.floor[L.entry.row * L.cols + L.entry.col], 'hallway', 'hinter dem Eingang liegt der Flur');
+  for (const room of L.rooms) {
+    // Die Tuer fuehrt durch die Rueckwand: beide Wandreihen begehbar, daneben Wand.
+    for (let r = room.face; r < room.face + WALL_ROWS; r++) {
+      assert.ok(walkable(L, room.door.col, r), `${room.key}: Tuer in Reihe ${r}`);
+      assert.ok(!walkable(L, room.door.col === room.c0 ? room.door.col + 1 : room.door.col - 1, r), `${room.key}: Wand neben der Tuer`);
+    }
+    assert.equal(room.door.row, room.face);
+  }
+  const [seat] = L.seats;
+  assert.deepEqual([seat.kind, seat.desk, seat.room], ['session', 'desk-large', 'p']);
+  assert.ok(!walkable(L, L.kitchen.counter.col, L.kitchen.counter.row), 'die Theke steht im Weg');
+  assert.deepEqual(L.rugs, [], 'ohne Subagents kein Teppich');
 });
 
-test('jeder Platz und jede Ecke ist von der Tuer aus erreichbar', () => {
-  const agents = (n, p) => Array.from({ length: n }, (_, i) => agent(`${p}${i}`));
-  const room = layoutRoom(project(session('s1', agents(6, 'a')), session('s2', agents(2, 'b')), session('s3')));
-  assert.equal(room.seats.length, 3 + 8);
-  const spots = [...room.seats, room.kitchen.coffee, room.kitchen.water];
-  for (const s of spots) {
-    assert.ok(walkable(room, s.col, s.row), `begehbar: ${JSON.stringify(s)}`);
-    assert.ok(findPath(room, room.door, s), `erreichbar: ${JSON.stringify(s)}`);
+test('jeder Platz ist vom Eingang und von der Kueche aus erreichbar, auch ueber mehrere Reihen', () => {
+  const projects = [
+    named('A', session('a', many(6, 'a'))),
+    named('B', session('b')),
+    named('C', session('c1'), session('c2', many(2, 'c'))),
+    named('D', session('d')),
+  ];
+  const L = layoutBuilding(projects, 30);
+  assert.ok(L.bands.length > 1, 'schmal: mehrere Reihen');
+  assert.ok(L.cols <= 30, `hoechstens 30 Kacheln breit, nicht ${L.cols}`);
+  assert.equal(L.seats.length, 5 + 8);
+  for (const s of L.seats) {
+    assert.ok(findPath(L, L.entrance, s), `vom Eingang: ${s.id}`);
+    assert.ok(findPath(L, s, L.kitchen.coffee), `zur Kueche: ${s.id}`);
+    assert.ok(findPath(L, s, L.kitchen.water), `zum Wasser: ${s.id}`);
+    assert.equal(roomAt(L, s.col, s.row)?.key, s.room, `${s.id} sitzt in seinem Raum`);
   }
-  // Kein Platz doppelt belegt.
-  assert.equal(new Set(room.seats.map((s) => `${s.col},${s.row}`)).size, room.seats.length);
-  // Subagents sitzen auf dem Teppich.
-  for (const s of room.seats.filter((x) => x.kind === 'agent')) {
-    assert.ok(s.col >= room.rug.col && s.col < room.rug.col + room.rug.w, `Teppich deckt Spalte ${s.col}`);
-    assert.ok(s.row >= room.rug.row && s.row < room.rug.row + room.rug.h, `Teppich deckt Reihe ${s.row}`);
-    assert.equal(s.owner, s.id.startsWith('a') ? 's1' : 's2');
+  assert.equal(new Set(L.seats.map((s) => `${s.col},${s.row}`)).size, L.seats.length, 'kein Platz doppelt');
+  // Subagents sitzen auf einem Teppich in ihrem Raum.
+  for (const s of L.seats.filter((x) => x.kind === 'agent')) {
+    const rug = L.rugs.find((g) => s.col >= g.col && s.col < g.col + g.w && s.row >= g.row && s.row < g.row + g.h);
+    assert.ok(rug, `Teppich unter ${s.id}`);
+    const room = L.rooms.find((r) => r.key === s.room);
+    assert.ok(rug.col >= room.c0 && rug.col + rug.w <= room.c0 + room.cols, 'Teppich bleibt im Raum');
+    assert.ok(rug.row + rug.h <= room.r0 + room.rows);
   }
-  // Der Teppich bleibt im Raum.
-  assert.ok(room.rug.col + room.rug.w <= room.cols && room.rug.row + room.rug.h <= room.rows);
+  // Raeume ueberlappen nicht und bleiben im Gebaeude.
+  const cells = new Set();
+  for (const r of L.rooms) {
+    assert.ok(r.c0 >= SPINE && r.c0 + r.cols <= L.cols && r.r0 + r.rows <= L.rows, `${r.key} im Gebaeude`);
+    for (let y = r.r0; y < r.r0 + r.rows; y++) {
+      for (let x = r.c0; x < r.c0 + r.cols; x++) {
+        assert.ok(!cells.has(`${x},${y}`), `${r.key} ueberlappt bei ${x},${y}`);
+        cells.add(`${x},${y}`);
+      }
+    }
+  }
+});
+
+test('Waende trennen die Raeume: von Raum zu Raum geht es durch Tueren und Flur', () => {
+  const L = layoutBuilding([named('A', session('a')), named('B', session('b'))]);
+  const [, A, B] = L.rooms;
+  assert.equal(A.c0 + A.cols, B.c0, 'nebeneinander');
+  const row = A.r0 + A.rows - 1;
+  const left = { col: A.c0 + A.cols - 1, row };
+  const right = { col: B.c0, row };
+  const path = findPath(L, left, right);
+  assert.ok(path.length > 1, 'kein Schritt durch die Wand');
+  assert.ok(path.some((t) => !roomAt(L, t.col, t.row)), 'der Weg fuehrt ueber den Flur');
+  assert.ok(path.some((t) => t.col === A.door.col && t.row === A.face), 'durch die eigene Tuer hinaus');
+  assert.ok(path.some((t) => t.col === B.door.col && t.row === B.face), 'durch die andere Tuer hinein');
+  // Auch die Kueche ist ein eigener Raum.
+  const kitchen = L.rooms[0];
+  const k = findPath(L, { col: A.c0, row }, { col: kitchen.c0 + kitchen.cols - 1, row });
+  assert.ok(k.length > 1 && k.some((t) => !roomAt(L, t.col, t.row)));
+});
+
+test('Reihen: Restbreite wird geteilt, ein breiter Raum bekommt trotzdem Platz', () => {
+  const wide = named('W', session('w1', many(4, 'w')), session('w2', many(4, 'v')), session('w3'));
+  const L = layoutBuilding([named('A', session('a')), wide], 20);
+  assert.ok(L.cols > 20, 'der breite Raum passt nicht in 20 Kacheln - dann eben breiter');
+  const total = (band) => L.rooms.filter((r) => r.band === band).reduce((n, r) => n + r.cols, 0);
+  for (let b = 0; b < L.bands.length; b++) assert.equal(total(b), L.cols - SPINE, `Reihe ${b} fuellt die Breite`);
+  const one = layoutBuilding([named('A', session('a')), named('B', session('b'))]);
+  assert.equal(one.bands.length, 1, 'ohne Grenze eine Reihe');
 });
 
 test('Wegfindung: kuerzester Weg, schon da, unerreichbar', () => {
-  const room = layoutRoom(project(session('s1')));
-  const from = { col: 9, row: 7 };
-  const to = { col: 12, row: 3 };
-  const path = findPath(room, from, to);
-  assert.equal(path.length, 3 + 4, 'freie Flaeche: Manhattan-Abstand');
+  const L = layoutBuilding([project(session('s1'))]);
+  const from = { col: 3, row: L.bands[0].corridor };
+  const to = { col: 10, row: L.bands[0].corridor + 1 };
+  const path = findPath(L, from, to);
+  assert.equal(path.length, 7 + 1, 'freier Flur: Manhattan-Abstand');
   assert.deepEqual(path[path.length - 1], to);
   for (let i = 1; i < path.length; i++) {
     const d = Math.abs(path[i].col - path[i - 1].col) + Math.abs(path[i].row - path[i - 1].row);
     assert.equal(d, 1, 'nur Nachbarkacheln');
   }
-  assert.deepEqual(findPath(room, from, from), []);
-  assert.equal(findPath(room, from, { col: 5, row: 0 }), null, 'in die Wand geht es nicht');
-  // Um die Theke herum statt hindurch.
-  const around = findPath(room, { col: 2, row: 2 }, { col: 8, row: 2 });
-  assert.ok(around.every((t) => walkable(room, t.col, t.row)));
-  assert.ok(around.length > 6);
+  assert.deepEqual(findPath(L, from, from), []);
+  assert.equal(findPath(L, from, { col: 5, row: 0 }), null, 'in die Wand geht es nicht');
+  assert.equal(findPath(L, { col: -3, row: 2 }, from), null, 'von ausserhalb nicht');
 });
 
 test('Kachel und Fusspunkt passen zusammen; Blickrichtung je Schritt', () => {
@@ -193,11 +251,12 @@ test('Kleidung: Farben aus der Palette, stabil je Sitzung und Typ', () => {
   assert.ok(OUTFITS[outfitFor('agent', { type: 'irgendwas' })]);
 });
 
-test('Raumsignatur aendert sich nur mit Sitzungen und Subagents', () => {
-  const a = project(session('s1', [agent('a1')]));
-  const b = project(session('s1', [agent('a1', { tool: 'Read' })], { status: 'idle' }));
-  assert.equal(roomSignature(a), roomSignature(b));
-  assert.notEqual(roomSignature(a), roomSignature(project(session('s1', [agent('a1'), agent('a2')]))));
+test('Gebaeudesignatur aendert sich nur mit Projekten, Sitzungen und Subagents', () => {
+  const a = [project(session('s1', [agent('a1')]))];
+  const b = [project(session('s1', [agent('a1', { tool: 'Read' })], { status: 'idle' }))];
+  assert.equal(buildingSignature(a), buildingSignature(b));
+  assert.notEqual(buildingSignature(a), buildingSignature([project(session('s1', [agent('a1'), agent('a2')]))]));
+  assert.notEqual(buildingSignature(a), buildingSignature([...a, named('q', session('s9'))]));
 });
 
 test('alles, was der Renderer zeichnet, steht im Atlas', () => {
@@ -208,6 +267,7 @@ test('alles, was der Renderer zeichnet, steht im Atlas', () => {
     ...['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'].map((p) => `rug-${p}`),
     'wall-plain', 'wall-wainscot', 'wall-end-left', 'wall-end-right', 'wall-side-cap', 'wall-outer-corner',
     'door-wood-closed', 'door-wood-half-open', 'door-wood-open',
+    'hallway', 'door-glass-closed', 'door-glass-half-open', 'door-glass-open', 'plate-brass',
     'kitchen-counter', 'espresso-idle', 'tray-mugs', 'fridge', 'cooler-bubble-1',
     'desk-large', 'desk-small', 'chair-front', 'laptop-back-open', 'laptop-closed', 'lamp-on', 'lamp-off', 'mug-idle',
     'bubble-speech-tail', 'bubble-thought-puff-large', 'bubble-thought-puff-small',

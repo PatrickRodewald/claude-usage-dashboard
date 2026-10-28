@@ -93,8 +93,7 @@ Die Kopfzeile wechselt zwischen zwei Seiten: **Büro** (Standard) und **Statisti
 Im **Büro** steht das Büro aus „Gerade aktiv“ im Mittelpunkt. Die fünf Statuskacheln liegen als
 Leiste darüber, im selben dunklen Rahmen und in den Farben der Pixelgrafik: Wert, Balken und je
 eine Kernangabe (Reset, Requests, Prognose, Gegenwert). Beim Zeigen oder Antippen klappt eine
-Kachel mit allen Angaben über das Büro auf. Eine Warnung färbt ihren Rahmen gelb oder rot. Ist
-nur ein Raum offen, wird er vierfach statt dreifach vergrößert.
+Kachel mit allen Angaben über das Büro auf. Eine Warnung färbt ihren Rahmen gelb oder rot.
 
 Die **Statistik** zeigt die Kacheln in voller Größe mit allen Diagrammen und Tabellen; das ist
 die Seite, die unten unter „Dashboard“ beschrieben ist.
@@ -260,14 +259,20 @@ im Hintergrund, hält das Büro alle Animationen an.
 
 #### Pixel-Büro
 
-Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas. Die Grafiken sind mit ChatGPT
-erzeugt und auf 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und
-Aufbereitung stehen in `art/README.md`. Angezeigt wird ganzzahlig vergrößert (meist dreifach),
-damit jedes Pixel gleich groß bleibt; in schmalen Fenstern zweifach.
+Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas: ein einziges Gebäude, in dem
+alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und auf
+16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
+in `art/README.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
+so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
 
-- **Der Raum:** Holzboden, an der Rückwand die Tür und eine Kaffeeecke mit Theke,
-  Espressomaschine, Kühlschrank und Wasserspender. Sitzungen arbeiten an großen Tischen, ihre
-  Subagents darunter an kleinen Tischen auf einem Teppich.
+- **Das Gebäude:** Oben die Außenwand mit der gläsernen Eingangstür, darunter ein Flur. Vom Flur
+  führt eine Tür in jeden Raum: zuerst die **gemeinsame Küche** mit Theke, Espressomaschine,
+  Kühlschrank und Wasserspender, daneben **ein Raum je Projekt** mit Messingschild an der Wand.
+  Wände trennen die Räume; von Raum zu Raum geht es durch die Türen und über den Flur. Passen
+  nicht alle Räume nebeneinander, folgt darunter eine weitere Reihe mit eigenem Flur, und ein
+  Längsflur am linken Rand verbindet alle.
+- **Im Projektraum:** Sitzungen arbeiten an großen Tischen, ihre Subagents davor an kleinen
+  Tischen auf einem Teppich. Das Schild nennt beim Zeigen Sitzungen, Subagents und Ordner.
 - **Am Tisch:** Lesen und Suchen (`Read`, `Grep`, Web) mit einem Buch, dessen Seiten umblättern;
   Schreiben (`Edit`, `Write`, Todos) mit Block und Stift; Shell, Tests und andere Werkzeuge am
   Laptop; Nachdenken mit der Hand am Kinn und einer Denkblase. Die Sprechblase nennt Werkzeug
@@ -276,15 +281,17 @@ damit jedes Pixel gleich groß bleibt; in schmalen Fenstern zweifach.
 - **Symbole über dem Kopf:** „!“ bei einer neuen Nachricht von dir, ein Häkchen nach einem Commit,
   ein Herz nach einem Push, ein Kreuz bei einem Fehler, Schweißtropfen bei Drosselung, „?“ bei
   einer Sitzung ohne Lebenszeichen und eine Sanduhr für alle, wenn das 5h-Limit erreicht ist.
-- **Treiben:** Wer auf dich wartet, holt sich nach ein paar Sekunden ab und zu einen Kaffee
-  (danach dampft die Tasse am Platz), trinkt Wasser oder vertritt sich die Beine. Wer lange
+- **Treiben:** Wer auf dich wartet, geht nach ein paar Sekunden ab und zu in die Küche, holt
+  einen Kaffee (danach dampft die Tasse am Platz) oder trinkt Wasser, oder vertritt sich im Raum
+  und auf dem Flur die Beine. An Maschine und Wasserspender steht immer nur einer. Wer lange
   nachdenkt, geht hinter dem Tisch auf und ab; wer delegiert, stellt sich zu einem seiner
-  Subagents („?“), der eine Idee hat. Gelaufen wird per Wegfindung um die Möbel herum. Kommt
-  Arbeit, eilt die Figur zurück; unterwegs sind höchstens 40 % eines Raums, maximal vier.
-- **Kommen und Gehen:** Neue Sitzungen und Subagents kommen durch die Tür und gehen zu ihrem
-  Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder Kreuz) hinaus; sein Tisch
-  bleibt leer stehen, bis er aus der Liste fällt.
-- **Ruhe:** Schlafen alle im Raum, wird er gedimmt.
+  Subagents („?“), der eine Idee hat. Gelaufen wird per Wegfindung um Möbel und Wände herum.
+  Kommt Arbeit, eilt die Figur zurück; unterwegs sind höchstens 40 % aller Figuren, maximal sechs.
+- **Kommen und Gehen:** Neue Sitzungen und Subagents kommen durch den Eingang, gehen über den Flur
+  in ihren Raum und an ihren Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder
+  Kreuz) hinaus; sein Tisch bleibt leer stehen, bis er aus der Liste fällt. Kommt ein Projekt
+  hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit seinem Tisch um.
+- **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt.
 
 Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro. Im Hintergrund-Tab
 steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
@@ -620,7 +627,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-340 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+342 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -740,7 +747,7 @@ src/
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
   agents.js         Büro mit Figuren für „Gerade aktiv" (klassisch, SVG)
-  pixel/world.js    Pixel-Büro ohne DOM: Raumaufbau, Wegfindung, was jede Figur zeigt
+  pixel/world.js    Pixel-Büro ohne DOM: Grundriss, Wegfindung, was jede Figur zeigt
   pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
   assets/office/    Grafiken des Pixel-Büros mit atlas.json
 art/                Herkunft der Pixelgrafiken: Prompts, Rohbilder, Aufbereitung (Python)

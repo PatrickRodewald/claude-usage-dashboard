@@ -854,31 +854,29 @@ td.name {
   overflow: hidden;
   background: var(--office-floor);
 }
-/* Pixel-Buero: Groesse setzt der Code (ganzzahlig vergroessert), hier nur Rahmen. */
-.px-room {
+/* Pixel-Buero: ein Gebaeude auf einer Zeichenflaeche. Die Groesse setzt der
+   Code (ganzzahlig vergroessert), hier nur Rahmen. */
+.px-building {
   flex: 0 0 auto;
   max-width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid #3a4466;
+  border-radius: 4px;
   overflow: hidden;
   background: #181425;
-}
-.px-caption {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #c0cbdc;
-  background: #262b44;
-}
-.px-caption strong {
-  color: #ffffff;
-  font-weight: 600;
 }
 .px-canvas {
   display: block;
   image-rendering: pixelated;
+}
+.px-empty {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #c0cbdc;
+  background: #262b44;
+}
+.px-empty[hidden] {
+  display: none;
 }
 /* Skaliert in schmalen Fenstern herunter, aber nie ueber die Naturgroesse. */
 .workshop-svg {

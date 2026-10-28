@@ -1,10 +1,11 @@
 /*
- * Pixel-Buero: das Buero als Pixelgrafik auf Canvas 2D. Je Projekt ein Raum
- * aus Kacheln. Am Tisch arbeiten die Figuren mit Buch, Block oder Laptop - je
+ * Pixel-Buero: das Buero als Pixelgrafik auf Canvas 2D - ein Gebaeude mit
+ * gemeinsamer Kueche und einem Raum je Projekt, verbunden durch Flure und
+ * Tueren (Grundriss in world.js). Am Tisch arbeiten die Figuren mit Buch, Block oder Laptop - je
  * nach Werkzeug, mit Datei oder Befehl in der Sprechblase. Wer wartet, holt
  * Kaffee oder Wasser; wer lange nachdenkt, geht auf und ab; wer delegiert,
  * schaut bei seinen Subagents vorbei. Gegangen wird per Wegfindung, gekommen
- * und gegangen durch die Tuer.
+ * und gegangen durch den Eingang.
  *
  * Grafiken: public/assets/office (atlas.json), Herkunft in art/README.md.
  * Gezeichnet wird in Originalpixeln, ganzzahlig vergroessert und ohne
@@ -16,8 +17,8 @@ import {
   TILE,
   WALL_ROWS,
   SIDE_PX,
-  layoutRoom,
-  roomSignature,
+  layoutBuilding,
+  buildingSignature,
   findPath,
   walkable,
   feetOf,
@@ -41,7 +42,7 @@ const EVENT_FRESH_MS = 60_000;
 const CELEBRATE_FRESH_MS = 90_000;
 /** Hoechstens so viele sind gleichzeitig unterwegs (Anteil und absolut). */
 const AWAY_SHARE = 0.4;
-const AWAY_MAX = 4;
+const AWAY_MAX = 6;
 /** Schriftgroesse in den Blasen (CSS-Pixel). */
 const FONT_CSS = 11;
 const FONT_FAMILY = 'ui-monospace, "Cascadia Mono", Consolas, monospace';
@@ -154,7 +155,16 @@ function makeArt({ atlas, images }) {
     const a = atlas.animations[name];
     return a ? a.states[frameIndex(a, elapsed)] : null;
   };
-  return { atlas, draw, anim, frame, sprite: (n) => atlas.sprites[n] };
+  /** Sprite auf Breite w dehnen: Raender (edge Pixel) bleiben, die Mitte wird gestreckt. */
+  const stretch = (ctx, name, x, y, w, edge) => {
+    const s = atlas.sprites[name];
+    const img = images[s.image];
+    const mid = s.width - 2 * edge;
+    ctx.drawImage(img, s.x, s.y, edge, s.height, x, y, edge, s.height);
+    ctx.drawImage(img, s.x + edge, s.y, mid, s.height, x + edge, y, w - 2 * edge, s.height);
+    ctx.drawImage(img, s.x + s.width - edge, s.y, edge, s.height, x + w - edge, y, edge, s.height);
+  };
+  return { atlas, draw, stretch, anim, frame, sprite: (n) => atlas.sprites[n] };
 }
 
 /* --- Zeichenhilfen ---------------------------------------------------------- */
@@ -186,29 +196,57 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 /* --- Buero ----------------------------------------------------------------- */
 
 /**
- * @param container  Element, das die Raeume aufnimmt
+ * @param container  Element, das das Gebaeude aufnimmt
  * @param opts       { tooltip, describe(kind, item) -> string, emptyText? }
- * @returns {{ render(activity, env), tick(), setSound(on), ready: Promise }}
+ * @returns {{ render(activity, env), tick(), setSound(on), errand(id, name), ready: Promise }}
  */
 export function createPixelOffice(
   container,
   { tooltip, describe, emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.' },
 ) {
-  /** Raeume je Projekt. */
-  const rooms = new Map();
   /** Bereits gezeigte Ereignisse - jedes nur einmal. */
   const seen = new Set();
   let art = null;
   let failed = null;
   let last = null;
   let renderedOnce = false;
-  let empty = null;
   let raf = 0;
   let lastT = 0;
-  let roomCount = 0;
   let hovered = null;
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const still = () => reduced?.matches === true;
+
+  const root = document.createElement('div');
+  root.className = 'px-building';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'px-canvas';
+  canvas.setAttribute('role', 'img');
+  const empty = document.createElement('p');
+  empty.className = 'px-empty';
+  empty.textContent = emptyText;
+  empty.hidden = true;
+  root.append(canvas, empty);
+  const ctx = canvas.getContext('2d');
+
+  /** Das Gebaeude: Grundriss, Figuren und was sich an Kueche und Tueren tut. */
+  const B = {
+    layout: null,
+    sig: null,
+    bg: null,
+    k: 3,
+    W: 0,
+    H: 0,
+    projects: [],
+    figs: new Map(),
+    /** Beendete Subagents, die schon gegangen sind - nicht wieder hereinholen. */
+    departed: new Set(),
+    doors: new Map(),
+    espresso: { since: -Infinity, until: -Infinity },
+    cooler: { until: -Infinity },
+    directT: 0,
+    limit: 'unknown',
+    asleep: new Set(),
+  };
 
   const ready = loadAssets()
     .then((a) => {
@@ -223,78 +261,77 @@ export function createPixelOffice(
       container.replaceChildren(p);
     });
 
-  /* --- Raum anlegen und zeichnen ------------------------------------------- */
+  /* --- Grundriss und Hintergrund --------------------------------------------- */
 
-  function createRoom(project) {
-    const root = document.createElement('div');
-    root.className = 'px-room';
-    const caption = document.createElement('div');
-    caption.className = 'px-caption';
-    const canvas = document.createElement('canvas');
-    canvas.className = 'px-canvas';
-    root.append(caption, canvas);
-    const room = {
-      key: project.key,
-      project,
-      root,
-      caption,
-      canvas,
-      ctx: canvas.getContext('2d'),
-      layout: null,
-      sig: null,
-      bg: null,
-      k: 3,
-      figs: new Map(),
-      /** Beendete Subagents, die schon gegangen sind - nicht wieder hereinholen. */
-      departed: new Set(),
-      door: { level: 0, t: 0 },
-      espresso: { since: -Infinity, until: -Infinity },
-      cooler: { until: -Infinity },
-      directT: 0,
-      asleep: false,
-      limit: 'unknown',
-    };
-    canvas.addEventListener('pointermove', (ev) => hoverAt(room, ev));
-    canvas.addEventListener('pointerleave', () => {
-      hovered = null;
-      canvas.style.cursor = '';
-      tooltip.hide();
-    });
-    return room;
+  /**
+   * Grundriss passend zum Platz: moeglichst gross (4-, 3-, 2-fach), solange das
+   * Gebaeude in Breite und Hoehe ins Fenster passt; sonst 2-fach und scrollen.
+   */
+  function plan() {
+    const availW = container.clientWidth || 1200;
+    const availH = Math.max(360, window.innerHeight - 220);
+    let pick = null;
+    for (const css of [4, 3, 2]) {
+      const maxCols = Math.max(1, Math.floor((availW / css - 2 * SIDE_PX) / TILE));
+      const L = layoutBuilding(B.projects, maxCols);
+      pick = { L, css, maxCols, w: L.cols * TILE + 2 * SIDE_PX, h: L.rows * TILE + SIDE_PX };
+      if (pick.w * css <= availW && pick.h * css <= availH) break;
+    }
+    return pick;
   }
 
-  /** Massstab und Canvas-Groesse passend zur verfuegbaren Breite. */
-  function fit(room) {
-    const L = room.layout;
-    const W = L.cols * TILE + 2 * SIDE_PX;
-    const H = L.rows * TILE;
+  function relayout(now) {
+    const p = plan();
+    const sig = `${buildingSignature(B.projects)}|${p.css}|${p.maxCols}`;
+    if (sig === B.sig) return;
+    B.sig = sig;
+    B.layout = p.L;
+    B.W = p.w;
+    B.H = p.h;
     const dpr = window.devicePixelRatio || 1;
-    const avail = container.clientWidth || W * 3;
-    // Ein einzelner Raum darf groesser werden, mehrere passen dafuer nebeneinander.
-    const k = pixelScale(W, avail, dpr, rooms.size === 1 ? 4 : 3);
-    room.k = k;
-    room.W = W;
-    room.H = H;
-    if (room.canvas.width !== W * k) room.canvas.width = W * k;
-    if (room.canvas.height !== H * k) room.canvas.height = H * k;
-    room.canvas.style.width = `${(W * k) / dpr}px`;
-    room.canvas.style.height = `${(H * k) / dpr}px`;
+    B.k = pixelScale(p.w, container.clientWidth || p.w * p.css, dpr, p.css);
+    canvas.width = p.w * B.k;
+    canvas.height = p.h * B.k;
+    canvas.style.width = `${(p.w * B.k) / dpr}px`;
+    canvas.style.height = `${(p.h * B.k) / dpr}px`;
+    buildBackground();
+    // Umgebaut: wer sitzt, zieht mit seinem Tisch um; wer unterwegs ist, geht
+    // zum neuen Platz (Besorgungen enden), wer geht, sucht den Ausgang neu.
+    for (const f of B.figs.values()) {
+      const seat = seatOf(f.id);
+      if (f.leaving) {
+        go(f, [{ walk: B.layout.entrance }, { exit: true }], now);
+        continue;
+      }
+      if (!seat) continue;
+      f.seat = seat;
+      if (f.seated) {
+        const at = feetOf(seat);
+        f.x = at.x;
+        f.y = at.y;
+      } else {
+        f.errand = null;
+        go(f, [{ walk: seat }, { sit: true }], now);
+      }
+    }
   }
 
-  /** Was sich nie bewegt: Boden, Teppich, Waende - einmal je Aufbau. */
-  function buildBackground(room) {
-    const L = room.layout;
+  /** Was sich nie bewegt: Boeden, Teppiche, Waende - einmal je Grundriss. */
+  function buildBackground() {
+    const L = B.layout;
     const bg = document.createElement('canvas');
-    bg.width = room.W;
-    bg.height = room.H;
+    bg.width = B.W;
+    bg.height = B.H;
     const g = bg.getContext('2d');
     g.imageSmoothingEnabled = false;
     g.translate(SIDE_PX, 0);
-    for (let r = WALL_ROWS; r < L.rows; r++) {
-      for (let c = 0; c < L.cols; c++) art.draw(g, L.floor[r * L.cols + c], c * TILE, r * TILE);
+    for (let r = 0; r < L.rows; r++) {
+      for (let c = 0; c < L.cols; c++) {
+        const name = L.floor[r * L.cols + c];
+        if (name) art.draw(g, name, c * TILE, r * TILE);
+      }
     }
-    if (L.rug) {
-      const { col, row, w, h } = L.rug;
+    for (const { col, row, w, h } of L.rugs) {
       for (let r = 0; r < h; r++) {
         for (let c = 0; c < w; c++) {
           const v = r === 0 ? 'top' : r === h - 1 ? 'bottom' : '';
@@ -304,36 +341,48 @@ export function createPixelOffice(
         }
       }
     }
-    for (let c = 0; c < L.cols; c++) {
-      if (c === L.door.col) continue;
-      const name =
-        c === 0
-          ? 'wall-end-left'
-          : c === L.cols - 1
-            ? 'wall-end-right'
-            : c >= L.kitchen.counter.col - 1 && c <= L.kitchen.cooler.col + 1
-              ? 'wall-wainscot'
-              : 'wall-plain';
-      art.draw(g, name, c * TILE, 0);
+    // Waende von vorn; die Tueren zeichnet die Szene (sie gehen auf und zu).
+    const doors = new Set(L.doors.map((d) => `${d.col},${d.row}`));
+    for (const f of L.faces) {
+      for (let c = f.c0; c <= f.c1; c++) {
+        if (doors.has(`${c},${f.row}`)) continue;
+        const name =
+          c === f.c0 ? 'wall-end-left' : c === f.c1 ? 'wall-end-right' : f.style === 'wainscot' ? 'wall-wainscot' : 'wall-plain';
+        art.draw(g, name, c * TILE, f.row * TILE);
+      }
+    }
+    // Trennwaende von oben: senkrecht auf der Raumgrenze, waagerecht unter jeder Reihe.
+    for (const d of L.dividers) {
+      for (let r = d.r0; r < d.r1; r++) art.draw(g, 'wall-side-cap', d.col * TILE - 2, r * TILE);
+    }
+    for (const l of L.ledges) {
+      const y = (l.row + 1) * TILE - 2;
+      for (let c = l.c0; c <= l.c1; c++) {
+        g.save();
+        g.translate(c * TILE + TILE, y);
+        g.rotate(Math.PI / 2);
+        art.draw(g, 'wall-side-cap', 0, 0);
+        g.restore();
+      }
     }
     const right = L.cols * TILE - 12;
     art.draw(g, 'wall-outer-corner', -SIDE_PX, 0);
     art.draw(g, 'wall-outer-corner', right, 0, { flip: true });
-    for (let y = TILE; y < room.H; y += TILE) {
+    for (let y = TILE; y < L.rows * TILE; y += TILE) {
       art.draw(g, 'wall-side-cap', -SIDE_PX, y);
       art.draw(g, 'wall-side-cap', right, y, { flip: true });
     }
-    room.bg = bg;
+    B.bg = bg;
   }
 
   /* --- Figuren --------------------------------------------------------------- */
 
-  function seatOf(room, id) {
-    return room.layout.seats.find((s) => s.id === id) ?? null;
+  function seatOf(id) {
+    return B.layout?.seats.find((s) => s.id === id) ?? null;
   }
 
-  function newFig(room, kind, item, seat, arriving) {
-    const at = arriving ? feetOf(room.layout.door) : feetOf(seat);
+  function newFig(kind, item, seat, arriving) {
+    const at = arriving ? feetOf(B.layout.entrance) : feetOf(seat);
     const f = {
       id: kind === 'session' ? item.sessionId : item.id,
       kind,
@@ -359,29 +408,29 @@ export function createPixelOffice(
       // Nicht alle im Gleichtakt tippen lassen.
       phase: Math.floor(Math.random() * 1000),
     };
-    if (arriving) go(room, f, [{ walk: seat }, { sit: true }], performance.now());
+    if (arriving) go(f, [{ walk: seat }, { sit: true }], performance.now());
     return f;
   }
 
   /** Neuer Plan: Schritte { walk: tile, speed? } | { wait: ms, face?, act? } | { sit } | { exit } | { run: fn }. */
-  function go(room, f, plan, now) {
+  function go(f, plan, now) {
     f.plan = plan.slice();
     f.walk = null;
     f.wait = null;
     f.seated = false;
-    next(room, f, now);
+    next(f, now);
   }
 
-  function next(room, f, now) {
+  function next(f, now) {
     const s = f.plan.shift();
     if (!s) return;
     if (s.walk) {
-      if (!startWalk(room, f, s.walk, s.speed ?? WALK_SPEED)) next(room, f, now);
+      if (!startWalk(f, s.walk, s.speed ?? WALK_SPEED)) next(f, now);
     } else if (s.wait != null) {
       f.wait = { until: now + s.wait, act: s.act ?? null };
       if (s.face) f.dir = s.face;
-      if (s.act === 'coffee') room.espresso = { since: now, until: now + s.wait };
-      if (s.act === 'water') room.cooler.until = now + s.wait;
+      if (s.act === 'coffee') B.espresso = { since: now, until: now + s.wait };
+      if (s.act === 'water') B.cooler.until = now + s.wait;
     } else if (s.sit) {
       f.seated = true;
       f.errand = null;
@@ -393,16 +442,16 @@ export function createPixelOffice(
       f.gone = true;
     } else if (s.run) {
       s.run(now);
-      next(room, f, now);
+      next(f, now);
     }
   }
 
   /** Naechstgelegene Kachel (Figuren laufen auf den Kachelmitten). */
   const nearTile = (f) => ({ col: Math.round((f.x - TILE / 2) / TILE), row: Math.round((f.y - TILE) / TILE) });
 
-  function startWalk(room, f, to, speed) {
+  function startWalk(f, to, speed) {
     const from = nearTile(f);
-    const path = findPath(room.layout, from, to);
+    const path = findPath(B.layout, from, to);
     if (!path) return false;
     const points = [feetOf(from), ...path.map(feetOf)];
     if (still()) {
@@ -415,7 +464,7 @@ export function createPixelOffice(
     return true;
   }
 
-  function update(room, f, dt, now) {
+  function update(f, dt, now) {
     if (f.walk) {
       const w = f.walk;
       w.t += dt;
@@ -439,24 +488,29 @@ export function createPixelOffice(
       }
       if (w.i >= w.points.length) {
         f.walk = null;
-        next(room, f, now);
+        next(f, now);
       }
     } else if (f.wait && now >= f.wait.until) {
       f.wait = null;
-      next(room, f, now);
+      next(f, now);
     }
     if (f.emote && now >= f.emote.until) f.emote = null;
   }
 
   /* --- Besorgungen ------------------------------------------------------------ */
 
-  function randomSpot(room, f) {
-    const L = room.layout;
+  /** Freier Fleck im eigenen Raum oder im Flur davor, nicht gleich nebenan. */
+  function strollSpot(f) {
+    const L = B.layout;
+    const room = L.rooms.find((r) => r.key === f.seat.room);
+    if (!room) return null;
+    const band = L.bands[room.band];
     const seats = new Set(L.seats.map((s) => `${s.col},${s.row}`));
     const here = nearTile(f);
     for (let i = 0; i < 40; i++) {
-      const col = Math.floor(Math.random() * L.cols);
-      const row = WALL_ROWS + 1 + Math.floor(Math.random() * (L.rows - WALL_ROWS - 1));
+      const inRoom = Math.random() < 0.6;
+      const col = inRoom ? room.c0 + Math.floor(Math.random() * room.cols) : Math.floor(Math.random() * L.cols);
+      const row = inRoom ? room.r0 + Math.floor(Math.random() * room.rows) : band.corridor + Math.floor(Math.random() * 2);
       if (!walkable(L, col, row) || seats.has(`${col},${row}`)) continue;
       if (Math.abs(col - here.col) + Math.abs(row - here.row) < 4) continue;
       return { col, row };
@@ -464,39 +518,42 @@ export function createPixelOffice(
     return null;
   }
 
-  function startErrand(room, f, name, now) {
-    const L = room.layout;
+  /** Kueche: an jeder Stelle steht nur einer. */
+  const taken = (name, f) => [...B.figs.values()].some((o) => o !== f && o.errand === name && !o.gone);
+
+  function startErrand(f, name, now) {
+    const L = B.layout;
     const home = { col: f.seat.col, row: f.seat.row };
     const back = [{ walk: home }, { sit: true }];
     let plan = null;
-    if (name === 'coffee') {
+    if (name === 'coffee' && !taken('coffee', f)) {
       plan = [
         { walk: L.kitchen.coffee },
         { wait: rand(3500, 5000), face: 'back', act: 'coffee' },
         {
           run: (t) => {
             f.emote = { name: 'coffee', until: t + 1800 };
-            f.coffeeUntil = t + 40_000;
+            f.coffeeUntil = t + 60_000;
           },
         },
         ...back,
       ];
-    } else if (name === 'water') {
+    } else if (name === 'water' && !taken('water', f)) {
       plan = [{ walk: L.kitchen.water }, { wait: rand(2500, 4000), face: 'back', act: 'water' }, ...back];
     } else if (name === 'stroll') {
-      const spot = randomSpot(room, f);
+      const spot = strollSpot(f);
       if (spot) plan = [{ walk: spot }, { wait: rand(2000, 4000), face: 'front' }, ...back];
     } else if (name === 'pace') {
       // Hinter dem eigenen Tisch auf und ab.
       const row = home.row - 1;
-      const cols = [-3, -2, 2, 3].map((d) => home.col + d).filter((c) => walkable(L, c, row));
+      const cols = [-3, -2, 2, 3].map((d) => home.col + d).filter((c) => walkable(L, c, row) && findPath(L, home, { col: c, row }));
       if (cols.length) {
         const a = cols[Math.floor(Math.random() * cols.length)];
         plan = [{ walk: { col: a, row } }, { wait: 700 }, { walk: { col: home.col, row } }, { wait: 500 }, ...back];
       }
     } else if (name === 'visit') {
       const busy = L.seats.filter((s) => {
-        const a = room.figs.get(s.id);
+        const a = B.figs.get(s.id);
         return s.owner === f.id && a?.seated && !a.view?.leaving;
       });
       const target = busy[Math.floor(Math.random() * busy.length)];
@@ -508,7 +565,7 @@ export function createPixelOffice(
           {
             run: (t) => {
               f.emote = { name: 'question', until: t + 2000 };
-              const other = room.figs.get(target.id);
+              const other = B.figs.get(target.id);
               if (other) other.emote = { name: 'idea', until: t + 3200 };
             },
           },
@@ -519,29 +576,29 @@ export function createPixelOffice(
     }
     if (!plan) return false;
     f.errand = name;
-    go(room, f, plan, now);
+    go(f, plan, now);
     return true;
   }
 
   /** Einmal je Sekunde: wer steht auf, wer muss zurueck? */
-  function direct(room, now) {
-    const figs = [...room.figs.values()].filter((f) => !f.leaving && !f.gone);
+  function direct(now) {
+    const figs = [...B.figs.values()].filter((f) => !f.leaving && !f.gone && f.seat);
     for (const f of figs) {
       if (f.errand && !errandStillFits(f.errand, f.kind, f.state)) {
         f.errand = null;
-        go(room, f, [{ walk: { col: f.seat.col, row: f.seat.row }, speed: HURRY_SPEED }, { sit: true }], now);
+        go(f, [{ walk: { col: f.seat.col, row: f.seat.row }, speed: HURRY_SPEED }, { sit: true }], now);
       }
     }
-    if (still() || room.limit === 'reached') return;
+    if (still() || B.limit === 'reached') return;
     const away = figs.filter((f) => f.errand).length;
     const cap = Math.min(AWAY_MAX, Math.max(1, Math.floor(figs.length * AWAY_SHARE)));
     if (away >= cap) return;
-    const agentsRunning = figs.filter((f) => f.kind === 'agent').length;
     for (const f of figs) {
       if (!f.seated || f.errand) continue;
+      const agentsRunning = figs.filter((a) => a.kind === 'agent' && a.seat.owner === f.id).length;
       const opts = pixelErrands({ kind: f.kind, state: f.state, stateMs: now - f.stateSince }, { agentsRunning });
       if (!opts || Math.random() >= opts.rate) continue;
-      if (startErrand(room, f, pickWeighted(opts.options), now)) return;
+      if (startErrand(f, pickWeighted(opts.options), now)) return;
     }
   }
 
@@ -556,90 +613,8 @@ export function createPixelOffice(
     f.emote = { name, until: now + ms };
   }
 
-  function updateRoom(room, project, env, now) {
-    room.project = project;
-    room.limit = limitState(env?.fiveHour);
-    room.asleep = roomAsleep(project);
-    const sig = roomSignature(project);
-    if (sig !== room.sig) {
-      room.sig = sig;
-      room.layout = layoutRoom(project);
-      fit(room);
-      buildBackground(room);
-      // Tische sind umgezogen: wer sitzt, zieht mit; wer laeuft, geht zum neuen Platz.
-      for (const f of room.figs.values()) {
-        const seat = seatOf(room, f.id);
-        if (!seat) continue;
-        f.seat = seat;
-        if (f.seated) {
-          const p = feetOf(seat);
-          f.x = p.x;
-          f.y = p.y;
-        } else if (!f.leaving && !f.errand) {
-          go(room, f, [{ walk: seat }, { sit: true }], now);
-        }
-      }
-    }
-    const sessions = project.sessions.length;
-    const agents = project.sessions.reduce((n, s) => n + s.agents.length, 0);
-    room.caption.textContent = '';
-    const name = document.createElement('strong');
-    name.textContent = project.label;
-    const meta = document.createElement('span');
-    meta.textContent = [
-      `${sessions} ${sessions === 1 ? 'Sitzung' : 'Sitzungen'}`,
-      agents ? `${agents} ${agents === 1 ? 'Subagent' : 'Subagents'}` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    room.caption.append(name, meta);
-    room.canvas.setAttribute('role', 'img');
-    room.canvas.setAttribute('aria-label', `Büro ${project.label}: ${meta.textContent}`);
-    room.root.dataset.asleep = room.asleep ? '1' : '0';
-
-    const present = new Set();
-    const take = (kind, item) => {
-      const id = kind === 'session' ? item.sessionId : item.id;
-      const view = figureView(kind, item, { limit: room.limit });
-      if (room.departed.has(id)) {
-        if (view.leaving) return;
-        room.departed.delete(id); // laeuft wieder (fortgesetzt)
-      }
-      present.add(id);
-      let f = room.figs.get(id);
-      const seat = seatOf(room, id);
-      if (!f) {
-        // Beim ersten Bild sitzen alle schon; spaeter kommt man durch die Tuer.
-        f = newFig(room, kind, item, seat, renderedOnce && !still());
-        room.figs.set(id, f);
-      }
-      f.item = item;
-      f.seat = seat;
-      if (view.state !== f.state) {
-        f.state = view.state;
-        f.stateSince = now;
-      }
-      f.view = view;
-      if (kind === 'session') {
-        flash(f, item.prompt, 'prompt', EVENT_FRESH_MS, 'alert', 2600, now);
-        flash(f, item.error, 'error', EVENT_FRESH_MS, item.error?.kind === 'rate' ? 'sweat' : 'error', 6000, now);
-        flash(f, item.celebration, 'celebrate', CELEBRATE_FRESH_MS, item.celebration?.kind === 'push' ? 'heart' : 'done', 3600, now);
-      } else {
-        flash(f, item.error, 'error', EVENT_FRESH_MS, item.error?.kind === 'rate' ? 'sweat' : 'error', 6000, now);
-      }
-      if (view.leaving && !f.leaving) leave(room, f, now, view.finish);
-    };
-    for (const s of project.sessions) {
-      take('session', s);
-      for (const a of s.agents) take('agent', a);
-    }
-    for (const f of room.figs.values()) {
-      if (!present.has(f.id) && !f.leaving) leave(room, f, now, null);
-    }
-  }
-
-  /** Aufstehen und durch die Tuer gehen; beim ersten Bild sofort weg. */
-  function leave(room, f, now, finish) {
+  /** Aufstehen und zum Ausgang gehen; beim ersten Bild sofort weg. */
+  function leave(f, now, finish) {
     f.leaving = true;
     f.errand = null;
     if (finish) f.emote = { name: finish, until: now + 4000 };
@@ -647,22 +622,51 @@ export function createPixelOffice(
       f.gone = true;
       return;
     }
-    go(room, f, [{ walk: room.layout.door }, { exit: true }], now);
+    go(f, [{ walk: B.layout.entrance }, { exit: true }], now);
+  }
+
+  function take(kind, item, now) {
+    const id = kind === 'session' ? item.sessionId : item.id;
+    const view = figureView(kind, item, { limit: B.limit });
+    if (B.departed.has(id)) {
+      if (view.leaving) return null;
+      B.departed.delete(id); // laeuft wieder (fortgesetzt)
+    }
+    const seat = seatOf(id);
+    let f = B.figs.get(id);
+    if (!f) {
+      // Beim ersten Bild sitzen alle schon; spaeter kommt man durch den Eingang.
+      f = newFig(kind, item, seat, renderedOnce && !still());
+      B.figs.set(id, f);
+    }
+    f.item = item;
+    if (!f.leaving) f.seat = seat;
+    if (view.state !== f.state) {
+      f.state = view.state;
+      f.stateSince = now;
+    }
+    f.view = view;
+    flash(f, item.error, 'error', EVENT_FRESH_MS, item.error?.kind === 'rate' ? 'sweat' : 'error', 6000, now);
+    if (kind === 'session') {
+      flash(f, item.prompt, 'prompt', EVENT_FRESH_MS, 'alert', 2600, now);
+      flash(f, item.celebration, 'celebrate', CELEBRATE_FRESH_MS, item.celebration?.kind === 'push' ? 'heart' : 'done', 3600, now);
+    }
+    if (view.leaving && !f.leaving) leave(f, now, view.finish);
+    return id;
   }
 
   /* --- Zeichnen --------------------------------------------------------------- */
 
   /** Stuhl, Figur am Tisch, Tisch, Lampe, Tasse, Requisit und Haende. */
-  function drawDesk(room, seat, f, now) {
-    const { ctx } = room;
+  function drawDesk(seat, f, now) {
     const p = feetOf(seat);
-    const L = art.atlas.mountPoints[seat.desk];
+    const M = art.atlas.mountPoints[seat.desk];
     const dx = seat.desk === 'desk-large' ? p.x - 24 : p.x - 16;
     const dy = p.y - 16;
     const fx = p.x - 8;
     const fy = p.y - 32;
     const seated = f && f.seated && !f.gone;
-    const pose = seated ? f.view?.pose ?? 'type' : null;
+    const pose = seated ? (f.view?.pose ?? 'type') : null;
     let figName = null;
     let anim = null;
     if (seated) {
@@ -677,13 +681,13 @@ export function createPixelOffice(
     } else {
       art.draw(ctx, 'chair-front', fx, p.y - 24);
       // Wer gerade auf dem eigenen Platz steht (auf- oder hinsetzen), steht vor dem Stuhl.
-      if (f && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) drawFigure(room, f, now);
+      if (f && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) drawFigure(f, now);
     }
     art.draw(ctx, seat.desk, dx, dy);
-    if (L.lamp) art.draw(ctx, f?.view?.lamp && !room.asleep ? 'lamp-on' : 'lamp-off', dx + L.lamp[0], dy + L.lamp[1]);
-    if (L.mug) {
+    if (M.lamp) art.draw(ctx, f?.view?.lamp && !B.asleep.has(seat.room) ? 'lamp-on' : 'lamp-off', dx + M.lamp[0], dy + M.lamp[1]);
+    if (M.mug) {
       const steaming = f && f.coffeeUntil > now && !still();
-      art.draw(ctx, steaming ? art.frame('mug-steam', now) : 'mug-idle', dx + L.mug[0], dy + L.mug[1]);
+      art.draw(ctx, steaming ? art.frame('mug-steam', now) : 'mug-idle', dx + M.mug[0], dy + M.mug[1]);
     }
     const prop = anim?.prop;
     if (seated && prop && (prop.animation || prop.sprite)) {
@@ -696,7 +700,7 @@ export function createPixelOffice(
     } else {
       // Laptop: offen, solange jemand arbeitet oder nur kurz weg ist.
       const open = seated ? pose !== 'sleep' : f && !f.leaving && !f.gone && f.errand;
-      art.draw(ctx, open ? 'laptop-back-open' : 'laptop-closed', dx + L.laptop[0], dy + L.laptop[1]);
+      art.draw(ctx, open ? 'laptop-back-open' : 'laptop-closed', dx + M.laptop[0], dy + M.laptop[1]);
     }
     if (seated) {
       const s = art.sprite(figName);
@@ -704,8 +708,7 @@ export function createPixelOffice(
     }
   }
 
-  function drawFigure(room, f, now) {
-    const { ctx } = room;
+  function drawFigure(f, now) {
     const t = still() ? 0 : now + f.phase;
     let name;
     let flip = false;
@@ -722,24 +725,36 @@ export function createPixelOffice(
     art.draw(ctx, name, Math.round(f.x) - 8, Math.round(f.y) - 32, { outfit: f.outfit, flip });
   }
 
-  function drawScene(room, now) {
-    const { ctx, layout: L } = room;
-    const items = [];
-    // Tuer: oeffnet, solange jemand davor oder darin steht.
-    const near = [...room.figs.values()].some(
-      (f) => !f.gone && !f.seated && Math.abs(f.x - feetOf(L.door).x) < TILE && f.y <= feetOf(L.entry).y + TILE / 2,
+  /** Tuer: geht auf, solange jemand davor, darin oder dahinter steht. */
+  function doorFrame(d, now) {
+    let s = B.doors.get(d.key);
+    if (!s) {
+      s = { level: 0, t: 0 };
+      B.doors.set(d.key, s);
+    }
+    const x = d.col * TILE + TILE / 2;
+    const top = d.row * TILE;
+    const near = [...B.figs.values()].some(
+      (f) => !f.gone && !f.seated && Math.abs(f.x - x) < TILE && f.y > top - TILE / 2 && f.y <= top + 3 * TILE + TILE / 2,
     );
     const want = near ? 2 : 0;
-    if (room.door.level !== want && now - room.door.t > 120) {
-      room.door.level += Math.sign(want - room.door.level);
-      room.door.t = now;
+    if (s.level !== want && now - s.t > 120) {
+      s.level += Math.sign(want - s.level);
+      s.t = now;
     }
-    const doorName = ['door-wood-closed', 'door-wood-half-open', 'door-wood-open'][room.door.level];
-    items.push({ y: WALL_ROWS * TILE, z: 0, draw: () => art.draw(ctx, doorName, L.door.col * TILE, 0) });
+    return `door-${d.kind}-${['closed', 'half-open', 'open'][s.level]}`;
+  }
 
+  function drawScene(now) {
+    const L = B.layout;
+    const items = [];
+    for (const d of L.doors) {
+      const name = doorFrame(d, now);
+      items.push({ y: (d.row + WALL_ROWS) * TILE, z: 0, draw: () => art.draw(ctx, name, d.col * TILE, d.row * TILE) });
+    }
     const k = L.kitchen;
     const base = (k.counter.row + 1) * TILE;
-    const brewing = now < room.espresso.until;
+    const brewing = now < B.espresso.until;
     items.push({
       y: base,
       z: 0,
@@ -748,78 +763,102 @@ export function createPixelOffice(
         const cy = base - 24;
         const m = art.atlas.mountPoints['kitchen-counter'];
         art.draw(ctx, 'kitchen-counter', cx, cy);
-        art.draw(ctx, brewing ? art.frame('espresso', now - room.espresso.since) : 'espresso-idle', cx + m.espresso[0], cy + m.espresso[1]);
+        art.draw(ctx, brewing ? art.frame('espresso', now - B.espresso.since) : 'espresso-idle', cx + m.espresso[0], cy + m.espresso[1]);
         art.draw(ctx, 'tray-mugs', cx + m.tray[0], cy + m.tray[1]);
         art.draw(ctx, 'fridge', k.fridge.col * TILE, base - 32);
-        art.draw(ctx, now < room.cooler.until ? art.frame('cooler-bubble', now) : 'cooler-bubble-1', k.cooler.col * TILE, base - 32);
+        art.draw(ctx, now < B.cooler.until ? art.frame('cooler-bubble', now) : 'cooler-bubble-1', k.cooler.col * TILE, base - 32);
       },
     });
-
     const atDesk = new Set();
     for (const seat of L.seats) {
-      const f = room.figs.get(seat.id);
-      if (f && !f.seated && !f.gone && Math.abs(f.x - feetOf(seat).x) < 1 && Math.abs(f.y - feetOf(seat).y) < 6) atDesk.add(f);
-      items.push({ y: seat.row * TILE + 24, z: 0, draw: () => drawDesk(room, seat, f, now) });
+      const f = B.figs.get(seat.id);
+      const p = feetOf(seat);
+      if (f && !f.seated && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) atDesk.add(f);
+      items.push({ y: seat.row * TILE + 24, z: 0, draw: () => drawDesk(seat, f, now) });
     }
-    for (const f of room.figs.values()) {
+    for (const f of B.figs.values()) {
       if (f.gone || f.seated || atDesk.has(f)) continue;
-      items.push({ y: f.y, z: 1, draw: () => drawFigure(room, f, now) });
+      items.push({ y: f.y, z: 1, draw: () => drawFigure(f, now) });
     }
     items.sort((a, b) => a.y - b.y || a.z - b.z);
     for (const it of items) it.draw();
   }
 
-  /* --- Blasen und Symbole ------------------------------------------------------- */
+  /* --- Schilder, Blasen und Symbole -------------------------------------------- */
 
-  function fontDev() {
-    return Math.round(FONT_CSS * (window.devicePixelRatio || 1));
-  }
+  const dprNow = () => window.devicePixelRatio || 1;
+  const font = (css, bold = false) => `${bold ? '600 ' : ''}${Math.round(css * dprNow())}px ${FONT_FAMILY}`;
 
-  function speech(room, text, px, py) {
-    const { ctx, k } = room;
+  /** Text in voller Aufloesung an einer Stelle in Grafikpixeln. */
+  function text(str, x, y, { size = FONT_CSS, color = INK, bold = false } = {}) {
+    const { k } = B;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = `${fontDev()}px ${FONT_FAMILY}`;
-    const tw = ctx.measureText(text).width;
+    ctx.font = font(size, bold);
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(str, (SIDE_PX + x) * k, y * k + 1);
     ctx.restore();
-    const w = Math.max(12, Math.ceil(tw / k) + 7);
-    const h = Math.max(12, Math.ceil((fontDev() * 1.15) / k) + 6);
+  }
+
+  function measure(str, size = FONT_CSS, bold = false) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = font(size, bold);
+    const w = ctx.measureText(str).width / B.k;
+    ctx.restore();
+    return w;
+  }
+
+  /** Messingschild mit dem Projektnamen neben der Tuer. */
+  function plates() {
+    const out = [];
+    for (const room of B.layout.rooms) {
+      if (room.kind !== 'project') continue;
+      const x0 = (room.door.col + 1) * TILE + 3;
+      const maxW = (room.c0 + room.cols) * TILE - 6 - x0;
+      if (maxW < 16) continue;
+      let label = room.label;
+      while (label.length > 3 && measure(label, 10, true) + 8 > maxW) label = `${label.slice(0, -2)}…`;
+      const w = Math.min(maxW, Math.ceil(measure(label, 10, true)) + 8);
+      const y = room.face * TILE + 6;
+      art.stretch(ctx, 'plate-brass', x0, y, w, 3);
+      text(label, x0 + w / 2, y + 4, { size: 10, color: '#3e2731', bold: true });
+      out.push({ room, x: x0, y, w, h: 8 });
+    }
+    return out;
+  }
+
+  function speech(str, px, py) {
+    const w = Math.max(12, Math.ceil(measure(str)) + 7);
+    const h = Math.max(12, Math.ceil((FONT_CSS * dprNow() * 1.15) / B.k) + 6);
     const minX = -SIDE_PX + 1;
-    const maxX = room.layout.cols * TILE + SIDE_PX - 1 - w;
+    const maxX = B.layout.cols * TILE + SIDE_PX - 1 - w;
     const bx = Math.round(clamp(px - w / 2, minX, maxX));
     const by = Math.max(0, py - 3 - h);
     nineSlice(art, ctx, 'bubble-speech', bx, by, w, h);
     const tx = clamp(px - 2, bx + 3, bx + w - 7);
     art.draw(ctx, 'bubble-speech-tail', tx, by + h - 1);
-    // Text in voller Aufloesung, mittig in der Blase.
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = `${fontDev()}px ${FONT_FAMILY}`;
-    ctx.fillStyle = INK;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, (SIDE_PX + bx + w / 2) * k, (by + h / 2) * k + 1);
-    ctx.restore();
+    text(str, bx + w / 2, by + h / 2);
   }
 
-  function thought(room, px, py, now) {
-    const { ctx } = room;
+  function thought(px, py, now) {
     const w = 16;
     const h = 12;
-    const bx = Math.round(clamp(px - w / 2 + 3, -SIDE_PX + 1, room.layout.cols * TILE + SIDE_PX - 1 - w));
+    const bx = Math.round(clamp(px - w / 2 + 3, -SIDE_PX + 1, B.layout.cols * TILE + SIDE_PX - 1 - w));
     const by = Math.max(0, py - 9 - h);
     nineSlice(art, ctx, 'bubble-thought', bx, by, w, h);
     art.draw(ctx, 'bubble-thought-puff-large', px - 1, py - 8);
     art.draw(ctx, 'bubble-thought-puff-small', px - 2, py - 3);
     // Drei Punkte, die nacheinander erscheinen.
-    const n = still() ? 3 : (Math.floor(now / 450) % 4);
+    const n = still() ? 3 : Math.floor(now / 450) % 4;
     ctx.fillStyle = INK;
     for (let i = 0; i < n; i++) ctx.fillRect(bx + 4 + i * 3, by + 5, 2, 2);
   }
 
-  function drawOverhead(room, f, now) {
+  function drawOverhead(f, now) {
     if (f.gone) return;
-    const { ctx } = room;
     const px = Math.round(f.x);
     const py = Math.round(f.y) - HEAD;
     const v = f.view ?? {};
@@ -830,29 +869,32 @@ export function createPixelOffice(
       return;
     }
     if (f.leaving || f.walk) return;
-    if (v.speech && f.seated) speech(room, v.speech, px, py);
-    else if (v.thought) thought(room, px, py, now);
+    if (v.speech && f.seated) speech(v.speech, px, py);
+    else if (v.thought) thought(px, py, now);
     else if (v.sleep && f.seated) art.draw(ctx, art.frame('sleep-z', still() ? 0 : now + f.phase), px + 1, py - 10);
   }
 
-  function draw(room, now) {
-    if (!room.layout || !room.bg) return;
-    const { ctx, k } = room;
+  let plateRects = [];
+
+  function draw(now) {
+    if (!B.layout || !B.bg) return;
+    const { k, layout: L } = B;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, room.canvas.width, room.canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(k, 0, 0, k, 0, 0);
-    ctx.drawImage(room.bg, 0, 0);
+    ctx.drawImage(B.bg, 0, 0);
     ctx.setTransform(k, 0, 0, k, SIDE_PX * k, 0);
-    drawScene(room, now);
-    if (room.asleep) {
-      // Alle ruhen: der Raum wird gedimmt, nur die z steigen weiter auf.
-      ctx.fillStyle = 'rgba(24, 20, 37, 0.32)';
-      ctx.fillRect(-SIDE_PX, 0, room.W, room.H);
+    drawScene(now);
+    // Ruhen alle in einem Raum, wird er gedimmt; nur die z steigen weiter auf.
+    ctx.fillStyle = 'rgba(24, 20, 37, 0.32)';
+    for (const room of L.rooms) {
+      if (B.asleep.has(room.key)) ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
     }
+    plateRects = plates();
     // Wer weiter unten steht, dessen Blase liegt oben.
-    const figs = [...room.figs.values()].sort((a, b) => a.y - b.y);
-    for (const f of figs) drawOverhead(room, f, now);
+    const figs = [...B.figs.values()].sort((a, b) => a.y - b.y);
+    for (const f of figs) drawOverhead(f, now);
   }
 
   /* --- Ablauf -------------------------------------------------------------------- */
@@ -862,108 +904,109 @@ export function createPixelOffice(
 
   function loop(t) {
     raf = 0;
-    if (!art || !visible()) return;
+    if (!art || !visible() || !B.layout) return;
     const dt = lastT ? Math.min(100, t - lastT) : 16;
     lastT = t;
-    for (const room of rooms.values()) {
-      if (!room.layout) continue;
-      room.directT += dt;
-      if (room.directT >= 1000) {
-        room.directT = 0;
-        direct(room, t);
-      }
-      for (const f of room.figs.values()) update(room, f, dt, t);
-      for (const [id, f] of room.figs) {
-        if (f.gone) {
-          room.figs.delete(id);
-          if (f.view?.leaving) room.departed.add(id);
-        }
-      }
-      draw(room, t);
+    B.directT += dt;
+    if (B.directT >= 1000) {
+      B.directT = 0;
+      direct(t);
     }
+    for (const f of B.figs.values()) update(f, dt, t);
+    for (const [id, f] of B.figs) {
+      if (!f.gone) continue;
+      B.figs.delete(id);
+      if (f.view?.leaving) B.departed.add(id);
+    }
+    draw(t);
     raf = requestAnimationFrame(loop);
   }
 
   function kick() {
     if (raf || !art || !visible()) return;
+    // Erst sichtbar weiss das Gebaeude, wie viel Platz es hat.
+    if (B.layout) relayout(performance.now());
     lastT = 0;
     raf = requestAnimationFrame(loop);
   }
   document.addEventListener('visibilitychange', kick);
 
-  function refit() {
-    for (const room of rooms.values()) {
-      if (!room.layout) continue;
-      fit(room);
-      buildBackground(room);
-    }
-  }
+  const refit = () => {
+    if (art && B.layout && visible()) relayout(performance.now());
+  };
   if (typeof ResizeObserver === 'function') new ResizeObserver(refit).observe(container);
+  window.addEventListener('resize', refit);
 
   /* --- Tooltip -------------------------------------------------------------------- */
 
-  function hoverAt(room, ev) {
-    if (!room.layout) return;
-    const rect = room.canvas.getBoundingClientRect();
-    const x = ((ev.clientX - rect.left) / rect.width) * room.W - SIDE_PX;
-    const y = ((ev.clientY - rect.top) / rect.height) * room.H;
+  canvas.addEventListener('pointermove', (ev) => {
+    if (!B.layout) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((ev.clientX - rect.left) / rect.width) * B.W - SIDE_PX;
+    const y = ((ev.clientY - rect.top) / rect.height) * B.H;
     let hit = null;
-    for (const f of room.figs.values()) {
+    for (const f of B.figs.values()) {
       if (f.gone) continue;
       if (x >= f.x - 7 && x <= f.x + 7 && y >= f.y - 30 && y <= f.y && (!hit || f.y > hit.y)) hit = f;
     }
-    room.canvas.style.cursor = hit ? 'pointer' : '';
-    if (!hit) {
+    let textOut = null;
+    let key = null;
+    if (hit) {
+      const room = B.layout.rooms.find((r) => r.key === hit.seat?.room);
+      textOut = describe(hit.kind, { ...hit.item, project: room?.label ?? '' });
+      key = hit.id;
+    } else {
+      const plate = plateRects.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h);
+      if (plate) {
+        const p = plate.room.project;
+        const agents = p.sessions.reduce((n, s) => n + s.agents.length, 0);
+        textOut = `${p.label}\n${p.sessions.length} ${p.sessions.length === 1 ? 'Sitzung' : 'Sitzungen'}${agents ? ` · ${agents} ${agents === 1 ? 'Subagent' : 'Subagents'}` : ''}\n${p.cwd ?? ''}`.trim();
+        key = `room:${p.key}`;
+      }
+    }
+    canvas.style.cursor = key ? 'pointer' : '';
+    if (!key) {
       if (hovered) tooltip.hide();
       hovered = null;
       return;
     }
-    const text = describe(hit.kind, { ...hit.item, project: room.project.label });
-    if (hovered !== hit.id) tooltip.show(ev, text);
+    if (hovered !== key) tooltip.show(ev, textOut);
     else tooltip.move(ev);
-    hovered = hit.id;
-  }
+    hovered = key;
+  });
+  canvas.addEventListener('pointerleave', () => {
+    hovered = null;
+    canvas.style.cursor = '';
+    tooltip.hide();
+  });
 
   /* --- Schnittstelle ---------------------------------------------------------------- */
 
   function render(act, env = {}) {
     last = { act, env };
     if (!art || failed) return;
+    if (root.parentNode !== container) container.replaceChildren(root);
     const now = performance.now();
-    const projects = act?.projects ?? [];
-    if (!projects.length) {
-      for (const room of rooms.values()) room.root.remove();
-      rooms.clear();
-      if (!empty) {
-        empty = document.createElement('p');
-        empty.className = 'chart-empty';
-        empty.textContent = emptyText;
+    B.projects = act?.projects ?? [];
+    B.limit = limitState(env?.fiveHour);
+    B.asleep = new Set(B.projects.filter((p) => roomAsleep(p)).map((p) => p.key));
+    relayout(now);
+    const present = new Set();
+    for (const p of B.projects) {
+      for (const s of p.sessions) {
+        present.add(take('session', s, now));
+        for (const a of s.agents) present.add(take('agent', a, now));
       }
-      if (empty.parentNode !== container) container.append(empty);
-      renderedOnce = true;
-      return;
     }
-    if (empty?.parentNode) empty.remove();
-    const keep = new Set();
-    for (const p of projects) {
-      keep.add(p.key);
-      let room = rooms.get(p.key);
-      if (!room) {
-        room = createRoom(p);
-        rooms.set(p.key, room);
-      }
-      updateRoom(room, p, env, now);
-      container.append(room.root); // Reihenfolge wie im Snapshot
+    for (const f of B.figs.values()) {
+      if (!present.has(f.id) && !f.leaving) leave(f, now, null);
     }
-    for (const [key, room] of rooms) {
-      if (keep.has(key)) continue;
-      room.root.remove();
-      rooms.delete(key);
-    }
-    if (rooms.size !== roomCount) {
-      roomCount = rooms.size;
-      refit();
-    }
+    empty.hidden = B.projects.length > 0;
+    const sessions = B.projects.reduce((n, p) => n + p.sessions.length, 0);
+    canvas.setAttribute(
+      'aria-label',
+      `Büro mit ${B.projects.length} ${B.projects.length === 1 ? 'Projektraum' : 'Projekträumen'} und ${sessions} ${sessions === 1 ? 'Sitzung' : 'Sitzungen'}`,
+    );
     renderedOnce = true;
     kick();
   }
@@ -975,11 +1018,8 @@ export function createPixelOffice(
     setSound() {},
     /** Eine Besorgung von Hand anstossen (zum Ausprobieren und fuer Tests). */
     errand(id, name) {
-      for (const room of rooms.values()) {
-        const f = room.figs.get(id);
-        if (f?.seated && !f.leaving) return startErrand(room, f, name, performance.now());
-      }
-      return false;
+      const f = B.figs.get(id);
+      return f?.seated && !f.leaving ? startErrand(f, name, performance.now()) : false;
     },
     ready,
   };
