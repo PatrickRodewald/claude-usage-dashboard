@@ -73,7 +73,7 @@ function roomSize(project) {
   const agentRows = Math.max(0, ...blocks.map((b) => b.rows));
   const lastSeat = agentRows ? FIRST_AGENT_ROW + (agentRows - 1) * AGENT_ROW_STEP : MAIN_SEAT_ROW;
   // Tisch belegt Sitzreihe und die naechste, davor ein Laufweg.
-  return { blocks, used, cols: Math.max(MIN_ROOM_COLS, used + 2), rows: Math.max(lastSeat + 3, MAIN_SEAT_ROW + 4) };
+  return { blocks, used, cols: Math.max(MIN_ROOM_COLS, used + 2), rows: lastSeat + 3 };
 }
 
 /**
@@ -184,7 +184,7 @@ export function layoutBuilding(projects, maxCols = Infinity) {
         door: { col: x + (u.kind === 'kitchen' ? KITCHEN_COLS - 1 : ROOM_DOOR), row: b.face },
       };
       L.rooms.push(room);
-      L.faces.push({ row: b.face, c0: x, c1: x + u.cols - 1, style: u.kind === 'kitchen' ? 'wainscot' : 'plain' });
+      L.faces.push({ row: b.face, c0: x, c1: x + u.cols - 1, style: 'wainscot' });
       L.doors.push({ key: u.key, col: room.door.col, row: b.face, kind: 'wood' });
       for (let r = b.face; r < b.top; r++) open(room.door.col, r);
       // Wand zum Nachbarn (bzw. zum Laengsflur) links.
@@ -440,6 +440,46 @@ export function pixelErrands(fig, room = {}) {
     return { rate: 1 / 12, options: [['visit', 1]] };
   }
   return null;
+}
+
+/* --- Licht -------------------------------------------------------------------- */
+
+const NIGHT = [38, 43, 68]; // #262b44
+const DUSK = [104, 56, 108]; // #68386c
+const DAWN = [190, 74, 47]; // #be4a2f
+const NIGHT_A = 0.62;
+const DUSK_A = 0.34;
+
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+
+/**
+ * Wie dunkel es im Buero ist (Stunde 0-24, Ortszeit): { rgb, a }. Tagsueber
+ * hell, abends violett, nachts dunkelblau, morgens kurz rot. Lampen und
+ * Bildschirme stanzen ihr Licht hinein.
+ */
+export function daylight(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  if (h >= 7 && h < 17) return { rgb: NIGHT, a: 0 };
+  if (h >= 17 && h < 19.5) return { rgb: DUSK, a: (DUSK_A * (h - 17)) / 2.5 };
+  if (h >= 19.5 && h < 21) {
+    const t = (h - 19.5) / 1.5;
+    return { rgb: mix(DUSK, NIGHT, t), a: DUSK_A + (NIGHT_A - DUSK_A) * t };
+  }
+  if (h >= 5.5 && h < 7) {
+    const t = (h - 5.5) / 1.5;
+    return { rgb: mix(NIGHT, DAWN, t), a: NIGHT_A * (1 - t) };
+  }
+  return { rgb: NIGHT, a: NIGHT_A };
+}
+
+/** Deckenlampen im Flur: alle paar Kacheln eine, mittig in jedem Flur und im Laengsflur. */
+export function corridorLights(L, every = 5) {
+  const out = [];
+  for (const b of L.bands) {
+    for (let c = 2; c < L.cols; c += every) out.push({ x: c * TILE + TILE / 2, y: (b.corridor + 1) * TILE });
+  }
+  for (let r = L.bands[0].corridor + every; r < L.rows; r += every) out.push({ x: TILE, y: r * TILE });
+  return out;
 }
 
 /* --- Zeichnen ----------------------------------------------------------------- */

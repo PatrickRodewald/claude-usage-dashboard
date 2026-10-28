@@ -27,6 +27,9 @@ import {
   pixelErrands,
   frameIndex,
   pixelScale,
+  daylight,
+  corridorLights,
+  roomAt,
   KEY_COLORS,
   OUTFITS,
   outfitFor,
@@ -47,6 +50,9 @@ const AWAY_MAX = 6;
 const FONT_CSS = 11;
 const FONT_FAMILY = 'ui-monospace, "Cascadia Mono", Consolas, monospace';
 const INK = '#181425';
+/** Schatten und Dunkelheit in der Konturfarbe der Grafiken. */
+const SHADE = '#181425';
+const rgb255 = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ');
 /** Kopfhoehe ueber dem Fusspunkt: hier setzen Blasen und Symbole an. */
 const HEAD = 34;
 
@@ -197,12 +203,19 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
 /**
  * @param container  Element, das das Gebaeude aufnimmt
- * @param opts       { tooltip, describe(kind, item) -> string, emptyText? }
+ * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText? }
  * @returns {{ render(activity, env), tick(), setSound(on), errand(id, name), ready: Promise }}
  */
 export function createPixelOffice(
   container,
-  { tooltip, describe, emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.' },
+  {
+    tooltip,
+    describe,
+    timeZone = () => undefined,
+    // Tageslicht folgt dieser Uhr (zum Ausprobieren verstellbar).
+    now: clock = () => Date.now(),
+    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.',
+  },
 ) {
   /** Bereits gezeigte Ereignisse - jedes nur einmal. */
   const seen = new Set();
@@ -246,6 +259,9 @@ export function createPixelOffice(
     directT: 0,
     limit: 'unknown',
     asleep: new Set(),
+    /** Lichtquellen des aktuellen Bilds (in drawScene gesammelt). */
+    lights: [],
+    daylight: { rgb: [38, 43, 68], a: 0 },
   };
 
   const ready = loadAssets()
@@ -341,6 +357,25 @@ export function createPixelOffice(
         }
       }
     }
+    // Schatten: unter jeder Wand von vorn ein dunkler Saum auf dem Boden,
+    // rechts neben Trennwaenden ein schmaler (Licht von oben links).
+    g.fillStyle = SHADE;
+    for (const f of L.faces) {
+      const y = (f.row + 2) * TILE;
+      const x = f.c0 * TILE;
+      const w = (f.c1 - f.c0 + 1) * TILE;
+      g.globalAlpha = 0.28;
+      g.fillRect(x, y, w, 2);
+      g.globalAlpha = 0.14;
+      g.fillRect(x, y + 2, w, 2);
+      g.globalAlpha = 0.06;
+      g.fillRect(x, y + 4, w, 2);
+    }
+    for (const d of L.dividers) {
+      g.globalAlpha = 0.16;
+      g.fillRect(d.col * TILE + 2, d.r0 * TILE, 2, (d.r1 - d.r0) * TILE);
+    }
+    g.globalAlpha = 1;
     // Waende von vorn; die Tueren zeichnet die Szene (sie gehen auf und zu).
     const doors = new Set(L.doors.map((d) => `${d.col},${d.row}`));
     for (const f of L.faces) {
@@ -683,8 +718,12 @@ export function createPixelOffice(
       // Wer gerade auf dem eigenen Platz steht (auf- oder hinsetzen), steht vor dem Stuhl.
       if (f && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) drawFigure(f, now);
     }
+    shadow(dx + 1, dy + 22, art.sprite(seat.desk).width, 3);
     art.draw(ctx, seat.desk, dx, dy);
-    if (M.lamp) art.draw(ctx, f?.view?.lamp && !B.asleep.has(seat.room) ? 'lamp-on' : 'lamp-off', dx + M.lamp[0], dy + M.lamp[1]);
+    const lampOn = M.lamp && f?.view?.lamp && f.seated && !B.asleep.has(seat.room);
+    if (M.lamp) art.draw(ctx, lampOn ? 'lamp-on' : 'lamp-off', dx + M.lamp[0], dy + M.lamp[1]);
+    if (lampOn) B.lights.push({ x: dx + M.lamp[0] + 11, y: dy + M.lamp[1] + 6, r: 40, s: 1, glow: '#feae34' });
+    if (seated && pose !== 'sleep') B.lights.push({ x: dx + M.laptop[0] + 8, y: dy + M.laptop[1] + 4, r: 18, s: 0.7, glow: '#2ce8f5' });
     if (M.mug) {
       const steaming = f && f.coffeeUntil > now && !still();
       art.draw(ctx, steaming ? art.frame('mug-steam', now) : 'mug-idle', dx + M.mug[0], dy + M.mug[1]);
@@ -722,7 +761,19 @@ export function createPixelOffice(
       name = `${f.look}-${f.dir === 'left' ? 'right' : f.dir}`;
       flip = f.dir === 'left';
     }
-    art.draw(ctx, name, Math.round(f.x) - 8, Math.round(f.y) - 32, { outfit: f.outfit, flip });
+    const x = Math.round(f.x);
+    const y = Math.round(f.y);
+    shadow(x - 5, y - 2, 10, 2);
+    art.draw(ctx, name, x - 8, y - 32, { outfit: f.outfit, flip });
+  }
+
+  /** Harter Pixelschatten: ein Rechteck mit abgeschnittenen Ecken. */
+  function shadow(x, y, w, h) {
+    ctx.fillStyle = SHADE;
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(x + 1, y, w - 2, 1);
+    ctx.fillRect(x, y + 1, w, Math.max(1, h - 1));
+    ctx.globalAlpha = 1;
   }
 
   /** Tuer: geht auf, solange jemand davor, darin oder dahinter steht. */
@@ -762,6 +813,7 @@ export function createPixelOffice(
         const cx = k.counter.col * TILE;
         const cy = base - 24;
         const m = art.atlas.mountPoints['kitchen-counter'];
+        shadow(cx + 1, base - 2, 80, 3);
         art.draw(ctx, 'kitchen-counter', cx, cy);
         art.draw(ctx, brewing ? art.frame('espresso', now - B.espresso.since) : 'espresso-idle', cx + m.espresso[0], cy + m.espresso[1]);
         art.draw(ctx, 'tray-mugs', cx + m.tray[0], cy + m.tray[1]);
@@ -769,6 +821,23 @@ export function createPixelOffice(
         art.draw(ctx, now < B.cooler.until ? art.frame('cooler-bubble', now) : 'cooler-bubble-1', k.cooler.col * TILE, base - 32);
       },
     });
+    const kitchen = L.rooms.find((r) => r.kind === 'kitchen');
+    const inKitchen = [...B.figs.values()].some(
+      (f) => !f.gone && roomAt(L, Math.floor(f.x / TILE), Math.floor((f.y - 1) / TILE)) === kitchen,
+    );
+    if (inKitchen) {
+      B.lights.push({
+        x: (kitchen.c0 + kitchen.cols / 2) * TILE,
+        y: (kitchen.r0 + kitchen.rows / 2) * TILE,
+        r: Math.max(kitchen.cols, kitchen.rows) * 10,
+        s: 0.95,
+        glow: '#fee761',
+      });
+    }
+    if (brewing) B.lights.push({ x: (k.counter.col + 0.5) * TILE, y: base - 14, r: 14, s: 0.6, glow: '#feae34' });
+    B.lights.push({ x: (k.cooler.col + 0.5) * TILE, y: base - 20, r: 10, s: 0.5, glow: '#0099db' });
+    for (const p of corridorLights(L, 6)) B.lights.push({ x: p.x, y: p.y, r: 22, s: 0.55, glow: null });
+    B.lights.push({ x: (L.entrance.col + 0.5) * TILE, y: WALL_ROWS * TILE, r: 22, s: 0.7, glow: '#2ce8f5' });
     const atDesk = new Set();
     for (const seat of L.seats) {
       const f = B.figs.get(seat.id);
@@ -874,6 +943,94 @@ export function createPixelOffice(
     else if (v.sleep && f.seated) art.draw(ctx, art.frame('sleep-z', still() ? 0 : now + f.phase), px + 1, py - 10);
   }
 
+  /* --- Licht ------------------------------------------------------------------ */
+
+  let lightCv = null;
+  let glowCv = null;
+  let hourAt = -Infinity;
+
+  /** Stunde der Ortszeit, hoechstens einmal je Sekunde berechnet. */
+  function updateDaylight(t) {
+    if (t - hourAt < 1000) return;
+    hourAt = t;
+    const d = new Date(clock());
+    let h = d.getHours() + d.getMinutes() / 60;
+    try {
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23',
+        timeZone: timeZone(),
+      }).formatToParts(d);
+      h = Number(parts.find((p) => p.type === 'hour').value) + Number(parts.find((p) => p.type === 'minute').value) / 60;
+    } catch {
+      /* unbekannte Zeitzone: Ortszeit des Browsers */
+    }
+    B.daylight = daylight(h);
+  }
+
+  /** Licht in Stufen: hell innen, zwei Ringe, dann nichts - wie gemalt. */
+  function rings(g, x, y, r, rgb, s) {
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    const c = (a) => `rgba(${rgb}, ${a})`;
+    grad.addColorStop(0, c(s));
+    grad.addColorStop(0.42, c(s));
+    grad.addColorStop(0.43, c(s * 0.62));
+    grad.addColorStop(0.72, c(s * 0.62));
+    grad.addColorStop(0.73, c(s * 0.28));
+    grad.addColorStop(1, c(0));
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
+
+  const canvasOf = (cv) => {
+    const c = cv ?? document.createElement('canvas');
+    if (c.width !== B.W || c.height !== B.H) {
+      c.width = B.W;
+      c.height = B.H;
+    }
+    return c;
+  };
+
+  /**
+   * Dunkelheit nach Tageszeit als Lichtkarte, die das Bild multipliziert -
+   * so bleiben die Farben satt statt grau. Lampen, Bildschirme und
+   * Deckenlichter hellen sie auf; dazu ein farbiger Schein. In Grafikpixeln
+   * berechnet und ohne Glaettung vergroessert, damit auch das Licht pixelig
+   * bleibt.
+   */
+  function lighting() {
+    const { a, rgb } = B.daylight;
+    if (a > 0.01) {
+      lightCv = canvasOf(lightCv);
+      const g = lightCv.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'source-over';
+      // Weiss laesst das Bild, wie es ist; die Nachtfarbe dunkelt ab.
+      const t = Math.min(0.85, a * 1.3);
+      g.fillStyle = `rgb(${rgb.map((v) => Math.round(255 + (v - 255) * t)).join(', ')})`;
+      g.fillRect(0, 0, B.W, B.H);
+      g.translate(SIDE_PX, 0);
+      for (const l of B.lights) rings(g, l.x, l.y, l.r, '255, 255, 255', l.s);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.drawImage(lightCv, -SIDE_PX, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // Farbiger Schein: tagsueber kaum, nachts deutlich.
+    const glowA = 0.12 + a * 0.45;
+    glowCv = canvasOf(glowCv);
+    const g = glowCv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, B.W, B.H);
+    g.translate(SIDE_PX, 0);
+    for (const l of B.lights) {
+      if (l.glow) rings(g, l.x, l.y, l.r * 0.8, rgb255(l.glow), glowA * l.s);
+    }
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(glowCv, -SIDE_PX, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
   let plateRects = [];
 
   function draw(now) {
@@ -881,13 +1038,17 @@ export function createPixelOffice(
     const { k, layout: L } = B;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Deckend grundieren: die Lichtkarte multipliziert sonst Transparenz zu Hellem.
+    ctx.fillStyle = SHADE;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.drawImage(B.bg, 0, 0);
     ctx.setTransform(k, 0, 0, k, SIDE_PX * k, 0);
+    B.lights = [];
     drawScene(now);
-    // Ruhen alle in einem Raum, wird er gedimmt; nur die z steigen weiter auf.
-    ctx.fillStyle = 'rgba(24, 20, 37, 0.32)';
+    lighting();
+    // Ruhen alle in einem Raum, wird er gedimmt (nachts ist er ohnehin dunkel).
+    ctx.fillStyle = `rgba(24, 20, 37, ${(0.3 * (1 - B.daylight.a)).toFixed(3)})`;
     for (const room of L.rooms) {
       if (B.asleep.has(room.key)) ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
     }
@@ -912,6 +1073,7 @@ export function createPixelOffice(
       B.directT = 0;
       direct(t);
     }
+    updateDaylight(t);
     for (const f of B.figs.values()) update(f, dt, t);
     for (const [id, f] of B.figs) {
       if (!f.gone) continue;

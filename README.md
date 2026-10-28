@@ -262,7 +262,8 @@ im Hintergrund, hält das Büro alle Animationen an.
 Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas: ein einziges Gebäude, in dem
 alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und auf
 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
-in `art/README.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
+in `art/README.md`, der Auftrag für die nächsten Grafiken (Einrichtung, Lounge, weitere Figuren) in
+`art/auftrag-stufe-2.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
 so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
 
 - **Das Gebäude:** Oben die Außenwand mit der gläsernen Eingangstür, darunter ein Flur. Vom Flur
@@ -292,6 +293,11 @@ so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach.
   Kreuz) hinaus; sein Tisch bleibt leer stehen, bis er aus der Liste fällt. Kommt ein Projekt
   hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit seinem Tisch um.
 - **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt.
+- **Licht:** Das Büro folgt der Ortszeit. Tagsüber ist es hell, ab dem späten Nachmittag wird es
+  violett, nachts dunkelblau. Dann leuchten die Schreibtischlampen derer, die arbeiten, die
+  Laptops werfen einen kalten Schein, im Flur brennen Deckenlampen, in der Küche geht das Licht
+  an, sobald jemand drin ist. Räume, in denen alle schlafen, bleiben dunkel. Figuren und Möbel
+  werfen kleine Schatten, Wände einen Saum auf den Boden.
 
 Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro. Im Hintergrund-Tab
 steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
@@ -627,7 +633,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-342 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+344 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**

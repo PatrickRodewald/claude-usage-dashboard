@@ -27,6 +27,8 @@ import {
   pixelErrands,
   frameIndex,
   pixelScale,
+  daylight,
+  corridorLights,
   OUTFITS,
   KEY_COLORS,
   outfitFor,
@@ -234,6 +236,31 @@ test('Animationsbild und Massstab', () => {
   assert.equal(pixelScale(232, 500, 1), 2, 'schmal: kleiner, aber ganzzahlig');
   assert.equal(pixelScale(232, 1500, 1.25), 4, '125 %: 4 Geraetepixel je Grafikpixel');
   assert.equal(pixelScale(232, 100, 1), 1, 'nie kleiner als 1');
+});
+
+test('Tageslicht: tagsueber hell, abends violett, nachts dunkel, morgens heller', () => {
+  assert.equal(daylight(12).a, 0);
+  assert.equal(daylight(8).a, 0);
+  assert.ok(daylight(18).a > 0 && daylight(18).a < daylight(20).a, 'es wird abends dunkler');
+  assert.ok(daylight(23).a >= daylight(20).a);
+  assert.equal(daylight(2).a, daylight(23).a, 'die Nacht ist gleich dunkel');
+  assert.ok(daylight(6).a < daylight(5).a && daylight(6).a > 0, 'morgens wird es heller');
+  assert.equal(daylight(26).a, daylight(2).a, 'Stunden ueber 24 laufen um');
+  for (const h of [0, 6, 12, 18, 20, 23.9]) {
+    const { rgb, a } = daylight(h);
+    assert.equal(rgb.length, 3);
+    assert.ok(a >= 0 && a < 1);
+  }
+});
+
+test('Deckenlampen haengen in jedem Flur und im Laengsflur', () => {
+  const L = layoutBuilding([named('A', session('a')), named('B', session('b'))], 20);
+  const lights = corridorLights(L, 5);
+  for (const b of L.bands) assert.ok(lights.some((p) => p.y === (b.corridor + 1) * TILE), 'Flur einer Reihe');
+  for (const p of lights) {
+    const t = tileAt(p.x, p.y);
+    assert.equal(L.floor[t.row * L.cols + t.col], 'hallway', 'Lampen nur ueber dem Flur');
+  }
 });
 
 test('Kleidung: Farben aus der Palette, stabil je Sitzung und Typ', () => {

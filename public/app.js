@@ -369,7 +369,11 @@ const workshop = createWorkshop($('workshop'), {
 
 // Pixel-Buero: dieselben Daten als Pixelgrafik. Das klassische Buero laeuft
 // verborgen mit - es spielt die Toene und ist beim Umschalten sofort da.
-const pixelOffice = createPixelOffice($('pixel-office'), { tooltip, describe: describeFigure });
+const pixelOffice = createPixelOffice($('pixel-office'), {
+  tooltip,
+  describe: describeFigure,
+  timeZone: () => snapshot?.timezone,
+});
 const viewBtn = $('view-toggle');
 let officeView = 'pixel';
 try {
