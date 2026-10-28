@@ -17,6 +17,7 @@ import {
   pendingToolFromLines,
   STALE_BUSY_MS,
   commandKind,
+  toolTarget,
   tailInfo,
   contextWindow,
 } from '../src/activity.js';
@@ -685,7 +686,25 @@ test('der Tracker reicht Detail und Feier bis in den Snapshot durch', async () =
   await t.refresh(now);
   const s = t.snapshot().projects[0].sessions[0];
   assert.deepEqual([s.doing.kind, s.doing.tool, s.doing.detail], ['tool', 'Bash', 'test']);
+  assert.equal(s.doing.target, 'npm test', 'der Befehl steht im Buero');
   assert.equal(s.celebration.kind, 'commit');
+});
+
+test('Woran ein Werkzeug arbeitet: Datei, Muster, Befehl, Host, Auftrag', () => {
+  assert.equal(toolTarget('Read', { file_path: 'C:\\Projekte\\x\\public\\app.js' }), 'app.js');
+  assert.equal(toolTarget('Edit', { file_path: '/home/u/src/server.js' }), 'server.js');
+  assert.equal(toolTarget('NotebookEdit', { notebook_path: '/a/b.ipynb' }), 'b.ipynb');
+  assert.equal(toolTarget('Grep', { pattern: 'createWorkshop' }), 'createWorkshop');
+  assert.equal(toolTarget('Bash', { command: '\n  npm   test\nnpm run lint' }), 'npm test', 'erste Zeile, Leerraum zusammengezogen');
+  assert.equal(toolTarget('WebFetch', { url: 'https://docs.example.com/a?b=c' }), 'docs.example.com');
+  assert.equal(toolTarget('WebFetch', { url: 'kaputt' }), null);
+  assert.equal(toolTarget('Agent', { description: 'Tests schreiben' }), 'Tests schreiben');
+  assert.equal(toolTarget('TodoWrite', { todos: [] }), null);
+  assert.equal(toolTarget('mcp__x__y', { q: 1 }), null);
+  assert.equal(toolTarget('Read', null), null);
+  const long = toolTarget('Bash', { command: 'x'.repeat(200) });
+  assert.equal(long.length, 60);
+  assert.ok(long.endsWith('…'));
 });
 
 // --- Messwerte: Kontext und Tempo ----------------------------------------------

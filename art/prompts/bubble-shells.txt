@@ -1,0 +1,17 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exception for this image: the UI elements requested below are allowed; no text or symbols inside them. Use the attached scene ONLY as reference for palette, hard pixel contour and visual density; do not draw the scene.
+Use case: stylized-concept. Asset type: production sprite sheet for small floating bubbles above game characters.
+Square transparent canvas. Two complete bubble bodies side by side, no tail attached to either:
+1. Empty speech bubble body, exactly 12x12 logical pixels, white fill #ffffff, one logical pixel deep navy #181425 contour. Rounded corners. Designed for a 9-slice split into nine equal 4x4 pieces; the central 4x4 is pure white, straight border middles can tile.
+2. Empty thought bubble body, exactly 12x12 logical pixels, white fill and deep navy contour, gently scalloped / wavy silhouette. Also a 3x3 array of 4x4 parts, center pure white, all four edge middle parts tile without gaps.
+Below them, in one separated row: a small down-pointing speech tail 4x4 logical pixels, a round thought puff 4x4, and one tiny round thought puff 2x2. White fill, navy contour. All at the same block scale as the bodies.
+Keep each body a small raster motif, displayed at a large integer magnification so the 12 by 12 pixel pattern is easy to count. Flat white and navy only, no grey shadows. No text, no ornamental lines, no checkerboard painted into the artwork. Exactly five isolated motifs with plenty of transparent spacing. Both bodies must be visibly different and have enclosed white interiors.

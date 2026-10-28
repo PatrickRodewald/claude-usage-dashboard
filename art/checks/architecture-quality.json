@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "spriteCount": 29,
+  "floorSprites": 14,
+  "wallSprites": 7,
+  "doorFrames": 6,
+  "blankPlates": 2,
+  "animations": 2,
+  "wallAndDoorFrameSize": [
+    16,
+    32
+  ],
+  "capSize": [
+    16,
+    16
+  ],
+  "plateSize": [
+    16,
+    8
+  ],
+  "visiblePaletteColors": 14,
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "wallRepeatsAndEnds": "passed",
+  "capConnections": "passed",
+  "fixedDoorFramesAndBaseline": "passed",
+  "progressiveDoorOpening": "passed",
+  "collisionStateMetadata": "passed",
+  "floorChecks": "passed",
+  "previewScale": 3,
+  "animationPreviewFrames": 4,
+  "animationPreviewMatchesAtlas": true
+}

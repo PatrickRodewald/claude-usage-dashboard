@@ -1,0 +1,16 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exception for this image: the UI requested below and simple symbols ! and ? are allowed. No other text. Use the attached scene ONLY as reference for palette, hard pixel contour and visual density.
+Use case: stylized-concept. Asset type: ten tiny status emotes for an office game.
+Square transparent sprite sheet, exactly two rows of five evenly spaced isolated icons. Each complete emote is a 12x12 logical pixel tile, at one shared clean large integer magnification. Each has the SAME small white rounded bubble with a one-pixel navy #181425 outline and a tiny down-pointing bottom tail. The colored center symbols must be simple, bold and readable at 12 pixels; use 1-pixel strokes, never typographic antialiasing. Do not add faces, people, words or labels.
+Row 1 left to right: red exclamation mark, blue question mark, glowing yellow light bulb, pink heart, cyan sweat drop.
+Row 2 left to right: green check mark, red cross, navy music note, warm coffee in a white cup, hourglass with yellow sand.
+Use only these ENDESGA 32 colors: #181425 #ffffff #c0cbdc #5a6988 #e43b44 #a22633 #0099db #124e89 #fee761 #feae34 #f6757a #b55088 #2ce8f5 #63c74d #3e8948 #733e39. Transparent spacing. Each bubble completely enclosed except for its tiny tail, identical scale. Exactly ten motifs, no duplicates or extras. Simple sparse 12x12 art, not detailed illustrations.

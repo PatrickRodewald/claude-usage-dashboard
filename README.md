@@ -117,7 +117,11 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 
 ### Gerade aktiv
 
-Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum.
+Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum. Es
+gibt das Büro in zwei Ansichten: als **Pixel-Büro** (Standard, siehe unten) und als klassisches
+Büro mit Robotern, das hier zuerst beschrieben ist. „Klassisch“ bzw. „Pixel“ im Kopf des Bereichs
+schaltet um, der Browser merkt sich die Wahl. Die Töne spielt immer das klassische Büro, auch
+wenn es gerade verborgen ist.
 
 - **An der Rückwand** hängt eine Tafel mit dem Projektnamen in Kreideschrift. Darunter stehen
   die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen, „–“
@@ -241,6 +245,38 @@ Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard u
 Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, die
 Papierflieger bleiben am Boden, und wer kommt oder geht, ist einfach da oder weg. Liegt der Tab
 im Hintergrund, hält das Büro alle Animationen an.
+
+#### Pixel-Büro
+
+Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas. Die Grafiken sind mit ChatGPT
+erzeugt und auf 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und
+Aufbereitung stehen in `art/README.md`. Angezeigt wird ganzzahlig vergrößert (meist dreifach),
+damit jedes Pixel gleich groß bleibt; in schmalen Fenstern zweifach.
+
+- **Der Raum:** Holzboden, an der Rückwand die Tür und eine Kaffeeecke mit Theke,
+  Espressomaschine, Kühlschrank und Wasserspender. Sitzungen arbeiten an großen Tischen, ihre
+  Subagents darunter an kleinen Tischen auf einem Teppich.
+- **Am Tisch:** Lesen und Suchen (`Read`, `Grep`, Web) mit einem Buch, dessen Seiten umblättern;
+  Schreiben (`Edit`, `Write`, Todos) mit Block und Stift; Shell, Tests und andere Werkzeuge am
+  Laptop; Nachdenken mit der Hand am Kinn und einer Denkblase. Die Sprechblase nennt Werkzeug
+  und Ziel: `Read app.js`, `$ npm test`, `Grep createWorkshop`, `→ Tests schreiben` beim
+  Delegieren. Wer ruht, schläft mit „z“ und zugeklapptem Laptop.
+- **Symbole über dem Kopf:** „!“ bei einer neuen Nachricht von dir, ein Häkchen nach einem Commit,
+  ein Herz nach einem Push, ein Kreuz bei einem Fehler, Schweißtropfen bei Drosselung, „?“ bei
+  einer Sitzung ohne Lebenszeichen und eine Sanduhr für alle, wenn das 5h-Limit erreicht ist.
+- **Treiben:** Wer auf dich wartet, holt sich nach ein paar Sekunden ab und zu einen Kaffee
+  (danach dampft die Tasse am Platz), trinkt Wasser oder vertritt sich die Beine. Wer lange
+  nachdenkt, geht hinter dem Tisch auf und ab; wer delegiert, stellt sich zu einem seiner
+  Subagents („?“), der eine Idee hat. Gelaufen wird per Wegfindung um die Möbel herum. Kommt
+  Arbeit, eilt die Figur zurück; unterwegs sind höchstens 40 % eines Raums, maximal vier.
+- **Kommen und Gehen:** Neue Sitzungen und Subagents kommen durch die Tür und gehen zu ihrem
+  Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder Kreuz) hinaus; sein Tisch
+  bleibt leer stehen, bis er aus der Liste fällt.
+- **Ruhe:** Schlafen alle im Raum, wird er gedimmt.
+
+Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro. Im Hintergrund-Tab
+steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
+da oder weg. Der Rückblick läuft vorerst im klassischen Büro.
 
 #### Tagesrückblick
 
@@ -545,7 +581,10 @@ angehängten Zeilen. Ein Subagent, der zuletzt vor dem Start des aktuellen Proze
 hat, gilt als abgebrochen: Er ist mit dem alten Prozess untergegangen. Statusdateien anderer
 Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergangen. Alle drei
 Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet nur dieser Bereich, das übrige
-Dashboard läuft weiter.
+Dashboard läuft weiter. Zum laufenden Werkzeug liefert der Server ein kurzes Ziel mit: den
+Dateinamen ohne Pfad, das Suchmuster, die erste Zeile eines Shell-Befehls, den Host einer URL
+oder den Auftrag an einen Subagent, gekürzt auf 60 Zeichen. Das bleibt auf diesem Gerät, der
+Server bindet nur an 127.0.0.1.
 
 **Tagesrückblick.** Der Server kennt ohnehin jeden Request mit Zeitstempel, Sitzung, Subagent,
 Kosten, Kontext und dem ersten aufgerufenen Werkzeug. `/api/replay` schneidet daraus einen Tag
@@ -569,7 +608,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-321 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+340 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -688,7 +727,11 @@ src/
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
 public/             Frontend (kein Build-Schritt)
-  agents.js         Büro mit Figuren für „Gerade aktiv"
+  agents.js         Büro mit Figuren für „Gerade aktiv" (klassisch, SVG)
+  pixel/world.js    Pixel-Büro ohne DOM: Raumaufbau, Wegfindung, was jede Figur zeigt
+  pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
+  assets/office/    Grafiken des Pixel-Büros mit atlas.json
+art/                Herkunft der Pixelgrafiken: Prompts, Rohbilder, Aufbereitung (Python)
   replay.js         Zustand des Büros zu jedem Zeitpunkt eines Tages (Rückblick)
   replayView.js     Leiste und Abspielen des Rückblicks
 test/               Unit- und Integrationstests (node:test)

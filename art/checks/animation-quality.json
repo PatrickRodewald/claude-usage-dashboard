@@ -1,0 +1,103 @@
+{
+  "status": "passed",
+  "totalSprites": 118,
+  "totalAnimations": 23,
+  "newCharacterFrames": 52,
+  "newPropFrames": 7,
+  "frameSize": [
+    16,
+    32
+  ],
+  "feetBaseline": 32,
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "headsMatchApprovedWalkingViews": "passed",
+  "distinctWalkingLegPoses": "passed",
+  "workGestures": "passed",
+  "breathingMovesShoulders": "passed",
+  "seatedFeetAndChairBase": "passed",
+  "atlasBoundsAndOverlap": "passed",
+  "clothingMasksAndRecolor": "passed",
+  "separatePropsAndHandOverlays": "passed",
+  "gaitNormalization": {
+    "sharedTrouserGaitFrom": "look-02-walk",
+    "pixelPhaseRepairs": []
+  },
+  "actions": {
+    "look-01": {
+      "walk-front": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "walk-back": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "walk-right": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "idle": {
+        "frames": 2,
+        "distinctPoses": 2
+      },
+      "type": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "read": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "write": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "think": {
+        "frames": 3,
+        "distinctPoses": 3
+      }
+    },
+    "look-02": {
+      "walk-front": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "walk-back": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "walk-right": {
+        "frames": 4,
+        "distinctLegPoses": 4
+      },
+      "idle": {
+        "frames": 2,
+        "distinctPoses": 2
+      },
+      "type": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "read": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "write": {
+        "frames": 3,
+        "distinctPoses": 3
+      },
+      "think": {
+        "frames": 3,
+        "distinctPoses": 3
+      }
+    }
+  },
+  "previewScale": 3,
+  "overviewGifFrames": 24,
+  "workbenchGifFrames": 12,
+  "exportedGifPixelsMatchAtlas": true
+}

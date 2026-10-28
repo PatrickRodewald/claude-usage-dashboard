@@ -6,6 +6,7 @@
 import { renderColumnChart, renderStackedBar, createTooltip } from './charts.js';
 import { createWorkshop, entrypointLabel } from './agents.js';
 import { createReplay } from './replayView.js';
+import { createPixelOffice } from './pixel/office.js';
 
 const $ = (id) => document.getElementById(id);
 const tooltip = createTooltip();
@@ -366,6 +367,37 @@ const workshop = createWorkshop($('workshop'), {
   timeZone: () => snapshot?.timezone,
 });
 
+// Pixel-Buero: dieselben Daten als Pixelgrafik. Das klassische Buero laeuft
+// verborgen mit - es spielt die Toene und ist beim Umschalten sofort da.
+const pixelOffice = createPixelOffice($('pixel-office'), { tooltip, describe: describeFigure });
+const viewBtn = $('view-toggle');
+let officeView = 'pixel';
+try {
+  if (localStorage.getItem('cud-office-view') === 'classic') officeView = 'classic';
+} catch {
+  /* kein Speicher - dann Pixel */
+}
+function applyView() {
+  const pixel = officeView === 'pixel';
+  if (!replay.active) {
+    $('pixel-office').hidden = !pixel;
+    $('workshop').hidden = pixel;
+  }
+  viewBtn.textContent = pixel ? 'Klassisch' : 'Pixel';
+  viewBtn.setAttribute('aria-pressed', String(!pixel));
+  tooltip.hide();
+  if (pixel) pixelOffice.tick();
+}
+viewBtn.addEventListener('click', () => {
+  officeView = officeView === 'pixel' ? 'classic' : 'pixel';
+  try {
+    localStorage.setItem('cud-office-view', officeView);
+  } catch {
+    /* egal */
+  }
+  applyView();
+});
+
 // Tagesrueckblick: ein eigenes Buero spielt einen Tag im Zeitraffer ab.
 const replay = createReplay({
   tooltip,
@@ -373,10 +405,16 @@ const replay = createReplay({
   describe: describeFigure,
   timeZone: () => snapshot?.timezone,
   onToggle: (on) => {
-    if (on) $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
-    else if (snapshot) renderActivity(snapshot);
+    if (on) {
+      $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
+      $('pixel-office').hidden = true;
+    } else {
+      applyView();
+      if (snapshot) renderActivity(snapshot);
+    }
   },
 });
+applyView();
 
 // Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
 // bei einem Klick - ohne Nutzergeste laesst der Browser ihn nicht anlaufen.
@@ -432,7 +470,9 @@ function renderActivity(s) {
   if (act.error) parts.push(`gestört: ${act.error}`);
   if (!replay.active) $('live-sub').textContent = parts.join(' · ');
   // Das Buero reagiert auf das Limit (Warnlampe, Zwangspause, Kalender).
-  workshop.render(act, { fiveHour: s.live.fiveHour, week: s.live.week });
+  const env = { fiveHour: s.live.fiveHour, week: s.live.week };
+  workshop.render(act, env);
+  pixelOffice.render(act, env);
 }
 
 function costCell(row) {

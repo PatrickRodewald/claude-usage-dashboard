@@ -1,0 +1,35 @@
+Use case: stylized-concept
+Asset type: neutral character turnaround sheet for look 02, the subagent office worker.
+Input image 1: approved office STYLE REFERENCE for palette, outline and camera.
+Input image 2: look 01 STYLE AND PROPORTION REFERENCE ONLY. Match her overall sprite scale, baseline and coarse pixel style. This is a DIFFERENT character with the exact appearance below, not a redesign of the woman.
+Output: square 1024x1024 transparent PNG, one row of exactly three complete views, no labels.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Character sheet for ONE male office worker. Every view is 16x32 logical art pixels, enlarged exactly 8x. Chibi proportions, head only about TEN logical pixels high, one third of the 32-pixel height. Simple tiny game-sprite face, not a large detailed portrait or an oversized head. All three views share one identical baseline.
+
+Look: a man with LIGHT skin, SHORT BROWN hair and a clearly RED beard. Brown hair on the scalp and a red beard on the chin are distinct colors. No spectacles, hat, tie or accessories. Hair has a few simple coarse pixel steps, not detailed strands. The face is calm and friendly.
+Outfit: a plain CYAN T-SHIRT with short sleeves, dark grey trousers, dark shoes. The entire T-shirt, including the short sleeves, is drawn only in #2ce8f5 (highlight), #0099db (midtone), #124e89 (shadow). It must clearly read as one simple T-shirt, with NO vest, jacket, white collar, buttons or logos.
+Nothing except the T-shirt may use those three colors: not hair, beard, skin, trousers, shoes, outlines or shadows.
+
+Three views LEFT TO RIGHT:
+1. facing the viewer, neutral stance, arms relaxed beside torso
+2. facing away, same short brown haircut and T-shirt
+3. facing RIGHT, nose and beard projecting to the right
+Same person, hair, beard, outfit, width and body proportions in every view. No pose differences, no walking, no props, no chair or floor tile. Leave generous transparent margins and gutters. Keep feet on the same line as each other and at the same intended scale as the reference woman.
+
+Logical design: head roughly rows 1–11, torso and arms through row 23, trousers and shoes to row 31. Hands and shoes remain readable at 16x32. Use only a few solid square pixels per facial feature.
+Exact allowed palette:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044 #feae34 #fee761
+#63c74d #3e8948 #265c42 #193c3e #124e89 #0099db #2ce8f5
+#ffffff #c0cbdc #8b9bb4 #5a6988 #3a4466 #262b44 #181425
+#68386c #b55088 #f6757a

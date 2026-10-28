@@ -114,6 +114,9 @@
               <p class="panel-sub" id="live-sub">–</p>
             </div>
             <div class="panel-actions">
+              <button type="button" id="view-toggle" class="btn" title="Zwischen Pixel-Büro und klassischem Büro wechseln">
+                Klassisch
+              </button>
               <button type="button" id="replay-toggle" class="btn" aria-pressed="false" title="Einen Tag im Zeitraffer noch einmal ansehen">
                 Rückblick
               </button>
@@ -138,7 +141,8 @@
             <input type="date" id="replay-day" class="btn" aria-label="Tag" />
             <p class="replay-note" id="replay-note"></p>
           </div>
-          <div class="workshop" id="workshop"></div>
+          <div class="workshop pixel-office" id="pixel-office"></div>
+          <div class="workshop" id="workshop" hidden></div>
           <div class="workshop" id="replay-workshop" hidden></div>
         </article>
       </section>

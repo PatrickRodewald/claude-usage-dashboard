@@ -1085,7 +1085,7 @@ function route(parent, from, to) {
  * Agents einer Sitzung in Anzeigereihenfolge: verschachtelte direkt hinter
  * ihrem Auftraggeber, damit ihr Weg kurz bleibt.
  */
-function orderAgents(agents) {
+export function orderAgents(agents) {
   const byParent = new Map();
   for (const a of agents) {
     const k = a.parentId ?? '';

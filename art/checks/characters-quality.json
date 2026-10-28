@@ -1,0 +1,87 @@
+{
+  "status": "passed",
+  "totalSprites": 59,
+  "characterLooks": 2,
+  "characterViews": 6,
+  "frameSize": [
+    16,
+    32
+  ],
+  "sheetSize": [
+    48,
+    32
+  ],
+  "feetBaseline": 32,
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "palette": "ENDESGA 32",
+  "clothingKeyColors": [
+    "#2ce8f5",
+    "#0099db",
+    "#124e89"
+  ],
+  "allThreeShadesPerView": "passed",
+  "keyColorsOnlyOnClothing": "passed",
+  "atlasViewPositions": "passed",
+  "recolorPreservesAllOtherPixels": "passed",
+  "spectaclesAndRedBeardPreserved": "passed",
+  "previousStageChecks": "passed",
+  "previewScale": 3,
+  "views": {
+    "look-01": {
+      "front": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          9,
+          21,
+          14
+        ]
+      },
+      "back": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          11,
+          28,
+          15
+        ]
+      },
+      "right": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          3,
+          9,
+          9
+        ]
+      }
+    },
+    "look-02": {
+      "front": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          24,
+          41,
+          2
+        ]
+      },
+      "back": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          24,
+          42,
+          1
+        ]
+      },
+      "right": {
+        "feetBaseline": 32,
+        "shadePixelCounts": [
+          13,
+          15,
+          1
+        ]
+      }
+    }
+  },
+  "characterAnimationsCreated": false
+}

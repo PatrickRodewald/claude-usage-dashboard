@@ -626,6 +626,32 @@ td.name {
   overflow: hidden;
   background: var(--office-floor);
 }
+/* Pixel-Buero: Groesse setzt der Code (ganzzahlig vergroessert), hier nur Rahmen. */
+.px-room {
+  flex: 0 0 auto;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #181425;
+}
+.px-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #c0cbdc;
+  background: #262b44;
+}
+.px-caption strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+.px-canvas {
+  display: block;
+  image-rendering: pixelated;
+}
 /* Skaliert in schmalen Fenstern herunter, aber nie ueber die Naturgroesse. */
 .workshop-svg {
   display: block;

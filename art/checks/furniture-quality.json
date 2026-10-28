@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "totalSprites": 53,
+  "workplaceSprites": 14,
+  "kitchenSprites": 10,
+  "totalAnimations": 5,
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "dimensions": "passed",
+  "mountPointWidths": "passed",
+  "fixedMugBodyAndRisingSteam": "passed",
+  "fixedMachineBody": "passed",
+  "fixedCoolerAndRisingBubble": "passed",
+  "fixedLampBody": "passed",
+  "previewScale": 3,
+  "animationPreviewFrames": 12,
+  "animationPreviewMatchesAtlas": true
+}

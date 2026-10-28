@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "totalSprites": 156,
+  "totalAnimations": 25,
+  "newSprites": 38,
+  "newAnimations": 2,
+  "sheetSize": [
+    64,
+    64
+  ],
+  "nineSlicePieceSize": [
+    4,
+    4
+  ],
+  "emoteSize": [
+    12,
+    12
+  ],
+  "sleepSize": [
+    12,
+    12
+  ],
+  "gearSize": [
+    8,
+    8
+  ],
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "palette": "ENDESGA 32",
+  "atlasBoundsAndOverlap": "passed",
+  "nineSliceWhiteInteriorAndNoHoles": "passed",
+  "tenDistinctEmotes": "passed",
+  "sleepRisesAndGrows": "passed",
+  "fourDistinctGearSilhouettes": "passed",
+  "gearCenterFixed": "passed",
+  "previousSpriteAndAnimationEntries": "unchanged",
+  "previewScale": 3,
+  "officePreviewGifFrames": 60,
+  "exportedGifPixelsMatchAtlas": true,
+  "textSeparateFromSpriteSheet": true,
+  "previousAssetImagesByteIdentical": 20
+}

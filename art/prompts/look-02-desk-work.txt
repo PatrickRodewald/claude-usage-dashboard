@@ -1,0 +1,30 @@
+Use case: identity-preserve
+Asset type: seated desk-work animation sheet for approved LOOK 02.
+Input image 1: office style anchor.
+Input image 2: original identity: light-skinned man, short brown hair, red beard, plain cyan T-shirt.
+Input image 3: authoritative approved 16x32 pixel production sprites, enlarged 8x. Match that person, scale and proportions exactly.
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exactly FOUR ROWS of THREE frames each, tall transparent PNG 1024x1536. Each cell is 16x32 logical pixels. Draw only the SAME person and dark office chair, facing the viewer. Feet and chair base stay on one common baseline. No desk, laptop, book, notepad or pen. Gestures are around empty positions where separate props will be drawn by code.
+The T-shirt including short sleeves alone uses #2ce8f5 / #0099db / #124e89. No vest, jacket or white collar. Do not use those blues for the chair or trousers. Keep hair brown and beard red, skin light, head about one third of the sprite height.
+
+ROW 1 TYPING, 3 frames: forearms toward imaginary keyboard at waist; left/right hand and finger positions alternate small up/down motions.
+ROW 2 READING, 3 frames: both hands framing an empty book-sized space; right hand reaches inward/up to turn a page, then returns. Do not draw a book.
+ROW 3 WRITING, 3 frames: left hand steady, right hand makes a short diagonal writing stroke in three positions over an empty notepad position. No drawn notepad or pencil.
+ROW 4 THINKING, 3 frames: hand on chin; look slightly upward with hand lowered; hand raised to scratch side/top of head.
+
+Keep all gestures readable but restrained, and keep chair and body scale fixed. Twelve complete sprites total, all separated by transparent gutters. No labels, symbols, scenery or duplicate extra rows.
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044 #feae34 #fee761
+#63c74d #3e8948 #265c42 #193c3e #124e89 #0099db #2ce8f5
+#ffffff #c0cbdc #8b9bb4 #5a6988 #3a4466 #262b44 #181425
+#68386c #b55088 #f6757a

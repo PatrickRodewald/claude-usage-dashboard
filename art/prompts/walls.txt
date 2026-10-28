@@ -1,0 +1,37 @@
+Use case: stylized-concept
+Asset type: modular wall tile sheet for a cozy pixel office game.
+Input image: approved STYLE REFERENCE ONLY. Match the warm wood, pale plaster, deep navy pixel outlines and straight top-down 3/4 office view. Do not draw a room, furniture, floor or people.
+Output: one square transparent PNG sheet, target 1024x1024.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exactly SEVEN separate pieces; simple architectural surfaces, flat colors, no decoration:
+Top row: FOUR back-wall pieces, each 16 logical pixels wide and 32 logical pixels tall, all the same size and baseline.
+1. Repeatable plain back-wall front segment: pale warm grey plaster, a narrow 4-pixel wall cap across the top, a 3-pixel wooden baseboard across the bottom.
+2. Repeatable wainscot back-wall segment: same cap and upper plaster as piece 1, wooden wainscot over the lower half, same baseboard. No visible joint on the left or right repeat boundaries.
+3. Left end of the plain back wall: same cap, plaster, baseboard as piece 1; finished narrow vertical end cap ONLY at the left edge.
+4. Right end of the plain back wall: finished end cap ONLY at the right edge, mirroring piece 3.
+Back-wall caps all align at the same height, baseboards align at the same height. Repeatable segments have no dark outlines along their left or right cut edges; otherwise every repeated tile would show an unwanted vertical seam. Top cap and bottom baseboard run cleanly edge to edge.
+
+Bottom row: THREE small wall cap tiles, each exactly 16x16 logical pixels.
+5. Side wall top cap: one vertical band, 4 logical pixels wide, along the LEFT edge of its 16x16 transparent cell. Runs through the full height; no front wall face.
+6. Outer corner cap: an L-shaped band across the TOP edge and LEFT edge, each arm 4 logical pixels thick. Remaining cell transparent. Connects the cap from the back wall to a side wall.
+7. Inner corner cap: matching concave L cap in the opposite corner, along the BOTTOM and RIGHT edges, each arm 4 logical pixels thick. Remaining cell transparent.
+No grey backing squares under these cap shapes. Preserve real alpha transparency outside each object.
+
+Top row four tall pieces, bottom row three square cap pieces. Do not add variants or labels. The target is very coarse true low-resolution game pixels enlarged by a consistent integer, not a detailed illustration. No perspective trapezoids, no floor shadows outside cells, no lighting gradients.
+
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044
+#feae34 #fee761 #63c74d #3e8948 #265c42 #193c3e
+#124e89 #0099db #2ce8f5 #ffffff #c0cbdc #8b9bb4
+#5a6988 #3a4466 #262b44 #181425 #68386c #b55088 #f6757a

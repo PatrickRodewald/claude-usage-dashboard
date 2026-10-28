@@ -168,6 +168,10 @@ test('statische Dateien kommen mit passendem MIME-Typ', async () => {
 
     const js = await fetch(`${app.url}/app.js`);
     assert.match(js.headers.get('content-type'), /text\/javascript/);
+
+    const png = await fetch(`${app.url}/assets/office/tiles/floor.png`);
+    assert.equal(png.status, 200);
+    assert.equal(png.headers.get('content-type'), 'image/png');
   });
 });
 

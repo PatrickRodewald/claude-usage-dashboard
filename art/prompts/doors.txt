@@ -1,0 +1,42 @@
+Use case: stylized-concept
+Asset type: door animation and blank sign plate sheet for the same cozy pixel office.
+Input image: approved office STYLE REFERENCE ONLY. Match the wood, pixel outlines, straight back-wall perspective and warm mood. Do not draw a room, people, floors or wall segments.
+Output: one square transparent PNG sheet, target 1024x1024.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exactly TWO rows of THREE door animation frames, with TWO small plates on a third row:
+Every door frame occupies exactly 16 logical pixels wide x 32 logical pixels tall. The outer door frame and its baseline, top, hinge location and width stay pixel-identical in all three states. Same scale for both door types. Small simple low-resolution pixel shapes, not an illustration with hundreds of tiny pixels.
+Wood doors, first row from left to right:
+1. closed wooden door, warm brown, simple recessed panels, a tiny brass handle, hinge on the left
+2. the SAME wooden door half open inward: the left-hinged leaf foreshortened to roughly half width, dark doorway visible on the right
+3. fully open, the wooden leaf nearly edge-on along the left jamb, dark doorway clearly visible, same fixed outer frame
+Keep the swinging leaf entirely within its 16x32 cell, including the bottom. No door leaf or shadow may spill out of its frame cell.
+
+Glass doors, second row:
+1. closed glass door with thin cool grey metal frame, pale blue glass, two simple diagonal pixel reflection strokes
+2. same glass door half open inward, left-hinged leaf foreshortened, dark opening visible on the right
+3. fully open with glass leaf nearly edge-on on the left, same fixed outer frame, dark doorway
+No transparency gradient through the glass; use flat pale blue shapes. Real transparent alpha outside the door sprites.
+
+Plates, third row, two pieces:
+A small blank wall/door sign plate, 16x8 logical pixels, pale grey with a thin dark rim.
+A small blank brass name plate, 16x8 logical pixels, warm yellow with a thin dark rim.
+Both completely blank, without decorative marks, screws or text. These plates are visibly half a door's width-to-height proportions when accounting for the 16x32 doors above: same width as one door, one quarter its height.
+
+Use generous transparent gutters. No labels, arrows, diagram lines, perspective wedges, room scenery or wall backdrop.
+
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044
+#feae34 #fee761 #63c74d #3e8948 #265c42 #193c3e
+#124e89 #0099db #2ce8f5 #ffffff #c0cbdc #8b9bb4
+#5a6988 #3a4466 #262b44 #181425 #68386c #b55088 #f6757a

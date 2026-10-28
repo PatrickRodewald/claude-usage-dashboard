@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "tileSize": [
+    16,
+    16
+  ],
+  "tileCount": 14,
+  "atlasSize": [
+    80,
+    64
+  ],
+  "visiblePaletteColors": 7,
+  "visibleColors": [
+    "#5a6988",
+    "#8b9bb4",
+    "#b86f50",
+    "#c0cbdc",
+    "#d77643",
+    "#e4a672",
+    "#ead4aa"
+  ],
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "opaqueFloorTiles": 5,
+  "woodVariantsCompatible": true,
+  "floorBoundaryChecks": "passed",
+  "rugNineSliceAndStretchChecks": "passed",
+  "atlasBoundsAndOverlapChecks": "passed",
+  "previewScale": 3,
+  "previewResampling": "nearest-neighbor",
+  "source": {
+    "size": [
+      1254,
+      1254
+    ],
+    "sha256": "6f6ac65dfdec30a4d94178c613db7685210d359e747091f8d09fc8583885f287"
+  }
+}

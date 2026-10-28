@@ -1,0 +1,97 @@
+{
+  "source": "art/raw/floor.png",
+  "sourceSize": [
+    1254,
+    1254
+  ],
+  "sha256": "6f6ac65dfdec30a4d94178c613db7685210d359e747091f8d09fc8583885f287",
+  "floorCrops": {
+    "wood-a": [
+      207,
+      64,
+      421,
+      278
+    ],
+    "wood-b": [
+      520,
+      64,
+      735,
+      278
+    ],
+    "carpet": [
+      834,
+      62,
+      1049,
+      276
+    ],
+    "kitchen": [
+      364,
+      360,
+      578,
+      575
+    ],
+    "hallway": [
+      677,
+      360,
+      891,
+      575
+    ]
+  },
+  "rugCrops": [
+    [
+      385,
+      689,
+      522,
+      824
+    ],
+    [
+      558,
+      689,
+      697,
+      824
+    ],
+    [
+      733,
+      689,
+      870,
+      824
+    ],
+    [
+      385,
+      860,
+      522,
+      996
+    ],
+    [
+      558,
+      860,
+      697,
+      996
+    ],
+    [
+      733,
+      860,
+      870,
+      996
+    ],
+    [
+      385,
+      1032,
+      522,
+      1166
+    ],
+    [
+      558,
+      1032,
+      697,
+      1166
+    ],
+    [
+      733,
+      1032,
+      870,
+      1166
+    ]
+  ],
+  "note": "Source draft generated with imagegen from the approved office style reference. Crops exclude translucent fringes. Target: 16x16 px per tile; structural corrections are documented in README.md."
+}

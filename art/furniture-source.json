@@ -1,0 +1,154 @@
+{
+  "generation": "Built-in imagegen, approved style anchor used as reference; exact prompts under art/prompts.",
+  "processing": "Area-mode palette sampling, hard contours, binary alpha, shared bodies for animations, logical-pixel corrections and bottom-aligned prop cells.",
+  "workplace": {
+    "file": "art/raw/workplace.png",
+    "sha256": "5461b157cedec9ac8dfb534ec9e165b901895ced534b39ac3606dfeb901a2366",
+    "size": [
+      1254,
+      1254
+    ],
+    "crops": {
+      "desk-large": [
+        77,
+        87,
+        708,
+        322
+      ],
+      "desk-small": [
+        784,
+        87,
+        1177,
+        322
+      ],
+      "chair-back": [
+        192,
+        411,
+        402,
+        699
+      ],
+      "chair-front": [
+        525,
+        403,
+        730,
+        701
+      ],
+      "chair-right": [
+        868,
+        410,
+        1044,
+        703
+      ],
+      "laptop-closed": [
+        74,
+        821,
+        264,
+        930
+      ],
+      "laptop-back-open": [
+        322,
+        791,
+        504,
+        919
+      ],
+      "laptop-front-open": [
+        560,
+        772,
+        739,
+        931
+      ],
+      "lamp-off": [
+        805,
+        768,
+        973,
+        941
+      ],
+      "lamp-on": [
+        1021,
+        770,
+        1188,
+        941
+      ],
+      "mug-body": [
+        272,
+        1091,
+        373,
+        1189
+      ]
+    }
+  },
+  "kitchen": {
+    "file": "art/raw/kitchen.png",
+    "sha256": "a52bbd49542831b878219f973f10d8cde70f6137d5aafdd4f3d21f0ed28cb3d0",
+    "size": [
+      1536,
+      1024
+    ],
+    "crops": {
+      "counter": [
+        433,
+        38,
+        1103,
+        257
+      ],
+      "espresso": [
+        [
+          367,
+          307,
+          505,
+          505
+        ],
+        [
+          585,
+          307,
+          724,
+          505
+        ],
+        [
+          803,
+          307,
+          944,
+          505
+        ],
+        [
+          1023,
+          307,
+          1162,
+          505
+        ]
+      ],
+      "cooler": [
+        [
+          333,
+          558,
+          456,
+          843
+        ],
+        [
+          555,
+          558,
+          679,
+          842
+        ],
+        [
+          775,
+          558,
+          899,
+          843
+        ]
+      ],
+      "fridge": [
+        1040,
+        568,
+        1200,
+        843
+      ],
+      "tray-mugs": [
+        320,
+        906,
+        479,
+        987
+      ]
+    }
+  }
+}

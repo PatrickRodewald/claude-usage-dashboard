@@ -1,0 +1,50 @@
+Use case: stylized-concept
+Asset type: modular workplace furniture and desk-prop sprite sheet for the attached pixel office.
+Input image: approved STYLE REFERENCE ONLY. Match the warm wooden desks, dark office chairs, grey laptops and simple 3/4 top-down perspective. Do not draw a room or people.
+Output: one square transparent PNG sheet, target 1024x1024.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exactly FOUR separated rows, all objects drawn at the same scale. Each logical art pixel is a large solid 8x8 square. These are small simple game sprites, not a detailed illustration. Blank transparent space between objects. No labels.
+
+ROW 1, TWO BARE DESKS:
+1. A large wooden team-lead desk, 48 logical pixels wide x 24 tall, warm broad tabletop viewed from above, visible front panel and legs. Entirely empty tabletop. Straight horizontal front edge.
+2. A matching smaller wooden desk, 32x24, empty tabletop. Same tabletop height and front panel depth as the large desk.
+Keep the feet and front bottom edges on the same baseline. No chair, laptop, lamp, mug or papers built into either desk sprite.
+
+ROW 2, THREE EMPTY OFFICE CHAIRS, each 16x24:
+1. chair seen from behind, full high dark backrest visible
+2. the same chair seen from the front, visible seat and inside of backrest
+3. the same chair seen from the right side
+Simple dark navy/blue-grey upholstery and metal foot/base. No person sitting in a chair.
+
+ROW 3, THREE LAPTOPS THEN TWO LAMPS, each 16x16:
+1. closed grey laptop
+2. open grey laptop seen from behind the screen lid: a plain solid grey lid with a narrow cyan edge highlight
+3. open grey laptop seen from the front: a blank cyan screen and a simple keyboard, no text or icons
+4. small desk lamp OFF, dark metal bent arm and base
+5. the EXACT SAME desk lamp ON: same silhouette, base and arm position, only the bulb is warm yellow
+Do not add a halo, light cone or cast light patch; lighting will be drawn by the game.
+
+ROW 4, FOUR COFFEE MUG FRAMES, each 8x16:
+1. plain white mug, no steam
+2. same mug with a small hard-edged steam curl
+3. same mug with steam rising higher
+4. same mug with a thin steam curl near the top
+The mug body and handle are pixel-identical in all four cells, bottom-aligned. Leave upper half of every mug cell free for steam. No saucer or extra cups. Steam is solid off-white pixels, not semi-transparent smoke.
+
+Use the exact size ratios: large desk is three times a laptop's width; small desk twice; mug half a laptop's width. All objects are complete, nothing clipped or overlapping. No texture noise, no small writing or simulated letters.
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044
+#feae34 #fee761 #63c74d #3e8948 #265c42 #193c3e
+#124e89 #0099db #2ce8f5 #ffffff #c0cbdc #8b9bb4
+#5a6988 #3a4466 #262b44 #181425 #68386c #b55088 #f6757a

@@ -1,0 +1,127 @@
+{
+  "generation": "Built-in imagegen. Both use the approved office anchor; look 02 also references look 01 for scale and style. Exact prompts under art/prompts.",
+  "normalization": {
+    "frameSize": [
+      16,
+      32
+    ],
+    "headRows": [
+      1,
+      12
+    ],
+    "torsoRows": [
+      12,
+      21
+    ],
+    "lowerBodyRows": [
+      21,
+      32
+    ],
+    "feetBaseline": 32,
+    "note": "Source heads are normalized to about one third of the sprite height; a common horizontal scale is used per look."
+  },
+  "looks": {
+    "look-01": {
+      "file": "art/raw/look-01.png",
+      "sha256": "763b891a369d2b5b2b081b97fdc52b6c68327c7e2c0644116c5dcab20544837f",
+      "size": [
+        1254,
+        1254
+      ],
+      "role": "main-session",
+      "appearance": "Frau, dunkle Haut, kurze schwarze Locken, runde Brille, Weste über hellem Hemd",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            89,
+            333,
+            381,
+            999
+          ],
+          "torsoY": [
+            294,
+            441
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            491,
+            333,
+            754,
+            999
+          ],
+          "torsoY": [
+            294,
+            441
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            883,
+            333,
+            1156,
+            999
+          ],
+          "torsoY": [
+            294,
+            441
+          ]
+        }
+      ]
+    },
+    "look-02": {
+      "file": "art/raw/look-02.png",
+      "sha256": "d61ac81597590f85680249d77b4c336210c9b2112bc0a264b70a4f876babb19b",
+      "size": [
+        1254,
+        1254
+      ],
+      "role": "subagent",
+      "appearance": "Mann, helle Haut, kurze braune Haare, roter Bart, T-Shirt",
+      "views": [
+        {
+          "view": "front",
+          "box": [
+            89,
+            358,
+            363,
+            1047
+          ],
+          "torsoY": [
+            289,
+            446
+          ]
+        },
+        {
+          "view": "back",
+          "box": [
+            490,
+            358,
+            765,
+            1047
+          ],
+          "torsoY": [
+            289,
+            446
+          ]
+        },
+        {
+          "view": "right",
+          "box": [
+            902,
+            360,
+            1166,
+            1047
+          ],
+          "torsoY": [
+            297,
+            434
+          ]
+        }
+      ]
+    }
+  }
+}
