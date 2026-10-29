@@ -3,7 +3,9 @@
  * und schiebt Aktualisierungen per Server-Sent Events an den Browser.
  *
  * Bindet bewusst nur an 127.0.0.1 - kein Zugriff aus dem Netz, keine
- * Authentifizierung noetig, keine Daten verlassen den Rechner.
+ * Authentifizierung noetig, keine Daten verlassen den Rechner. Der einzige
+ * Endpunkt, der etwas ausloest (/api/launch, siehe launch.js), nimmt nur
+ * Anfragen der eigenen Seite an.
  */
 
 import http from 'node:http';
@@ -13,6 +15,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { createStore, createWatcher } from './store.js';
+import { handleLaunch, launchSupported, openTerminal, projectDirs } from './launch.js';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(rootDir, 'public');
@@ -24,7 +27,17 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.json': 'application/json; charset=utf-8',
   '.ico': 'image/x-icon',
+  '.png': 'image/png',
 };
+
+/**
+ * Nur Anfragen, die an diesen Rechner adressiert sind. Eine fremde Webseite
+ * koennte ihren eigenen Namen sonst auf 127.0.0.1 umbiegen (DNS-Rebinding) und
+ * Snapshot samt Befehlen und Dateinamen mitlesen - ihr Host-Header verraet sie.
+ */
+export function localHost(host) {
+  return /^(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?$/i.test(String(host ?? ''));
+}
 
 function sendJson(res, status, body) {
   const payload = JSON.stringify(body);
@@ -101,6 +114,8 @@ export async function startServer({
   quiet = false,
   // Nur fuer Tests und Demos: ersetzt den echten Abruf bei Anthropic.
   fetchUsage,
+  // Nur fuer Tests: statt eines PowerShell-Fensters.
+  launcher = openTerminal,
 } = {}) {
   const store = createStore({ config, pricingTable, historyFile, fetchUsage });
   const cfg = store.config;
@@ -156,12 +171,26 @@ export async function startServer({
     );
   }
 
+  // Klick aufs Namensschild startet Claude im Projektordner (launch.js).
+  const launch = {
+    enabled: cfg.launch?.enabled !== false,
+    supported: launcher !== openTerminal || launchSupported(),
+    last: new Map(),
+  };
+  // Belegschaft im Pixel-Buero (public/pixel/staff.js): an oder aus, bis wie viele Figuren sie auffuellt.
+  const office = {
+    staff: cfg.office?.staff !== false,
+    ...(Number.isFinite(cfg.office?.staffFill) ? { staffFill: cfg.office.staffFill } : {}),
+  };
+  // Die Seite zeigt den Hinweis nur, wenn ein Klick auch etwas tut.
+  const snapshot = () => ({ ...store.snapshot(), canLaunch: launch.enabled && launch.supported, office });
+
   /** @type {Set<import('node:http').ServerResponse>} */
   const clients = new Set();
-  let cached = store.snapshot();
+  let cached = snapshot();
 
   function broadcast() {
-    cached = store.snapshot();
+    cached = snapshot();
     const payload = `event: snapshot\ndata: ${JSON.stringify(cached)}\n\n`;
     for (const res of clients) {
       try {
@@ -197,6 +226,10 @@ export async function startServer({
   }
 
   const server = http.createServer((req, res) => {
+    if (!localHost(req.headers.host)) {
+      sendJson(res, 421, { error: 'Nur unter 127.0.0.1 oder localhost erreichbar' });
+      return;
+    }
     const url = new URL(req.url, `http://${host}:${port}`);
 
     if (url.pathname === '/api/snapshot') {
@@ -212,6 +245,14 @@ export async function startServer({
     if (url.pathname === '/api/rescan' && req.method === 'POST') {
       rescan({ force: url.searchParams.get('force') === '1' }).then(() =>
         sendJson(res, 200, { ok: true, stats: store.stats }),
+      );
+      return;
+    }
+
+    if (url.pathname === '/api/launch') {
+      handleLaunch(req, { ...launch, port: server.address()?.port, known: projectDirs(cached), launcher }).then(
+        ({ status, body }) => sendJson(res, status, body),
+        (err) => sendJson(res, 500, { error: String(err?.message ?? err) }),
       );
       return;
     }

@@ -1,0 +1,16 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exception for this image: the single lowercase pixel symbol z is allowed. No other text. Use the attached scene ONLY as palette and hard pixel contour reference; do not draw a scene or people.
+Use case: stylized-concept. Asset type: two tiny pixel animation strips for an office simulation.
+Square transparent canvas with exactly two separated rows. Same shared large integer block magnification throughout.
+Top row: three frames of one sleeping z, each in a 12x12 logical cell. Frame 1 small 3-pixel-wide navy z in the lower left; frame 2 medium 5-pixel-wide navy z shifted up and right; frame 3 larger 7-pixel-wide navy z shifted still further up and right. Very simple discrete solid staircase strokes, no fading, no blur. The top and bottom strokes remain recognizably z-shaped. One z per cell, not multiple letters.
+Bottom row: four successive rotation frames of a small grey gear, each exactly 8x8 logical pixels. Eight solid chunky teeth, navy 1-pixel outer contour, light grey upper-left surface and medium grey lower-right surface, a single dark central hole. Consistent center and outer scale, no translation or wobble. The intermediate rotation frames must visibly differ in their tooth silhouettes. Bare isolated gears, no bubbles behind them.
+Only #181425 #c0cbdc #8b9bb4 #5a6988 #ffffff. No text labels, no numbers, no arrows, no border, no extra sprites. Lots of transparent spacing between the seven motifs.

@@ -1,0 +1,405 @@
+{
+  "status": "passed",
+  "package": "F",
+  "newSprites": 30,
+  "newAnimations": 14,
+  "totalSprites": 253,
+  "totalAnimations": 43,
+  "looks": [
+    "look-01",
+    "look-02"
+  ],
+  "schemaVersion": 2,
+  "frameSize": [
+    16,
+    32
+  ],
+  "restSheetSize": [
+    48,
+    64
+  ],
+  "actionSheetSize": [
+    64,
+    160
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "anchor": [
+    8,
+    32
+  ],
+  "feetBaseline": 32,
+  "atlasBoundsAndUnusedCells": "passed",
+  "closedNavyContours": "passed",
+  "approvedHeadIdentity": "passed",
+  "sleepHeadOffset": [
+    0,
+    4
+  ],
+  "sleepClosedEyes": "passed",
+  "fixedSolesAndBreathingLegs": "passed",
+  "allFramesDistinctPerAnimation": "passed",
+  "clothingMasksMatchKeys": "passed",
+  "allThreeClothingShades": "passed",
+  "recolorPreservesNonClothingPixels": "passed",
+  "restForegroundMatchesBasePixels": "passed",
+  "restForegroundHasNoClothingKeys": "passed",
+  "threeCupHeights": "passed",
+  "actionWithoutChairResidue": "passed",
+  "kickerHandReachMatchesExistingSpots": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 26,
+  "newImageFiles": 4,
+  "newAuxiliaryImages": 6,
+  "animations": {
+    "look-01": {
+      "sleep": {
+        "frames": 2,
+        "frameDurationMs": 700,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            1,
+            11,
+            4
+          ],
+          [
+            1,
+            11,
+            4
+          ]
+        ]
+      },
+      "sip": {
+        "frames": 3,
+        "frameDurationMs": 300,
+        "distinctFrames": 3,
+        "clothingShadePixelCounts": [
+          [
+            7,
+            6,
+            4
+          ],
+          [
+            1,
+            9,
+            10
+          ],
+          [
+            4,
+            16,
+            8
+          ]
+        ]
+      },
+      "cheer": {
+        "frames": 2,
+        "frameDurationMs": 300,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            10,
+            17,
+            7
+          ],
+          [
+            12,
+            19,
+            8
+          ]
+        ]
+      },
+      "talk": {
+        "frames": 2,
+        "frameDurationMs": 350,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            8,
+            22,
+            9
+          ],
+          [
+            9,
+            22,
+            11
+          ]
+        ]
+      },
+      "drink": {
+        "frames": 2,
+        "frameDurationMs": 600,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            4,
+            7,
+            10
+          ],
+          [
+            4,
+            16,
+            8
+          ]
+        ]
+      },
+      "kicker": {
+        "frames": 2,
+        "frameDurationMs": 150,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            2,
+            16,
+            3
+          ],
+          [
+            1,
+            28,
+            3
+          ]
+        ]
+      },
+      "sofa": {
+        "frames": 2,
+        "frameDurationMs": 900,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            9,
+            22,
+            4
+          ],
+          [
+            8,
+            22,
+            4
+          ]
+        ]
+      }
+    },
+    "look-02": {
+      "sleep": {
+        "frames": 2,
+        "frameDurationMs": 700,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            7,
+            5,
+            1
+          ],
+          [
+            4,
+            5,
+            1
+          ]
+        ]
+      },
+      "sip": {
+        "frames": 3,
+        "frameDurationMs": 300,
+        "distinctFrames": 3,
+        "clothingShadePixelCounts": [
+          [
+            25,
+            5,
+            2
+          ],
+          [
+            6,
+            18,
+            1
+          ],
+          [
+            4,
+            23,
+            1
+          ]
+        ]
+      },
+      "cheer": {
+        "frames": 2,
+        "frameDurationMs": 300,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            18,
+            33,
+            1
+          ],
+          [
+            17,
+            30,
+            1
+          ]
+        ]
+      },
+      "talk": {
+        "frames": 2,
+        "frameDurationMs": 350,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            18,
+            19,
+            1
+          ],
+          [
+            21,
+            34,
+            1
+          ]
+        ]
+      },
+      "drink": {
+        "frames": 2,
+        "frameDurationMs": 600,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            18,
+            12,
+            2
+          ],
+          [
+            5,
+            21,
+            1
+          ]
+        ]
+      },
+      "kicker": {
+        "frames": 2,
+        "frameDurationMs": 150,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            13,
+            17,
+            1
+          ],
+          [
+            21,
+            19,
+            1
+          ]
+        ]
+      },
+      "sofa": {
+        "frames": 2,
+        "frameDurationMs": 900,
+        "distinctFrames": 2,
+        "clothingShadePixelCounts": [
+          [
+            28,
+            23,
+            1
+          ],
+          [
+            25,
+            23,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  "normalization": {
+    "look-01": {
+      "sleep": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "rest"
+      },
+      "sip": {
+        "frames": 3,
+        "distinctFrames": 3,
+        "sourceRow": "rest"
+      },
+      "cheer": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "talk": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "drink": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "kicker": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "sofa": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      }
+    },
+    "look-02": {
+      "sleep": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "rest"
+      },
+      "sip": {
+        "frames": 3,
+        "distinctFrames": 3,
+        "sourceRow": "rest"
+      },
+      "cheer": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "talk": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "drink": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "kicker": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      },
+      "sofa": {
+        "frames": 2,
+        "distinctFrames": 2,
+        "sourceRow": "action"
+      }
+    }
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 30,
+  "previewPixelsMatchAtlas": true,
+  "layerPreviewCropsChecked": 6,
+  "animationPreviewFrames": 31,
+  "animationPreviewScale": 3,
+  "animationPreviewCycleMs": 3600,
+  "animationPreviewExactTimings": "passed",
+  "animationPreviewPixelsMatchAtlas": true,
+  "roomNativeSize": [
+    384,
+    224
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "restForegroundCompositesChecked": 10,
+  "all14AnimationsMountedInRoom": true,
+  "sofaAndKickerUseExistingAtlasSpots": true
+}

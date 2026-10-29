@@ -1,0 +1,170 @@
+{
+  "file": "art/raw/stufe2-a-wall.png",
+  "sha256": "9addb831995b6faf32d92b45c25a7fcfe7d88b47f42728e9871152a3c081876e",
+  "size": [
+    1254,
+    1254
+  ],
+  "crops": {
+    "window-day": [
+      42,
+      123,
+      322,
+      359
+    ],
+    "window-dawn": [
+      339,
+      123,
+      621,
+      359
+    ],
+    "window-dusk": [
+      637,
+      123,
+      919,
+      359
+    ],
+    "window-night": [
+      936,
+      123,
+      1219,
+      359
+    ],
+    "whiteboard": [
+      40,
+      440,
+      462,
+      704
+    ],
+    "corkboard": [
+      490,
+      443,
+      822,
+      697
+    ],
+    "wall-tv": [
+      846,
+      446,
+      1220,
+      686
+    ],
+    "wall-clock": [
+      105,
+      797,
+      261,
+      957
+    ],
+    "calendar": [
+      323,
+      782,
+      478,
+      963
+    ],
+    "picture-landscape": [
+      541,
+      806,
+      711,
+      963
+    ],
+    "picture-abstract": [
+      772,
+      797,
+      928,
+      976
+    ],
+    "poster-mountain": [
+      993,
+      736,
+      1170,
+      994
+    ],
+    "wall-shelf": [
+      438,
+      1030,
+      818,
+      1203
+    ]
+  },
+  "references": [
+    "art/style-anchor.png",
+    "art/references/walls-8x.png"
+  ],
+  "normalization": {
+    "method": "area-mode palette quantization and binary alpha; closed navy silhouette",
+    "targetImage": {
+      "file": "decor/wall.png",
+      "size": [
+        128,
+        96
+      ]
+    },
+    "windowFrameReference": "window-day",
+    "windowGlassRects": [
+      [
+        3,
+        3,
+        12,
+        18
+      ],
+      [
+        17,
+        3,
+        12,
+        18
+      ]
+    ],
+    "windowGeometry": "Shared native frame, crossbar and sill; shared city silhouette extracted from day view; shared foliage and cloud masks.",
+    "skyBands": [
+      3,
+      7,
+      11,
+      21
+    ],
+    "nightStars": [
+      [
+        8,
+        5
+      ],
+      [
+        12,
+        8
+      ],
+      [
+        20,
+        9
+      ]
+    ],
+    "writableAreas": {
+      "whiteboard": [
+        3,
+        3,
+        42,
+        16
+      ],
+      "wall-tv": [
+        3,
+        3,
+        26,
+        17
+      ],
+      "calendar": [
+        3,
+        6,
+        10,
+        8
+      ]
+    },
+    "clockHandsCenter": [
+      8,
+      8
+    ],
+    "manualCleanup": [
+      "flat light-wood frame shades",
+      "five blank notes in four palette colors",
+      "two marker accents",
+      "empty board and calendar",
+      "clock face and four ticks",
+      "four readable book spines"
+    ]
+  }
+}

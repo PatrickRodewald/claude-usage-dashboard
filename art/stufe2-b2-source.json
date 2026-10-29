@@ -1,0 +1,480 @@
+{
+  "file": "art/raw/stufe2-b2-tech.png",
+  "sha256": "d9810bb03861a24909a19b54f53218ee853cddd437697e7e8938b4ee6b43356a",
+  "size": [
+    1254,
+    1254
+  ],
+  "prompt": "art/prompts/stufe2-b2-tech.txt",
+  "references": [
+    "art/style-anchor.png",
+    "art/references/furniture-8x.png"
+  ],
+  "crops": {
+    "printer-idle": [
+      155,
+      76,
+      327,
+      326
+    ],
+    "printer-1": [
+      411,
+      76,
+      582,
+      326
+    ],
+    "printer-2": [
+      677,
+      76,
+      847,
+      326
+    ],
+    "printer-3": [
+      935,
+      76,
+      1106,
+      326
+    ],
+    "server-0": [
+      159,
+      382,
+      329,
+      717
+    ],
+    "server-1": [
+      414,
+      382,
+      585,
+      717
+    ],
+    "server-2": [
+      679,
+      382,
+      848,
+      717
+    ],
+    "server-3": [
+      933,
+      382,
+      1103,
+      717
+    ],
+    "trash-bin": [
+      221,
+      916,
+      325,
+      1049
+    ],
+    "trash-bin-full": [
+      458,
+      916,
+      565,
+      1049
+    ],
+    "floor-lamp-off": [
+      695,
+      746,
+      805,
+      1050
+    ],
+    "floor-lamp-on": [
+      942,
+      746,
+      1052,
+      1050
+    ],
+    "beanbag": [
+      428,
+      1078,
+      606,
+      1216
+    ],
+    "doormat": [
+      686,
+      1109,
+      848,
+      1208
+    ]
+  },
+  "targetImage": {
+    "file": "decor/decor-b.png",
+    "size": [
+      64,
+      112
+    ],
+    "sha256": "b3d10fb02f2816657f4c3e4898c5bf7440553dc1137eef43b063da76ed2d451f"
+  },
+  "normalization": {
+    "sampling": "area-mode palette reduction, source alpha >= 192 and native coverage >= 50%",
+    "palette": "ENDESGA 32; three tones per material plus navy outline",
+    "alpha": [
+      0,
+      255
+    ],
+    "displayScale": 3,
+    "whitePalette": [
+      "ffffff",
+      "c0cbdc",
+      "8b9bb4"
+    ],
+    "darkMetalPalette": [
+      "262b44",
+      "3a4466",
+      "5a6988"
+    ],
+    "greyMetalPalette": [
+      "8b9bb4",
+      "5a6988",
+      "3a4466"
+    ],
+    "lampFabricOffPalette": [
+      "ead4aa",
+      "e8b796",
+      "b86f50"
+    ],
+    "lampFabricOnPalette": [
+      "fee761",
+      "feae34",
+      "f77622"
+    ],
+    "orangeFabricPalette": [
+      "f77622",
+      "be4a2f",
+      "733e39"
+    ],
+    "cleanup": [
+      "all native contours closed in deep navy; all objects bottom-aligned",
+      "shared printer body from idle; front slot normalized and blank paper extends by 2, 4 and 6 pixels",
+      "server body shared from frame 0; five front units re-gridded, exactly one status pixel per unit",
+      "full bin uses the empty-bin body; generated paper shapes overlay it with a closed contour",
+      "lit lamp reuses the entire unlit lamp; only three fabric colors change, no halo or cone"
+    ]
+  },
+  "targets": {
+    "printer-idle": {
+      "size": [
+        16,
+        24
+      ],
+      "atlasXY": [
+        0,
+        0
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-1": {
+      "size": [
+        16,
+        24
+      ],
+      "atlasXY": [
+        16,
+        0
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-2": {
+      "size": [
+        16,
+        24
+      ],
+      "atlasXY": [
+        32,
+        0
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "printer-3": {
+      "size": [
+        16,
+        24
+      ],
+      "atlasXY": [
+        48,
+        0
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-0": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        0,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-1": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        16,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-2": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        32,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "server-3": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        48,
+        24
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": true
+    },
+    "trash-bin": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        72
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "trash-bin-full": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        72
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "floor-lamp-off": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        32,
+        56
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "floor-lamp-on": {
+      "size": [
+        16,
+        32
+      ],
+      "atlasXY": [
+        48,
+        56
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "beanbag": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        0,
+        88
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": true,
+      "againstWall": false
+    },
+    "doormat": {
+      "size": [
+        16,
+        16
+      ],
+      "atlasXY": [
+        16,
+        88
+      ],
+      "placement": "floor",
+      "footprintTiles": [
+        1,
+        1
+      ],
+      "blocksMovement": false,
+      "againstWall": false
+    }
+  },
+  "animationNormalization": {
+    "printer": {
+      "sharedBodySource": "printer-idle",
+      "states": [
+        "printer-idle",
+        "printer-1",
+        "printer-2",
+        "printer-3"
+      ],
+      "paperXY": [
+        5,
+        11
+      ],
+      "paperWidth": 6,
+      "paperLengths": [
+        0,
+        2,
+        4,
+        6
+      ],
+      "frameDurationMs": 200,
+      "loop": false,
+      "bodyAndAlphaIdentical": true,
+      "paperBlank": true
+    },
+    "server": {
+      "sharedBodySource": "server-0",
+      "unitTopRows": [
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      "ledX": 10,
+      "ledY": [
+        8,
+        13,
+        18,
+        23,
+        28
+      ],
+      "ledColorsByFrame": [
+        [
+          "63c74d",
+          "2ce8f5",
+          "fee761",
+          "5a6988",
+          "63c74d"
+        ],
+        [
+          "5a6988",
+          "63c74d",
+          "2ce8f5",
+          "fee761",
+          "5a6988"
+        ],
+        [
+          "2ce8f5",
+          "fee761",
+          "63c74d",
+          "5a6988",
+          "2ce8f5"
+        ],
+        [
+          "fee761",
+          "5a6988",
+          "2ce8f5",
+          "63c74d",
+          "fee761"
+        ]
+      ],
+      "frameDurationMs": 180,
+      "loop": true,
+      "bodyAndAlphaIdentical": true
+    },
+    "lamp": {
+      "sharedBodySource": "floor-lamp-off",
+      "onlyFabricColorsChange": true,
+      "alphaIdentical": true
+    },
+    "trash": {
+      "sharedBodySource": "trash-bin",
+      "paperSource": "trash-bin-full",
+      "bodyIdenticalOutsidePaperLayer": true
+    }
+  }
+}

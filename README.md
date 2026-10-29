@@ -87,6 +87,17 @@ unter `~/Library/LaunchAgents/` ein (macOS). Beides braucht keine Admin-Rechte.
 
 ## Ansichten
 
+Die Kopfzeile wechselt zwischen zwei Seiten: **Büro** (Standard) und **Statistik**
+(`#statistik` an der Adresse führt direkt hin).
+
+Im **Büro** steht das Büro aus „Gerade aktiv“ im Mittelpunkt. Die fünf Statuskacheln liegen als
+Leiste darüber, im selben dunklen Rahmen und in den Farben der Pixelgrafik: Wert, Balken und je
+eine Kernangabe (Reset, Requests, Prognose, Gegenwert). Beim Zeigen oder Antippen klappt eine
+Kachel mit allen Angaben über das Büro auf. Eine Warnung färbt ihren Rahmen gelb oder rot.
+
+Die **Statistik** zeigt die Kacheln in voller Größe mit allen Diagrammen und Tabellen; das ist
+die Seite, die unten unter „Dashboard“ beschrieben ist.
+
 ### Dashboard
 
 ![Dashboard im Dark Mode](docs/dashboard-dark.png)
@@ -117,7 +128,11 @@ nächsten Versuchs — und die Kachel erklärt, worauf sich ihre 100 % stützen 
 
 ### Gerade aktiv
 
-Unter den Statuskacheln liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum.
+Unter der Kennzahlen-Leiste liegt ein kleines Büro: Jedes Projekt bekommt einen eigenen Raum. Es
+gibt das Büro in zwei Ansichten: als **Pixel-Büro** (Standard, siehe unten) und als klassisches
+Büro mit Robotern, das hier zuerst beschrieben ist. „Klassisch“ bzw. „Pixel“ im Kopf des Bereichs
+schaltet um, der Browser merkt sich die Wahl. Gezeichnet wird nur die Ansicht, die zu sehen ist;
+die andere zeigt beim Umschalten gleich den aktuellen Stand. Die Töne kommen unabhängig davon.
 
 - **An der Rückwand** hängt eine Tafel mit dem Projektnamen in Kreideschrift. Darunter stehen
   die Aufträge der Subagents als Liste: „▸“ läuft, „✓“ fertig, „✗“ fehlgeschlagen, „–“
@@ -241,6 +256,101 @@ Kreide nutzt vorhandene Systemschriften (Segoe Print unter Windows, Chalkboard u
 Bewegung nicht mag: Mit „Bewegung reduzieren“ im Betriebssystem stehen die Figuren still, die
 Papierflieger bleiben am Boden, und wer kommt oder geht, ist einfach da oder weg. Liegt der Tab
 im Hintergrund, hält das Büro alle Animationen an.
+
+#### Pixel-Büro
+
+Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas: ein einziges Gebäude, in dem
+alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und auf
+16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
+in `art/README.md`, der Auftrag für Stufe 2 (Einrichtung, Lounge, weitere Figuren) in
+`art/auftrag-stufe-2.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
+so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach - und ist es dann noch
+zu breit, lässt es sich seitlich verschieben.
+
+- **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
+  (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden
+  Raum: zuerst **Küche und Lounge**, dann der **Teamraum** der Belegschaft (siehe unten), daneben
+  **zehn Projekträume** mit Messingschild an der Wand.
+  Sie gehören jedem Projekt mit offener Sitzung und dann den zuletzt genutzten Projekten (nach dem
+  letzten Request); ein Raum, der übrig bleibt, steht frei und hat kein Schild. Haben mehr als
+  zehn Projekte gleichzeitig offene Sitzungen, kommen Räume hinzu.
+  Wände trennen die Räume; von Raum zu Raum geht es durch die Türen und über den Flur. Passen
+  nicht alle Räume nebeneinander, kommen sie in eine weitere Reihe mit eigenem Flur, und ein
+  Längsflur am linken Rand verbindet alle. Die Räume stehen nach Namen geordnet (freie zuletzt)
+  und behalten ihren Platz, auch wenn gerade ein anderes Projekt arbeitet. Bleibt in einer Reihe
+  viel Platz übrig, wird dort eine Lounge eingerichtet: Regale, Sitzgruppen, Pflanzen,
+  Stehlampen, Bilder.
+- **Küche und Lounge:** Getränkeautomat, Theke mit Espressomaschine, Kühlschrank, Wasserspender,
+  Spüle mit Mikrowelle; davor Kicker, Sofa mit Sessel und Couchtisch, Stehlampe und ein Esstisch
+  mit Hockern. Über der Theke zeigt ein **Fernseher das 5h-Fenster** (Prozent und Balken, beim
+  Zeigen auch die Zeit bis zum Reset), daneben zählt ein **Kalender bis zum Wochen-Reset**.
+- **Im Projektraum:** Sitzungen arbeiten an großen Tischen, ihre Subagents davor an kleinen
+  Tischen auf einem Teppich. Ist niemand da, steht ein leerer Tisch mit zugeklapptem Laptop dort,
+  wo die erste Sitzung sitzen wird. Das Schild nennt beim Zeigen Sitzungen und Subagents (oder
+  wann zuletzt gearbeitet wurde) und den Ordner. **Ein Klick aufs Schild öffnet ein
+  PowerShell-Fenster in diesem Ordner und startet darin `claude`** (nur unter Windows,
+  abschaltbar mit `launch.enabled` in der `config.json`); kurz darauf kommt die neue Sitzung
+  durch den Eingang. Auf dem
+  **Whiteboard** neben dem Schild stehen die Aufträge der laufenden Subagents. Jeder Raum hat
+  seine eigene Wand (Holz, Grün, Täfelung) und seinen Boden (Dielen oder Teppich) und wird
+  eingerichtet: Regale, Aktenschrank, Drucker (er druckt, wenn jemand zu schreiben beginnt),
+  Serverschrank (blinkt, solange im Raum gearbeitet wird), Pflanzen, Stehlampe, Papierkorb,
+  Bilder und Pinnwand. Eingerichtet wird nur so, dass jeder Platz erreichbar bleibt, und ein
+  Raum sieht immer gleich aus.
+- **Belegschaft:** Im Teamraum arbeiten Kolleginnen und Kollegen, die nicht an deinen Projekten
+  arbeiten - sechs Leute mit Namen und Abteilung (Kim aus der Buchhaltung, Alex vom IT-Support …).
+  Sie **füllen auf**: Sind weniger als acht Sitzungen offen, kommen so viele dazu, dass es acht
+  Figuren sind (höchstens alle sechs). Ändert sich die Zahl der Sitzungen, kommt oder geht erst
+  jemand, wenn es sich anderthalb Minuten gehalten hat. Dabei gilt ein **Dienstplan** nach
+  der Ortszeit, je Tag ausgewürfelt und nach dem Neuladen derselbe: werktags kommen sie zwischen
+  halb acht und halb zehn durch den Eingang, gehen mittags essen und am späten Nachmittag nach
+  Hause (manche bleiben länger), mal hat jemand frei; am Wochenende schaut selten jemand vorbei,
+  nachts ist der Teamraum leer und dunkel. Am Platz tippen, lesen, schreiben und grübeln sie;
+  zwischendurch holen sie Kaffee oder Wasser, drucken, besprechen sich am Tisch, stehen am
+  Whiteboard, legen sich aufs Sofa oder spielen Kicker. Sitzungen haben Vorrang: Will eine
+  wartende Sitzung aufs Sofa oder an den Kicker, macht die Belegschaft Platz. Zu erkennen sind
+  sie an gedeckter Kleidung (Anthrazit, Hemd, Sand, Tanne, Bordeaux) und daran, dass sie keine
+  Blasen zeigen; beim Zeigen nennen sie Name, Abteilung, was sie gerade tun und wann sie heute
+  im Haus sind. Sie zählen nirgends mit. Abschalten mit `office.staff`, die Wunschzahl mit
+  `office.staffFill` in der `config.json`.
+- **Figuren:** Sechs Gesichter, drei für Sitzungen und drei für Subagents, fest je Figur; die
+  Kleidung färbt sich wie bisher nach Sitzung bzw. Subagent-Typ.
+- **Am Tisch:** Lesen und Suchen (`Read`, `Grep`, Web) mit einem Buch, dessen Seiten umblättern;
+  Schreiben (`Edit`, `Write`, Todos) mit Block und Stift; Shell, Tests und andere Werkzeuge am
+  Laptop; Nachdenken mit der Hand am Kinn und einer Denkblase. Die Sprechblase nennt Werkzeug
+  und Ziel: `Read app.js`, `$ npm test`, `Grep createWorkshop`, `→ Tests schreiben` beim
+  Delegieren. Wer ruht, schläft mit „z“ und zugeklapptem Laptop (manche mit dem Kopf auf den
+  Armen); mit frischem Kaffee wird erst an der Tasse genippt. Nach einem Commit oder Push springt
+  die Figur auf und jubelt, mit Konfetti - auch Subagents.
+- **Symbole über dem Kopf:** „!“ bei einer neuen Nachricht von dir, ein Häkchen nach einem Commit,
+  ein Herz nach einem Push, ein Kreuz bei einem Fehler, Schweißtropfen bei Drosselung, „?“ bei
+  einer Sitzung ohne Lebenszeichen und eine Sanduhr für alle, wenn das 5h-Limit erreicht ist.
+- **Treiben:** Wer auf dich wartet, geht nach ein paar Sekunden ab und zu in die Küche, holt
+  einen Kaffee (danach dampft die Tasse am Platz) oder trinkt Wasser, legt sich aufs Sofa, spielt
+  mit einer anderen wartenden Sitzung Kicker oder vertritt sich im Raum und auf dem Flur die
+  Beine. An Maschine und Wasserspender steht immer nur einer. Wer lange nachdenkt, geht hinter dem
+  Tisch auf und ab; wer delegiert, stellt sich zu einem seiner Subagents („?“), der eine Idee hat.
+  Gelaufen wird per Wegfindung um Möbel und Wände herum. Kommt Arbeit, eilt die Figur zurück und
+  wirbelt Staub auf; unterwegs sind höchstens 40 % aller Figuren, maximal sechs.
+- **Kommen und Gehen:** Neue Sitzungen und Subagents kommen durch den Eingang, gehen über den Flur
+  in ihren Raum und an ihren Platz; für einen neuen Subagent fliegt ein Papierflieger vom Tisch
+  seiner Sitzung zu seinem Platz. Ein fertiger Subagent steht auf und geht mit Häkchen (oder
+  Kreuz) hinaus, an seinem Tisch funkelt es; der Tisch bleibt leer stehen, bis er aus der Liste
+  fällt. Kommt ein Projekt hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit
+  seinem Tisch um, wer in Küche oder Lounge ist, bleibt dort. Ist das Büro gerade nicht zu sehen,
+  wird nichts nachgeholt.
+- **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt; ist niemand da, ist das Licht aus.
+- **Licht:** Das Büro folgt der Ortszeit: Die Fenster zeigen Morgenrot, Tag, Abend oder Nacht, die
+  Wanduhr die echte Zeit. Tagsüber ist es hell, ab dem späten Nachmittag wird es violett, nachts
+  dunkelblau. Dann leuchten die Schreibtischlampen derer, die arbeiten, Stehlampen gehen an, die
+  Laptops werfen einen kalten Schein, Automat und Fernseher glimmen, im Flur brennen Deckenlampen,
+  in der Küche geht das Licht an, sobald jemand drin ist. Räume, in denen alle schlafen, bleiben dunkel. Figuren und Möbel
+  werfen kleine Schatten, Wände einen Saum auf den Boden.
+
+Der Zeiger über einer Figur zeigt dieselben Details wie im klassischen Büro (auf dem Tablet:
+antippen); über Uhr, Kalender, Fernseher und Whiteboard verrät er Uhrzeit, Reset und Aufträge.
+Gezeichnet wird mit höchstens 30 Bildern je Sekunde. Im Hintergrund-Tab steht das Bild still; mit „Bewegung reduzieren“ sitzen alle, und wer kommt oder geht, ist einfach
+da oder weg. Der Rückblick läuft vorerst im klassischen Büro.
 
 #### Tagesrückblick
 
@@ -429,6 +539,9 @@ eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, g
 | `limits.autoMinSamples` | Ab wie vielen abgeschlossenen Fenstern `auto` greift |
 | `activity.enabled` | Bereich „Gerade aktiv“ mit laufenden Sitzungen und Subagents. `false` = Bereich aus, `~/.claude/sessions` wird nicht gelesen |
 | `activity.recentMs` | So lange bleiben beendete Subagents sichtbar (Standard 15 min) |
+| `office.staff` | Belegschaft im Teamraum des Pixel-Büros. `false` = nur echte Sitzungen, kein Teamraum |
+| `office.staffFill` | Bis zu so vielen Figuren füllt die Belegschaft auf (Standard 8, höchstens sechs Leute) |
+| `launch.enabled` | Klick aufs Namensschild startet Claude im Projektordner (nur Windows). `false` = Klick tut nichts |
 | `history.enabled` | Tagessummen dauerhaft festhalten. `false` = Historie endet mit der Aufräumfrist von Claude Code |
 | `history.file` | Ablageort des Archivs (Standard `data/history.json`) |
 | `history.detailDays` | Ab welchem Alter vollständig archivierte Dateien beim Start übersprungen werden (Standard 45) |
@@ -545,7 +658,23 @@ angehängten Zeilen. Ein Subagent, der zuletzt vor dem Start des aktuellen Proze
 hat, gilt als abgebrochen: Er ist mit dem alten Prozess untergegangen. Statusdateien anderer
 Rechner, etwa aus einem synchronisierten Konfigurationsordner, werden übergangen. Alle drei
 Quellen sind nicht dokumentiert. Fällt eine weg, verschwindet nur dieser Bereich, das übrige
-Dashboard läuft weiter.
+Dashboard läuft weiter. Zum laufenden Werkzeug liefert der Server ein kurzes Ziel mit: den
+Dateinamen ohne Pfad, das Suchmuster, die erste Zeile eines Shell-Befehls, den Host einer URL
+oder den Auftrag an einen Subagent, gekürzt auf 60 Zeichen. Was nach Zugangsdaten aussieht, wird
+vorher durch „•••“ ersetzt: `NAME=wert` bei Namen wie `API_KEY`, `TOKEN` oder `PASSWORD`,
+`--token`/`--password`, `Authorization:`-Kopfzeilen, Passwörter in Adressen und bekannte
+Schlüsselformen (`sk-…`, `ghp_…`, `xox…`, `AKIA…`, JWTs und andere lange Zeichenketten aus
+Groß- und Kleinbuchstaben und Ziffern). Das bleibt auf diesem Gerät: Der Server bindet nur an
+127.0.0.1 und antwortet nur auf Anfragen an `127.0.0.1` oder `localhost`. So kann keine fremde
+Webseite ihren Namen auf diesen Rechner umbiegen und mitlesen (DNS-Rebinding).
+
+**Claude starten.** Der einzige Endpunkt, der etwas auslöst, ist `POST /api/launch` (Klick aufs
+Namensschild). Er startet nur in Ordnern, die das Dashboard selbst als Projekt kennt (offene
+Sitzungen und Transkripte), nimmt nur JSON und nur Anfragen, deren `Origin` diese Seite ist.
+Eine fremde Webseite kann ihn deshalb nicht auslösen: Ihren Origin schickt der Browser mit, und
+JSON verlangt bei ihr eine Vorabfrage, die der Server nicht beantwortet. Derselbe Ordner startet
+höchstens alle drei Sekunden. Eine unsichtbare PowerShell öffnet per `Start-Process` das Fenster;
+der Ordner geht dabei nur als Arbeitsverzeichnis mit, nie in eine Befehlszeile.
 
 **Tagesrückblick.** Der Server kennt ohnehin jeden Request mit Zeitstempel, Sitzung, Subagent,
 Kosten, Kontext und dem ersten aufgerufenen Werkzeug. `/api/replay` schneidet daraus einen Tag
@@ -569,7 +698,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-321 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+376 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -629,6 +758,10 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - Abbruch per Esc und die Zusammenfassung nach `/compact` sind keine Nachricht von dir
 - Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung; ein 1M-Fenster wird
   am größten Kontext erkannt
+- Belegschaft: derselbe Tag ergibt denselben Dienstplan; werktags morgens kommen, mittags essen,
+  abends gehen, am Wochenende selten, nachts niemand; aufgefüllt wird bis zur Wunschzahl in fester
+  Reihenfolge; der Teamraum liegt nach der Küche, jeder Tisch ist erreichbar, mit Drucker und
+  Whiteboard
 
 **Tagesrückblick**
 - der Tag wird in der Anzeigezone geschnitten; ungültige oder künftige Tage fallen auf heute,
@@ -641,6 +774,8 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet
 - kein Ausbrechen aus `public/` — auch nicht prozentkodiert (`%2e%2e`, `..%2f`, …)
 - der Server bindet an `127.0.0.1` und beendet beim Schließen nicht den Prozess
+- `/api/launch` startet nur in bekannten Projektordnern, nur für die eigene Seite (Origin, JSON)
+  und nicht zweimal kurz hintereinander; der Ordner steht nie in einer Befehlszeile
 
 ## Auf ein anderes Gerät mitnehmen
 
@@ -687,8 +822,15 @@ src/
   replay.js         Zeitleiste eines Tages für den Rückblick
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
+  launch.js         Claude per Klick im Projektordner starten (PowerShell)
 public/             Frontend (kein Build-Schritt)
-  agents.js         Büro mit Figuren für „Gerade aktiv"
+  agents.js         Büro mit Figuren für „Gerade aktiv" (klassisch, SVG)
+  sounds.js         Töne des Büros: wann sie fällig sind, Web Audio
+  pixel/world.js    Pixel-Büro ohne DOM: Grundriss, Wegfindung, was jede Figur zeigt
+  pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
+  pixel/staff.js    Belegschaft des Pixel-Büros: Personal, Dienstplan, wie viele auffüllen
+  assets/office/    Grafiken des Pixel-Büros mit atlas.json
+art/                Herkunft der Pixelgrafiken: Prompts, Prüfsummen der Rohbilder (nur lokal), Aufbereitung (Python)
   replay.js         Zustand des Büros zu jedem Zeitpunkt eines Tages (Rückblick)
   replayView.js     Leiste und Abspielen des Rückblicks
 test/               Unit- und Integrationstests (node:test)

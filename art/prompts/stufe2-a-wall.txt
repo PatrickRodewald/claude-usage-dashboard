@@ -1,0 +1,37 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Wall decoration sprite sheet. Objects hang on a beige office wall, seen straight from the front. Do not draw the wall itself. Output: one square transparent PNG, target 1024x1024. Exactly FOUR separated rows, each art pixel a solid 8x8 block.
+
+ROW 1, FOUR WINDOWS, each 32 wide x 24 tall, IDENTICAL light wooden frame, crossbar and window sill in all four, only the view changes:
+1. day: light blue sky, two simple white clouds, a distant flat city skyline in blue-grey at the bottom
+2. dawn: sky in bands of pink and orange, same skyline darker
+3. dusk: sky in purple and orange bands, skyline dark with a few small yellow lit windows
+4. night: deep navy sky, a small moon, three single-pixel stars, skyline almost black with several yellow lit windows
+
+ROW 2:
+1. whiteboard 48x24: aluminium frame, completely empty white surface, small marker tray at the bottom with two markers (one red, one blue)
+2. cork pinboard 32x24: wooden frame, cork surface with five small square paper notes in yellow, pink, green and light blue, each with a pin; notes are blank
+3. flat wall-mounted TV 32x24: thin dark frame, screen completely black with one diagonal grey reflection line
+
+ROW 3, each 16x16 unless stated:
+1. round wall clock: white face, dark rim, four tick marks, NO hands
+2. tear-off wall calendar: red top band with two rings, blank white page
+3. small framed picture: green hills under a blue sky
+4. small framed picture: abstract orange circle and teal rectangle
+5. poster 16x24: simple mountain with snow cap, pinned at the top corners
+
+ROW 4:
+1. wall shelf 32x16: wooden plank with four colourful book spines standing and a tiny plant in a white pot on the right
+
+Everything flat, front facing, no perspective tilt. No text, no numbers on the calendar or clock.
+
+Input image roles: Image 1 is the approved office STYLE REFERENCE ONLY. Image 2 shows existing wall colors and pixel density as REFERENCE ONLY; do not reproduce either image. New wall decorations only. Keep the four windows the same size, silhouette, frame, sill and crossbars. All 13 requested items must be present in their specified order. Keep the clock face free of hands and the whiteboard/calendar free of any writing. No floor, no room scene.

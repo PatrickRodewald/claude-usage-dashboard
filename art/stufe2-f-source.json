@@ -1,0 +1,567 @@
+{
+  "looks": [
+    "look-01",
+    "look-02"
+  ],
+  "sources": {
+    "look-01-rest": {
+      "file": "art/raw/stufe2-f-look-01-rest.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "eca0b4df724c3579918de268ae6378880d6e68b82cf3931689cf2285a9e6c67a",
+      "prompt": "art/prompts/stufe2-f-look-01-rest.txt",
+      "reference": "art/references/look-01-f-reference-8x.png",
+      "frames": [
+        {
+          "box": [
+            292,
+            176,
+            573,
+            597
+          ],
+          "torsoY": [
+            157,
+            268
+          ]
+        },
+        {
+          "box": [
+            681,
+            176,
+            962,
+            597
+          ],
+          "torsoY": [
+            157,
+            268
+          ]
+        },
+        {
+          "box": [
+            109,
+            685,
+            364,
+            1164
+          ],
+          "torsoY": [
+            190,
+            319
+          ]
+        },
+        {
+          "box": [
+            498,
+            685,
+            756,
+            1164
+          ],
+          "torsoY": [
+            190,
+            319
+          ]
+        },
+        {
+          "box": [
+            890,
+            685,
+            1148,
+            1164
+          ],
+          "torsoY": [
+            190,
+            319
+          ]
+        }
+      ]
+    },
+    "look-02-rest": {
+      "file": "art/raw/stufe2-f-look-02-rest.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "a657dca844ffdac79d0f4e3cd3729faa11cee0b5dbe301dbf2cfe4bdf307618b",
+      "prompt": "art/prompts/stufe2-f-look-02-rest.txt",
+      "reference": "art/references/look-02-f-reference-8x.png",
+      "frames": [
+        {
+          "box": [
+            225,
+            128,
+            550,
+            569
+          ],
+          "torsoY": [
+            166,
+            270
+          ]
+        },
+        {
+          "box": [
+            695,
+            128,
+            1020,
+            569
+          ],
+          "torsoY": [
+            166,
+            270
+          ]
+        },
+        {
+          "box": [
+            67,
+            705,
+            364,
+            1225
+          ],
+          "torsoY": [
+            213,
+            337
+          ]
+        },
+        {
+          "box": [
+            479,
+            705,
+            776,
+            1225
+          ],
+          "torsoY": [
+            213,
+            337
+          ]
+        },
+        {
+          "box": [
+            891,
+            705,
+            1197,
+            1225
+          ],
+          "torsoY": [
+            213,
+            337
+          ]
+        }
+      ]
+    },
+    "look-01-action": {
+      "file": "art/raw/stufe2-f-look-01-action.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "e99e3b930fbabc7433dd4ec47ad0dcb24bfb1042e66bbc87bc7842620f76e6d8",
+      "prompt": "art/prompts/stufe2-f-look-01-action.txt",
+      "reference": "art/references/look-01-f-reference-8x.png",
+      "frames": [
+        {
+          "box": [
+            299,
+            47,
+            473,
+            315
+          ],
+          "torsoY": [
+            128,
+            184
+          ]
+        },
+        {
+          "box": [
+            550,
+            47,
+            730,
+            315
+          ],
+          "torsoY": [
+            128,
+            184
+          ]
+        },
+        {
+          "box": [
+            315,
+            341,
+            468,
+            610
+          ],
+          "torsoY": [
+            113,
+            188
+          ]
+        },
+        {
+          "box": [
+            571,
+            341,
+            718,
+            610
+          ],
+          "torsoY": [
+            113,
+            188
+          ]
+        },
+        {
+          "box": [
+            316,
+            636,
+            451,
+            911
+          ],
+          "torsoY": [
+            116,
+            185
+          ]
+        },
+        {
+          "box": [
+            571,
+            637,
+            709,
+            911
+          ],
+          "torsoY": [
+            115,
+            184
+          ]
+        },
+        {
+          "box": [
+            328,
+            934,
+            457,
+            1198
+          ],
+          "torsoY": [
+            108,
+            172
+          ]
+        },
+        {
+          "box": [
+            583,
+            934,
+            721,
+            1198
+          ],
+          "torsoY": [
+            108,
+            172
+          ]
+        },
+        {
+          "box": [
+            313,
+            1219,
+            451,
+            1484
+          ],
+          "torsoY": [
+            121,
+            191
+          ]
+        },
+        {
+          "box": [
+            572,
+            1219,
+            709,
+            1484
+          ],
+          "torsoY": [
+            121,
+            191
+          ]
+        }
+      ]
+    },
+    "look-02-action": {
+      "file": "art/raw/stufe2-f-look-02-action.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "6795a4aa32cffa564c9db7a4e7398c2de684864706fbd07b7a015934fb10ac6f",
+      "prompt": "art/prompts/stufe2-f-look-02-action.txt",
+      "reference": "art/references/look-02-f-reference-8x.png",
+      "frames": [
+        {
+          "box": [
+            293,
+            62,
+            471,
+            310
+          ],
+          "torsoY": [
+            112,
+            179
+          ]
+        },
+        {
+          "box": [
+            559,
+            62,
+            730,
+            310
+          ],
+          "torsoY": [
+            112,
+            179
+          ]
+        },
+        {
+          "box": [
+            318,
+            360,
+            443,
+            609
+          ],
+          "torsoY": [
+            106,
+            181
+          ]
+        },
+        {
+          "box": [
+            579,
+            359,
+            746,
+            609
+          ],
+          "torsoY": [
+            107,
+            182
+          ]
+        },
+        {
+          "box": [
+            316,
+            654,
+            448,
+            913
+          ],
+          "torsoY": [
+            108,
+            186
+          ]
+        },
+        {
+          "box": [
+            576,
+            654,
+            704,
+            913
+          ],
+          "torsoY": [
+            108,
+            186
+          ]
+        },
+        {
+          "box": [
+            332,
+            966,
+            458,
+            1214
+          ],
+          "torsoY": [
+            98,
+            167
+          ]
+        },
+        {
+          "box": [
+            586,
+            966,
+            741,
+            1214
+          ],
+          "torsoY": [
+            98,
+            167
+          ]
+        },
+        {
+          "box": [
+            306,
+            1259,
+            448,
+            1498
+          ],
+          "torsoY": [
+            105,
+            169
+          ]
+        },
+        {
+          "box": [
+            569,
+            1257,
+            712,
+            1498
+          ],
+          "torsoY": [
+            107,
+            171
+          ]
+        }
+      ]
+    }
+  },
+  "normalization": {
+    "frameSize": [
+      16,
+      32
+    ],
+    "restSheetSize": [
+      48,
+      64
+    ],
+    "actionSheetSize": [
+      64,
+      160
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "palette": "ENDESGA 32",
+    "anchor": [
+      8,
+      32
+    ],
+    "headSource": "approved front/right view; sleep head shifts down 4 pixels with two short closed-eye strokes",
+    "chairSource": "approved chair-front; central seated trousers/shoes from type-0, excluding the old relaxed hands",
+    "clothingKeys": [
+      "2ce8f5",
+      "0099db",
+      "124e89"
+    ],
+    "mugPositions": {
+      "sip": [
+        [
+          5,
+          16
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          5,
+          10
+        ]
+      ],
+      "drink": [
+        [
+          5,
+          14
+        ],
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    "mugNativeSize": [
+      6,
+      5
+    ],
+    "mugWhitePixels": 7,
+    "actionSheetUnusedColumns": [
+      2,
+      3
+    ],
+    "restSleepUnusedColumns": [
+      2
+    ],
+    "cleanup": [
+      "four raw generated pose sheets reduced by head/torso/leg strips to native 16x32 frames",
+      "approved opaque head pixels replace regenerated facial/hair shapes; cup contact may cover the chin",
+      "rest poses reuse the approved dark chair; no extra chair is added by the renderer",
+      "only trousers and shoes are taken from standing lower bodies, removing old relaxed-hand fragments",
+      "foreground contains touching forearms and the cup; it has no clothing key pixels",
+      "sleep and sofa breathing shift shoulder strips one pixel; head and lower body remain fixed",
+      "kicker hand contour extends one pixel where needed to reach the pre-existing interaction spot",
+      "contours closed in navy; silhouettes, soles and all three clothing key shades verified",
+      "new masks are opaque white exactly on the three clothing key colors; raised sleeves remain recolorable"
+    ]
+  },
+  "outputs": {
+    "public/assets/office/characters/look-01/rest.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "b1f7f605d0d8d90f910d1da61ae118748ad4e36437fd5f7738d7b2fe8488ed39"
+    },
+    "public/assets/office/characters/look-01/rest-recolor-mask.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "a30cae5269a19428993e055e3f8baf7e5a44ac942eb872ddcdd5b6089cff44ff"
+    },
+    "public/assets/office/characters/look-01/rest-hands.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "7114b26131a4bbaa1afe7dab970e8c7d3448166401aae897f4f566b710d510e1"
+    },
+    "public/assets/office/characters/look-01/action.png": {
+      "size": [
+        64,
+        160
+      ],
+      "sha256": "4f7be1e47dd5678230ecd6ef51632e09b93f75cc01b1826a0c8491d43c6b8a48"
+    },
+    "public/assets/office/characters/look-01/action-recolor-mask.png": {
+      "size": [
+        64,
+        160
+      ],
+      "sha256": "3d0b5d53197a6fb7050a707b1a6e55b859e30a0ee38ce7608d4eb2e1a4aa1181"
+    },
+    "public/assets/office/characters/look-02/rest.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "7646cf944d3b53490092e90d2bbbed12564c8d6c7c5978cbda6931482c1f8d5d"
+    },
+    "public/assets/office/characters/look-02/rest-recolor-mask.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "0aded8503de4bd24061f409fb8cc27db9d264ba3074e2fc020a846f069b249dc"
+    },
+    "public/assets/office/characters/look-02/rest-hands.png": {
+      "size": [
+        48,
+        64
+      ],
+      "sha256": "f329cec7e4b774fe476c1144b39bfbd693a782b77e2ae0167aaeadb9bf87c40a"
+    },
+    "public/assets/office/characters/look-02/action.png": {
+      "size": [
+        64,
+        160
+      ],
+      "sha256": "9af8ac3a54b96be196c57da7bd0ad770bad85b05c4d8493ea2d3788693c9b441"
+    },
+    "public/assets/office/characters/look-02/action-recolor-mask.png": {
+      "size": [
+        64,
+        160
+      ],
+      "sha256": "46e707fe0befab71c36b23577a73c5f27e055c84844aa48cb791a582487b777a"
+    }
+  }
+}

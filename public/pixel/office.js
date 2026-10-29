@@ -1,0 +1,1851 @@
+/*
+ * Pixel-Buero: das Buero als Pixelgrafik auf Canvas 2D - ein Gebaeude mit
+ * gemeinsamer Kueche und zehn Projektraeumen, verbunden durch Flure und
+ * Tueren (Grundriss in world.js). Die Raeume gehoeren den zuletzt genutzten
+ * Projekten; ein Klick aufs Namensschild startet Claude im Projektordner.
+ * Am Tisch arbeiten die Figuren mit Buch, Block oder Laptop - je
+ * nach Werkzeug, mit Datei oder Befehl in der Sprechblase. Wer wartet, holt
+ * Kaffee oder Wasser, legt sich aufs Sofa oder spielt Kicker; wer lange
+ * nachdenkt, geht auf und ab; wer delegiert, schaut bei seinen Subagents
+ * vorbei. Gegangen wird per Wegfindung, gekommen und gegangen durch den
+ * Eingang.
+ *
+ * Im Teamraum arbeitet die Belegschaft (staff.js): Kolleginnen und Kollegen
+ * ohne Claude-Sitzung, die auffuellen, wenn wenige Sitzungen offen sind.
+ *
+ * An den Waenden: Fenster nach Tageszeit, eine Uhr mit der echten Zeit, im
+ * Fernseher der Kueche das 5h-Fenster, am Kalender die Tage bis zum
+ * Wochen-Reset, auf den Whiteboards die Auftraege der Subagents.
+ *
+ * Grafiken: public/assets/office (atlas.json), Herkunft in art/README.md.
+ * Gezeichnet wird in Originalpixeln, ganzzahlig vergroessert und ohne
+ * Glaettung; nur Text entsteht in voller Aufloesung.
+ */
+
+import { limitState, roomAsleep, errandStillFits, pickWeighted, calendarFace, zonedTime } from '../agents.js';
+import {
+  TILE,
+  WALL_ROWS,
+  SIDE_PX,
+  layoutBuilding,
+  buildingSignature,
+  findPath,
+  walkable,
+  feetOf,
+  tileAt,
+  facing,
+  figureView,
+  pixelErrands,
+  frameIndex,
+  pixelScale,
+  daylight,
+  corridorLights,
+  roomAt,
+  windowSprite,
+  officeRooms,
+  agoText,
+  KEY_COLORS,
+  OUTFITS,
+  outfitFor,
+  lookFor,
+  TEAM,
+} from './world.js';
+import { STAFF, STAFF_FILL, STAFF_POSES, STAFF_ERRANDS, dayClock, shiftsFor, onDuty, staffWanted, hourText } from './staff.js';
+
+const ASSETS = new URL('../assets/office/', import.meta.url);
+
+/** Grafikpixel je Sekunde. */
+const WALK_SPEED = 56;
+const HURRY_SPEED = 120;
+/** Ereignisse (Nachricht, Fehler, Feier) nur zeigen, solange sie frisch sind. */
+const EVENT_FRESH_MS = 60_000;
+const CELEBRATE_FRESH_MS = 90_000;
+/** So lange merkt sich das Buero gezeigte Ereignisse; danach sind sie ohnehin nicht mehr frisch. */
+const SEEN_KEEP_MS = 10 * 60_000;
+/** Hoechstens so viele sind gleichzeitig unterwegs (Anteil und absolut). */
+const AWAY_SHARE = 0.4;
+const AWAY_MAX = 6;
+/** Schriftgroesse in den Blasen (CSS-Pixel). */
+const FONT_CSS = 11;
+const FONT_FAMILY = 'ui-monospace, "Cascadia Mono", Consolas, monospace';
+const INK = '#181425';
+/** Schatten und Dunkelheit in der Konturfarbe der Grafiken. */
+const SHADE = '#181425';
+const rgb255 = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ');
+/** Kopfhoehe ueber dem Fusspunkt: hier setzen Blasen und Symbole an. */
+const HEAD = 34;
+/** Bilder je Sekunde: die Grafiken wechseln ohnehin nur alle 90 ms und mehr. */
+const FRAME_MS = 1000 / 30;
+/** Wie lange eine Figur jubelt; wie oft ein Drucker hoechstens druckt. */
+const CHEER_MS = 2600;
+const PRINT_EVERY_MS = 30_000;
+/** Ab dieser Dunkelheit gehen Stehlampen an. */
+const LAMPS_AT = 0.08;
+/** Besorgungen in Kueche und Lounge: die stehen fest, ein Umbau unterbricht sie nicht. */
+const LOUNGE_ERRANDS = new Set(['coffee', 'water', 'sofa', 'kicker']);
+/** Aus der Belegschaft sind hoechstens so viele zugleich unterwegs. */
+const STAFF_AWAY = 2;
+/** Erst wenn sich die Zahl der Sitzungen so lange gehalten hat, kommt oder geht jemand. */
+const STAFF_SETTLE_MS = 90_000;
+/** Was die Belegschaft vorhat (Whiteboard im Teamraum). */
+const TEAM_BOARD = ['Quartalszahlen', 'Messe planen', 'Kaffee kaufen!'];
+/** Was jemand aus der Belegschaft gerade tut (Tooltip). */
+const STAFF_DOING = {
+  coffee: 'holt Kaffee',
+  water: 'holt Wasser',
+  print: 'holt Ausdrucke',
+  chat: 'bespricht etwas',
+  board: 'am Whiteboard',
+  stroll: 'vertritt sich die Beine',
+  sofa: 'macht Pause auf dem Sofa',
+  kicker: 'spielt Kicker',
+};
+const STAFF_POSE_TEXT = { type: 'tippt', read: 'liest', write: 'schreibt', think: 'grübelt' };
+
+/* --- Grafiken -------------------------------------------------------------- */
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Grafik fehlt: ${src}`));
+    img.src = src;
+  });
+}
+
+async function loadAssets() {
+  const res = await fetch(new URL('atlas.json', ASSETS));
+  if (!res.ok) throw new Error(`atlas.json: HTTP ${res.status}`);
+  const atlas = await res.json();
+  const files = new Set([...Object.keys(atlas.meta.images), ...Object.keys(atlas.auxiliaryImages ?? {})]);
+  for (const c of Object.values(atlas.characters ?? {})) {
+    if (c.recolorMask) files.add(c.recolorMask);
+    for (const m of Object.values(c.animationMasks ?? {})) files.add(m);
+  }
+  const images = {};
+  await Promise.all(
+    [...files].map(async (f) => {
+      images[f] = await loadImage(new URL(f, ASSETS).href);
+    }),
+  );
+  return { atlas, images };
+}
+
+/** Farbmaske zu einem Figurenblatt (sheet, walk, desk-work, rest, action). */
+function maskOf(file) {
+  if (file.endsWith('/sheet.png')) return file.replace(/sheet\.png$/, 'recolor-mask.png');
+  return file.replace(/(walk|desk-work|rest|action)\.png$/, '$1-recolor-mask.png');
+}
+
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const KEY_RGB = KEY_COLORS.map(rgb);
+
+function pixelsOf(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width;
+  c.height = img.height;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0);
+  return { canvas: c, g, data: g.getImageData(0, 0, c.width, c.height) };
+}
+
+/**
+ * Figurenblatt in anderer Kleidung: nur die drei Schluesselfarben, und nur
+ * wo die Maske sie als Kleidung ausweist. Haut, Haare, Stuhl bleiben.
+ */
+function recolor(img, mask, outfit) {
+  const { canvas, g, data } = pixelsOf(img);
+  const m = mask ? pixelsOf(mask).data.data : null;
+  const to = outfit.map(rgb);
+  const d = data.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0 || (m && m[i + 3] === 0)) continue;
+    for (let k = 0; k < 3; k++) {
+      const key = KEY_RGB[k];
+      if (d[i] === key[0] && d[i + 1] === key[1] && d[i + 2] === key[2]) {
+        [d[i], d[i + 1], d[i + 2]] = to[k];
+        break;
+      }
+    }
+  }
+  g.putImageData(data, 0, 0);
+  return canvas;
+}
+
+function makeArt({ atlas, images }) {
+  const tinted = new Map();
+  const imageFor = (file, outfit) => {
+    if (!outfit || outfit === 'blue' || !images[maskOf(file)]) return images[file];
+    const key = `${file}|${outfit}`;
+    let c = tinted.get(key);
+    if (!c) {
+      c = recolor(images[file], images[maskOf(file)], OUTFITS[outfit]);
+      tinted.set(key, c);
+    }
+    return c;
+  };
+  /** Sprite mit der linken oberen Ecke bei (x, y); sx/sw/sh schneiden einen Streifen aus. */
+  const draw = (ctx, name, x, y, { outfit, flip = false, image, sx = 0, sw, sh } = {}) => {
+    const s = atlas.sprites[name];
+    if (!s) return;
+    const img = imageFor(image ?? s.image, outfit);
+    const w = sw ?? s.width;
+    const h = sh ?? s.height;
+    if (flip) {
+      ctx.save();
+      ctx.translate(x + w, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, s.x + sx, s.y, w, h, 0, 0, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, s.x + sx, s.y, w, h, x, y, w, h);
+    }
+  };
+  const anim = (name) => atlas.animations[name];
+  /** Spritename einer Animation nach verstrichener Zeit. */
+  const frame = (name, elapsed) => {
+    const a = atlas.animations[name];
+    return a ? a.states[frameIndex(a, elapsed)] : null;
+  };
+  /** Sprite auf Breite w dehnen: Raender (edge Pixel) bleiben, die Mitte wird gestreckt. */
+  const stretch = (ctx, name, x, y, w, edge) => {
+    const s = atlas.sprites[name];
+    const img = images[s.image];
+    const mid = s.width - 2 * edge;
+    ctx.drawImage(img, s.x, s.y, edge, s.height, x, y, edge, s.height);
+    ctx.drawImage(img, s.x + edge, s.y, mid, s.height, x + edge, y, w - 2 * edge, s.height);
+    ctx.drawImage(img, s.x + s.width - edge, s.y, edge, s.height, x + w - edge, y, edge, s.height);
+  };
+  return { atlas, draw, stretch, anim, frame, sprite: (n) => atlas.sprites[n] };
+}
+
+/* --- Zeichenhilfen ---------------------------------------------------------- */
+
+/** Dehnbare Blase aus neun 4x4-Teilen (Kanten und Mitte wiederholt). */
+function nineSlice(art, ctx, prefix, x, y, w, h) {
+  const P = 4;
+  const piece = (name, px, py, pw = P, ph = P) => art.draw(ctx, `${prefix}-${name}`, px, py, { sw: pw, sh: ph });
+  for (let yy = y + P; yy < y + h - P; yy += P) {
+    const ph = Math.min(P, y + h - P - yy);
+    piece('left', x, yy, P, ph);
+    piece('right', x + w - P, yy, P, ph);
+    for (let xx = x + P; xx < x + w - P; xx += P) piece('center', xx, yy, Math.min(P, x + w - P - xx), ph);
+  }
+  for (let xx = x + P; xx < x + w - P; xx += P) {
+    const pw = Math.min(P, x + w - P - xx);
+    piece('top', xx, y, pw);
+    piece('bottom', xx, y + h - P, pw);
+  }
+  piece('top-left', x, y);
+  piece('top-right', x + w - P, y);
+  piece('bottom-left', x, y + h - P);
+  piece('bottom-right', x + w - P, y + h - P);
+}
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+/* --- Buero ----------------------------------------------------------------- */
+
+/**
+ * @param container  Element, das das Gebaeude aufnimmt
+ * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText?,
+ *                     launch(cwd) -> Promise (Klick aufs Namensschild) }
+ * @param env        bei render: { fiveHour, week, recent (byProject), canLaunch,
+ *                     staff (Belegschaft an, Vorgabe ja), staffFill }
+ * @returns {{ render(activity, env), tick(), errand(id, name), ready: Promise }}
+ */
+export function createPixelOffice(
+  container,
+  {
+    tooltip,
+    describe,
+    launch = null,
+    timeZone = () => undefined,
+    // Tageslicht folgt dieser Uhr (zum Ausprobieren verstellbar).
+    now: clock = () => Date.now(),
+    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen.',
+  },
+) {
+  /** Bereits gezeigte Ereignisse - jedes nur einmal. */
+  const seen = new Map();
+  let art = null;
+  let failed = null;
+  let last = null;
+  let renderedOnce = false;
+  let raf = 0;
+  let lastT = 0;
+  let hovered = null;
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const still = () => reduced?.matches === true;
+
+  const root = document.createElement('div');
+  root.className = 'px-building';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'px-canvas';
+  canvas.setAttribute('role', 'img');
+  const empty = document.createElement('p');
+  empty.className = 'px-empty';
+  empty.textContent = emptyText;
+  empty.hidden = true;
+  root.append(canvas, empty);
+  const ctx = canvas.getContext('2d');
+
+  /** Das Gebaeude: Grundriss, Figuren und was sich an Kueche und Tueren tut. */
+  const B = {
+    layout: null,
+    sig: null,
+    bg: null,
+    k: 3,
+    W: 0,
+    H: 0,
+    projects: [],
+    /** Startet ein Klick aufs Namensschild Claude? (Server unter Windows) */
+    canLaunch: false,
+    figs: new Map(),
+    /** Beendete Subagents, die schon gegangen sind - nicht wieder hereinholen. */
+    departed: new Set(),
+    doors: new Map(),
+    espresso: { since: -Infinity, until: -Infinity },
+    cooler: { until: -Infinity },
+    directT: 0,
+    limit: 'unknown',
+    asleep: new Set(),
+    /** Lichtquellen des aktuellen Bilds (in drawScene gesammelt). */
+    lights: [],
+    daylight: { rgb: [38, 43, 68], a: 0 },
+    /** Ortszeit in Stunden und Minuten (Fenster, Uhr). */
+    clock: { h: 12, m: 0 },
+    /** 5h-Fenster und Woche fuer Fernseher und Kalender. */
+    env: {},
+    /** Effekte: Papierflieger, Konfetti, Funkeln, Staub, Papier. */
+    fx: [],
+    /** Drucker je Raum: wann zuletzt gedruckt. */
+    printed: new Map(),
+    /** Whiteboard je Raum: Auftraege der laufenden Subagents. */
+    boards: new Map(),
+    /** Belegschaft: wer einen Tisch im Teamraum hat (leer: abgeschaltet). */
+    team: [],
+    staffFill: STAFF_FILL,
+    /** Wie viele aus der Belegschaft gebraucht werden - geaendert erst, wenn es sich haelt. */
+    want: { value: null, pending: null, since: 0 },
+    /** Dienstplan des Tages (staff.js) und wann zuletzt danach geschaut wurde. */
+    shifts: null,
+    staffAt: -Infinity,
+  };
+
+  const ready = loadAssets()
+    .then((a) => {
+      art = makeArt(a);
+      if (last) render(last.act, last.env);
+    })
+    .catch((err) => {
+      failed = err;
+      const p = document.createElement('p');
+      p.className = 'chart-empty';
+      p.textContent = `Pixel-Büro: ${err.message}`;
+      container.replaceChildren(p);
+    });
+
+  /* --- Grundriss und Hintergrund --------------------------------------------- */
+
+  /**
+   * Grundriss passend zum Platz: moeglichst gross (4-, 3-, 2-fach), solange das
+   * Gebaeude in Breite und Hoehe ins Fenster passt; sonst 2-fach und scrollen.
+   */
+  /** Grundrisse nach Belegung und Breite - beim Ziehen am Fenster nicht dauernd neu. */
+  const plans = new Map();
+  function layoutFor(sig, maxCols) {
+    const key = `${sig}|${maxCols}`;
+    let L = plans.get(key);
+    if (!L) {
+      if (plans.size > 12) plans.clear();
+      L = layoutBuilding(B.projects, maxCols, B.team);
+      plans.set(key, L);
+    }
+    return L;
+  }
+
+  /** Platz in der Breite (CSS-Pixel), abzueglich des Rahmens um das Gebaeude. */
+  const availWidth = () => (container.clientWidth || 1200) - 2;
+
+  function plan() {
+    const availW = availWidth();
+    const availH = Math.max(360, window.innerHeight - 220);
+    const sig = `${buildingSignature(B.projects)}|${B.team.length}`;
+    let pick = null;
+    for (const css of [4, 3, 2]) {
+      const maxCols = Math.max(1, Math.floor((availW / css - 2 * SIDE_PX) / TILE));
+      const L = layoutFor(sig, maxCols);
+      pick = { L, sig, css, maxCols, w: L.cols * TILE + 2 * SIDE_PX, h: L.rows * TILE + SIDE_PX };
+      pick.fitsW = pick.w * css <= availW;
+      if (pick.fitsW && pick.h * css <= availH) break;
+    }
+    return pick;
+  }
+
+  function relayout(now) {
+    const p = plan();
+    const sig = `${p.sig}|${p.css}|${p.maxCols}`;
+    const dpr = window.devicePixelRatio || 1;
+    // Passt es nicht einmal zweifach in die Breite, bleibt es zweifach und
+    // laesst sich seitlich schieben - kleiner wird es nicht lesbarer.
+    const k = p.fitsW ? pixelScale(p.w, availWidth(), dpr, p.css) : Math.max(1, Math.round(2 * dpr));
+    // Nur anders skaliert (anderer Bildschirm, etwas schmaler): neu zeichnen, nicht umziehen.
+    if (sig === B.sig) {
+      if (k !== B.k || dpr !== B.dpr) resize(k, dpr);
+      return;
+    }
+    B.sig = sig;
+    B.layout = p.L;
+    B.W = p.w;
+    B.H = p.h;
+    resize(k, dpr);
+    // Umgebaut: wer sitzt, zieht mit seinem Tisch um; wer in Kueche oder
+    // Lounge unterwegs ist, macht weiter (die stehen fest); sonst geht es zum
+    // neuen Platz. Wer geht, sucht den Ausgang neu.
+    for (const f of B.figs.values()) {
+      const seat = seatOf(f.id);
+      if (f.leaving) {
+        go(f, [{ walk: B.layout.entrance }, { exit: true }], now);
+        continue;
+      }
+      if (!seat) continue;
+      f.seat = seat;
+      if (f.seated) {
+        const at = feetOf(seat);
+        f.x = at.x;
+        f.y = at.y;
+      } else if (LOUNGE_ERRANDS.has(f.errand)) {
+        if (f.walk) {
+          const { to, speed } = f.walk;
+          f.walk = null;
+          if (!startWalk(f, to, speed)) next(f, now);
+        }
+      } else {
+        f.errand = null;
+        go(f, [{ walk: 'seat' }, { sit: true }], now);
+      }
+    }
+  }
+
+  function resize(k, dpr) {
+    B.k = k;
+    B.dpr = dpr;
+    canvas.width = B.W * k;
+    canvas.height = B.H * k;
+    canvas.style.width = `${(B.W * k) / dpr}px`;
+    canvas.style.height = `${(B.H * k) / dpr}px`;
+    buildBackground();
+  }
+
+  /** Was sich nie bewegt: Boeden, Teppiche, Waende - einmal je Grundriss. */
+  function buildBackground() {
+    const L = B.layout;
+    const bg = document.createElement('canvas');
+    bg.width = B.W;
+    bg.height = B.H;
+    const g = bg.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.translate(SIDE_PX, 0);
+    for (let r = 0; r < L.rows; r++) {
+      for (let c = 0; c < L.cols; c++) {
+        const name = L.floor[r * L.cols + c];
+        if (name) art.draw(g, name, c * TILE, r * TILE);
+      }
+    }
+    // Teppiche unter den Subagents, die Fussmatte am Eingang.
+    const spread = (prefix, col, row, w, h) => {
+      for (let r = 0; r < h; r++) {
+        for (let c = 0; c < w; c++) {
+          const v = r === 0 ? 'top' : r === h - 1 ? 'bottom' : '';
+          const hz = c === 0 ? 'left' : c === w - 1 ? 'right' : '';
+          const part = v && hz ? `${v}-${hz}` : v || hz || 'center';
+          art.draw(g, `${prefix}-${part}`, (col + c) * TILE, (row + r) * TILE);
+        }
+      }
+    };
+    for (const { col, row, w, h } of L.rugs) spread('rug', col, row, w, h);
+    for (const m of L.mats) art.draw(g, m.name, m.col * TILE, m.row * TILE);
+    // Schatten: unter jeder Wand von vorn ein dunkler Saum auf dem Boden,
+    // rechts neben Trennwaenden ein schmaler (Licht von oben links).
+    g.fillStyle = SHADE;
+    for (const f of L.faces) {
+      const y = (f.row + 2) * TILE;
+      const x = f.c0 * TILE;
+      const w = (f.c1 - f.c0 + 1) * TILE;
+      g.globalAlpha = 0.28;
+      g.fillRect(x, y, w, 2);
+      g.globalAlpha = 0.14;
+      g.fillRect(x, y + 2, w, 2);
+      g.globalAlpha = 0.06;
+      g.fillRect(x, y + 4, w, 2);
+    }
+    for (const d of L.dividers) {
+      g.globalAlpha = 0.16;
+      g.fillRect(d.col * TILE + 2, d.r0 * TILE, 2, (d.r1 - d.r0) * TILE);
+    }
+    g.globalAlpha = 1;
+    // Waende von vorn; die Tueren zeichnet die Szene (sie gehen auf und zu).
+    // Ziegel, Holz und Gruen laufen bis an die Enden; dort nur die Kante.
+    const doors = new Set(L.doors.map((d) => `${d.col},${d.row}`));
+    const EDGE = 2;
+    for (const f of L.faces) {
+      const tile = `wall-${f.style}`;
+      const own = f.style !== 'plain' && f.style !== 'wainscot';
+      for (let c = f.c0; c <= f.c1; c++) {
+        if (doors.has(`${c},${f.row}`)) continue;
+        const x = c * TILE;
+        const y = f.row * TILE;
+        if (c !== f.c0 && c !== f.c1) art.draw(g, tile, x, y);
+        else if (!own) art.draw(g, c === f.c0 ? 'wall-end-left' : 'wall-end-right', x, y);
+        else {
+          art.draw(g, tile, x, y);
+          if (c === f.c0) art.draw(g, 'wall-end-left', x, y, { sw: EDGE });
+          if (c === f.c1) art.draw(g, 'wall-end-right', x + TILE - EDGE, y, { sx: TILE - EDGE, sw: EDGE });
+        }
+      }
+    }
+    // Trennwaende von oben: senkrecht auf der Raumgrenze, waagerecht unter jeder Reihe.
+    for (const d of L.dividers) {
+      for (let r = d.r0; r < d.r1; r++) art.draw(g, 'wall-side-cap', d.col * TILE - 2, r * TILE);
+    }
+    for (const l of L.ledges) {
+      const y = (l.row + 1) * TILE - 2;
+      for (let c = l.c0; c <= l.c1; c++) {
+        g.save();
+        g.translate(c * TILE + TILE, y);
+        g.rotate(Math.PI / 2);
+        art.draw(g, 'wall-side-cap', 0, 0);
+        g.restore();
+      }
+    }
+    const right = L.cols * TILE - 12;
+    art.draw(g, 'wall-outer-corner', -SIDE_PX, 0);
+    art.draw(g, 'wall-outer-corner', right, 0, { flip: true });
+    for (let y = TILE; y < L.rows * TILE; y += TILE) {
+      art.draw(g, 'wall-side-cap', -SIDE_PX, y);
+      art.draw(g, 'wall-side-cap', right, y, { flip: true });
+    }
+    B.bg = bg;
+  }
+
+  /* --- Figuren --------------------------------------------------------------- */
+
+  function seatOf(id) {
+    return B.layout?.seats.find((s) => s.id === id) ?? null;
+  }
+
+  function newFig(kind, item, seat, arriving) {
+    const at = arriving ? feetOf(B.layout.entrance) : feetOf(seat);
+    const f = {
+      id: kind === 'session' ? item.sessionId : item.id,
+      kind,
+      item,
+      look: lookFor(kind, item),
+      outfit: outfitFor(kind, item),
+      seat,
+      x: at.x,
+      y: at.y,
+      dir: 'front',
+      seated: !arriving,
+      plan: [],
+      walk: null,
+      wait: null,
+      errand: null,
+      leaving: false,
+      gone: false,
+      view: null,
+      state: null,
+      stateSince: performance.now(),
+      emote: null,
+      coffeeUntil: 0,
+      cheerUntil: 0,
+      dustAt: 0,
+      // Nicht alle im Gleichtakt tippen lassen.
+      phase: Math.floor(Math.random() * 1000),
+    };
+    if (arriving) go(f, [{ walk: seat }, { sit: true }], performance.now());
+    return f;
+  }
+
+  /** Hat der Look diese Bewegung? (Ruhe- und Aktionsbilder gibt es nicht fuer alle.) */
+  const can = (f, pose) => Boolean(art.anim(`${f.look}-${pose}`));
+
+  /**
+   * Neuer Plan: Schritte { walk: tile, speed? } | { wait: ms, face?, act?, pose? } |
+   * { perch: { x, y, from }, ms, pose } (aufs Sofa) | { sit } | { exit } | { run: fn }.
+   */
+  function go(f, plan, now) {
+    f.plan = plan.slice();
+    f.walk = null;
+    f.wait = null;
+    f.seated = false;
+    next(f, now);
+  }
+
+  function next(f, now) {
+    const s = f.plan.shift();
+    if (!s) return;
+    if (s.walk) {
+      // 'seat': der Platz, wie er beim Losgehen ist (nach einem Umbau ein anderer).
+      const to = s.walk === 'seat' ? { col: f.seat.col, row: f.seat.row } : s.walk;
+      if (!startWalk(f, to, s.speed ?? WALK_SPEED)) next(f, now);
+    } else if (s.wait != null) {
+      f.wait = { until: now + s.wait, since: now, act: s.act ?? null, pose: s.pose ?? null };
+      if (s.face) f.dir = s.face;
+      if (s.act === 'coffee') B.espresso = { since: now, until: now + s.wait };
+      if (s.act === 'water') B.cooler.until = now + s.wait;
+    } else if (s.perch) {
+      // Vom Platz davor hinauf aufs Sofa; danach wieder herunter.
+      f.x = s.perch.x;
+      f.y = s.perch.y;
+      f.dir = 'front';
+      f.wait = { until: now + s.ms, since: now, act: null, pose: s.pose, perch: s.perch };
+    } else if (s.sit) {
+      f.seated = true;
+      f.errand = null;
+      f.dir = 'front';
+      const home = feetOf(f.seat);
+      f.x = home.x;
+      f.y = home.y;
+    } else if (s.exit) {
+      f.gone = true;
+    } else if (s.run) {
+      s.run(now);
+      next(f, now);
+    }
+  }
+
+  /** Naechstgelegene Kachel (Figuren laufen auf den Kachelmitten). */
+  const nearTile = (f) => ({ col: Math.round((f.x - TILE / 2) / TILE), row: Math.round((f.y - TILE) / TILE) });
+
+  function startWalk(f, to, speed) {
+    const from = nearTile(f);
+    const path = findPath(B.layout, from, to);
+    if (!path) return false;
+    const points = [feetOf(from), ...path.map(feetOf)];
+    if (still()) {
+      const end = points[points.length - 1];
+      f.x = end.x;
+      f.y = end.y;
+      return false;
+    }
+    f.walk = { points, i: 0, speed, t: 0, to };
+    return true;
+  }
+
+  function update(f, dt, now) {
+    if (f.walk) {
+      const w = f.walk;
+      w.t += dt;
+      let left = (w.speed * dt) / 1000;
+      while (left > 0 && w.i < w.points.length) {
+        const p = w.points[w.i];
+        const dx = p.x - f.x;
+        const dy = p.y - f.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 0.01) f.dir = facing(dx, dy, f.dir);
+        if (d <= left) {
+          f.x = p.x;
+          f.y = p.y;
+          left -= d;
+          w.i++;
+        } else {
+          f.x += (dx / d) * left;
+          f.y += (dy / d) * left;
+          left = 0;
+        }
+      }
+      if (w.i >= w.points.length) {
+        f.walk = null;
+        next(f, now);
+      }
+      // Wer eilt, wirbelt Staub auf.
+      if (w.speed > WALK_SPEED && w.t >= f.dustAt) {
+        f.dustAt = w.t + 160;
+        effect('dust', f.x, f.y, now);
+      }
+    } else if (f.wait && now >= f.wait.until) {
+      const perch = f.wait.perch;
+      f.wait = null;
+      if (perch) {
+        const back = feetOf(perch.from);
+        f.x = back.x;
+        f.y = back.y;
+      }
+      next(f, now);
+    }
+    if (f.emote && now >= f.emote.until) f.emote = null;
+  }
+
+  /* --- Effekte ------------------------------------------------------------------ */
+
+  /** Einmalige Animation an einer Stelle (Pixel); path bewegt sie dabei. */
+  function effect(anim, x, y, now, { ms, path, delay = 0 } = {}) {
+    if (still() || !art.anim(anim)) return;
+    const a = art.anim(anim);
+    const n = a.frames ?? a.states.length;
+    B.fx.push({ anim, x, y, t0: now + delay, until: now + delay + (ms ?? n * a.frameDurationMs), path: path ?? null });
+  }
+
+  /** Papierflieger von einem Tisch zum anderen. */
+  function plane(from, to, now) {
+    const a = feetOf(from);
+    const b = feetOf(to);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const anim = Math.abs(dx) >= Math.abs(dy) ? 'plane-right' : dy < 0 ? 'plane-up' : 'plane-down';
+    const ms = clamp(Math.hypot(dx, dy) * 9, 500, 1600);
+    effect(anim, a.x, a.y - 20, now, { ms, path: { dx, dy, flip: dx < 0 && anim === 'plane-right' } });
+  }
+
+  function drawEffects(now) {
+    B.fx = B.fx.filter((e) => now < e.until);
+    for (const e of B.fx) {
+      if (now < e.t0) continue;
+      const s = art.atlas.sprites[art.anim(e.anim).states[0]];
+      let { x, y } = e;
+      let flip = false;
+      if (e.path) {
+        const t = (now - e.t0) / (e.until - e.t0);
+        x += e.path.dx * t;
+        y += e.path.dy * t - Math.sin(t * Math.PI) * 10;
+        flip = e.path.flip;
+      }
+      const name = art.frame(e.anim, now - e.t0);
+      art.draw(ctx, name, Math.round(x - s.anchor[0]), Math.round(y - s.anchor[1]), { flip });
+    }
+  }
+
+  /* --- Besorgungen ------------------------------------------------------------ */
+
+  /** Freier Fleck im eigenen Raum oder im Flur davor, nicht gleich nebenan. */
+  function strollSpot(f) {
+    const L = B.layout;
+    const room = L.rooms.find((r) => r.key === f.seat.room);
+    if (!room) return null;
+    const band = L.bands[room.band];
+    const seats = new Set(L.seats.map((s) => `${s.col},${s.row}`));
+    const here = nearTile(f);
+    for (let i = 0; i < 40; i++) {
+      const inRoom = Math.random() < 0.6;
+      const col = inRoom ? room.c0 + Math.floor(Math.random() * room.cols) : Math.floor(Math.random() * L.cols);
+      const row = inRoom ? room.r0 + Math.floor(Math.random() * room.rows) : band.corridor + Math.floor(Math.random() * 2);
+      if (!walkable(L, col, row) || seats.has(`${col},${row}`)) continue;
+      if (Math.abs(col - here.col) + Math.abs(row - here.row) < 4) continue;
+      return { col, row };
+    }
+    return null;
+  }
+
+  /** Kueche: an jeder Stelle steht nur einer. */
+  const taken = (name, f) => [...B.figs.values()].some((o) => o !== f && o.errand === name && !o.gone);
+
+  /** Wer aus der Belegschaft am Platz sitzt und nichts vorhat. */
+  const freeStaff = (f) => [...B.figs.values()].filter((o) => o !== f && o.kind === 'staff' && o.seated && !o.errand && !o.leaving && !o.gone);
+
+  /** Wer gerade frei ist und mitspielen koennte (Kicker): eine ruhende Sitzung, sonst die Belegschaft. */
+  function partnerFor(f) {
+    const idle = [...B.figs.values()].find(
+      (o) => o !== f && o.kind === 'session' && o.state === 'idle' && o.seated && !o.errand && !o.leaving && !o.gone,
+    );
+    return (f.kind === 'staff' ? null : idle) ?? freeStaff(f)[0] ?? null;
+  }
+
+  /** Sitzungen haben Vorrang: wer aus der Belegschaft dort ist, geht zurueck an den Platz. */
+  function makeRoom(name, now) {
+    for (const o of B.figs.values()) {
+      if (o.kind !== 'staff' || o.errand !== name || o.leaving || o.gone) continue;
+      // Vom Sofa erst herunter.
+      if (o.wait?.perch) Object.assign(o, feetOf(o.wait.perch.from));
+      o.errand = null;
+      go(o, [{ walk: 'seat' }, { sit: true }], now);
+    }
+  }
+
+  /** Freie Kachel neben einem Moebel (unten, rechts, links) und die Blickrichtung dorthin. */
+  function besideItem(it, from) {
+    const L = B.layout;
+    for (const [dc, dr, face] of [[0, 1, 'back'], [it.w, 0, 'left'], [-1, 0, 'right']]) {
+      const t = { col: it.col + dc, row: it.row + dr };
+      if (walkable(L, t.col, t.row) && findPath(L, from, t)) return { tile: t, face };
+    }
+    return null;
+  }
+
+  function startErrand(f, name, now) {
+    const L = B.layout;
+    const home = { col: f.seat.col, row: f.seat.row };
+    const back = [{ walk: 'seat' }, { sit: true }];
+    let plan = null;
+    if (name === 'kicker' && f.kind !== 'staff') makeRoom('kicker', now);
+    if (name === 'sofa' && can(f, 'sofa')) {
+      const free = () => {
+        const busy = new Set([...B.figs.values()].filter((o) => o !== f && o.errand === 'sofa').map((o) => o.sofaSeat));
+        return L.lounge.sofa.find((s) => !busy.has(s));
+      };
+      if (!free() && f.kind !== 'staff') makeRoom('sofa', now);
+      const seat = free();
+      if (seat) {
+        f.sofaSeat = seat;
+        plan = [{ walk: seat.from }, { perch: seat, ms: rand(9000, 16000), pose: 'sofa' }, ...back];
+      }
+    }
+    if (name === 'kicker' && !taken('kicker', f)) {
+      const other = partnerFor(f);
+      if (other) {
+        const ms = rand(10000, 15000);
+        const k = L.lounge.kicker;
+        const game = (side, face) => [{ walk: side }, { wait: ms, face, pose: 'kicker' }];
+        other.errand = 'kicker';
+        go(other, [...game(k.right, 'left'), { walk: 'seat' }, { sit: true }], now);
+        plan = [...game(k.left, 'right'), ...back];
+      }
+    }
+    if (name === 'coffee' && !taken('coffee', f)) {
+      plan = [
+        { walk: L.kitchen.coffee },
+        { wait: rand(3500, 5000), face: 'back', act: 'coffee' },
+        {
+          run: (t) => {
+            f.emote = { name: 'coffee', until: t + 1800 };
+            f.coffeeUntil = t + 60_000;
+          },
+        },
+        ...back,
+      ];
+    } else if (name === 'water' && !taken('water', f)) {
+      plan = [
+        { walk: L.kitchen.water },
+        { wait: rand(2500, 4000), face: 'back', act: 'water' },
+        // Gleich dort einen Schluck trinken, wenn der Look das kann.
+        ...(can(f, 'drink') ? [{ wait: rand(2000, 3000), face: 'front', pose: 'drink' }] : []),
+        ...back,
+      ];
+    } else if (name === 'stroll') {
+      const spot = strollSpot(f);
+      if (spot) plan = [{ walk: spot }, { wait: rand(2000, 4000), face: 'front' }, ...back];
+    } else if (name === 'print' && !taken('print', f)) {
+      // Zum Drucker im eigenen Raum, der druckt, dann zurueck.
+      const printer = L.items.find((it) => it.kind === 'printer' && roomAt(L, it.col, it.row)?.key === f.seat.room);
+      const spot = printer && besideItem(printer, home);
+      if (spot) {
+        plan = [
+          { walk: spot.tile },
+          { run: (t) => print(f.seat.room, t) },
+          { wait: rand(2500, 3500), face: spot.face },
+          ...back,
+        ];
+      }
+    } else if (name === 'board' && !taken('board', f)) {
+      // Vor das Whiteboard des Raums, dort eine Weile ueberlegen.
+      const board = L.wall.find((w) => w.kind === 'whiteboard' && w.room === f.seat.room);
+      const room = L.rooms.find((r) => r.key === f.seat.room);
+      const spot = board && { col: Math.floor(board.x / TILE) + 1, row: room.r0 };
+      if (spot && walkable(L, spot.col, spot.row) && findPath(L, home, spot)) {
+        plan = [{ walk: spot }, { wait: rand(4000, 6500), face: 'back', pose: 'talk' }, ...back];
+      }
+    } else if (name === 'chat') {
+      // Zu jemandem aus dem Team an den Tisch, kurz reden.
+      const mates = freeStaff(f);
+      const target = mates[Math.floor(Math.random() * mates.length)]?.seat;
+      const side = target && [1, -1].find((d) => walkable(L, target.col + d, target.row - 1) && findPath(L, home, { col: target.col + d, row: target.row - 1 }));
+      if (side) {
+        plan = [
+          { walk: { col: target.col + side, row: target.row - 1 } },
+          {
+            run: (t) => {
+              const other = B.figs.get(target.id);
+              if (other) other.emote = { name: 'idea', until: t + 2600 };
+            },
+          },
+          { wait: rand(4000, 7000), face: side > 0 ? 'left' : 'right', pose: 'talk' },
+          ...back,
+        ];
+      }
+    } else if (name === 'pace') {
+      // Hinter dem eigenen Tisch auf und ab.
+      const row = home.row - 1;
+      const cols = [-3, -2, 2, 3].map((d) => home.col + d).filter((c) => walkable(L, c, row) && findPath(L, home, { col: c, row }));
+      if (cols.length) {
+        const a = cols[Math.floor(Math.random() * cols.length)];
+        plan = [{ walk: { col: a, row } }, { wait: 700 }, { walk: { col: home.col, row } }, { wait: 500 }, ...back];
+      }
+    } else if (name === 'visit') {
+      const busy = L.seats.filter((s) => {
+        const a = B.figs.get(s.id);
+        return s.owner === f.id && a?.seated && !a.view?.leaving;
+      });
+      const target = busy[Math.floor(Math.random() * busy.length)];
+      // Schraeg hinter den Subagent, damit beide zu sehen sind.
+      const side = target && [1, -1].find((d) => walkable(L, target.col + d, target.row - 1));
+      if (side) {
+        plan = [
+          { walk: { col: target.col + side, row: target.row - 1 } },
+          {
+            run: (t) => {
+              f.emote = { name: 'question', until: t + 2000 };
+              const other = B.figs.get(target.id);
+              if (other) other.emote = { name: 'idea', until: t + 3200 };
+            },
+          },
+          { wait: rand(3000, 4500), face: side > 0 ? 'left' : 'right', pose: 'talk' },
+          ...back,
+        ];
+      }
+    }
+    if (!plan) return false;
+    f.errand = name;
+    go(f, plan, now);
+    return true;
+  }
+
+  /** Einmal je Sekunde: wer kommt, wer geht, wer steht auf, wer muss zurueck? */
+  function direct(now) {
+    syncStaff(now);
+    const figs = [...B.figs.values()].filter((f) => !f.leaving && !f.gone && f.seat);
+    for (const f of figs) {
+      if (f.kind !== 'staff' && f.errand && !errandStillFits(f.errand, f.kind, f.state)) {
+        f.errand = null;
+        go(f, [{ walk: 'seat', speed: HURRY_SPEED }, { sit: true }], now);
+      }
+    }
+    if (still()) return;
+    if (B.limit !== 'reached') crewErrands(figs.filter((f) => f.kind !== 'staff'), now);
+    staffErrands(figs.filter((f) => f.kind === 'staff'), now);
+  }
+
+  /** Sitzungen und Subagents: Pause, auf und ab, Besuch - je nachdem, was sie tun. */
+  function crewErrands(figs, now) {
+    const away = figs.filter((f) => f.errand).length;
+    const cap = Math.min(AWAY_MAX, Math.max(1, Math.floor(figs.length * AWAY_SHARE)));
+    if (away >= cap) return;
+    for (const f of figs) {
+      if (!f.seated || f.errand) continue;
+      const agentsRunning = figs.filter((a) => a.kind === 'agent' && a.seat.owner === f.id).length;
+      const opts = pixelErrands({ kind: f.kind, state: f.state, stateMs: now - f.stateSince }, { agentsRunning });
+      if (!opts || Math.random() >= opts.rate) continue;
+      if (startErrand(f, pickWeighted(opts.options), now)) return;
+    }
+  }
+
+  /** Belegschaft: am Platz wechselt die Haltung, ab und zu geht jemand los. */
+  function staffErrands(team, now) {
+    for (const f of team) {
+      if (f.seated && !f.errand && Math.random() < 1 / 25) f.view = { ...f.view, pose: pickWeighted(STAFF_POSES) };
+    }
+    if (team.filter((f) => f.errand).length >= STAFF_AWAY) return;
+    for (const f of team) {
+      if (!f.seated || f.errand || Math.random() >= STAFF_ERRANDS.rate) continue;
+      if (startErrand(f, pickWeighted(STAFF_ERRANDS.options), now)) return;
+    }
+  }
+
+  /**
+   * Belegschaft nach Dienstplan und Bedarf: gebraucht wird, wer bis zur
+   * Wunschzahl an Figuren fehlt. Wer gebraucht wird und laut Plan im Haus ist,
+   * kommt durch den Eingang; wer nicht mehr gebraucht wird, geht. War das Buero
+   * eine Weile nicht zu sehen, sitzen alle gleich richtig.
+   */
+  function syncStaff(now) {
+    const jump = !renderedOnce || still() || !visible() || now - B.staffAt > 5000;
+    B.staffAt = now;
+    const sessions = B.projects.reduce((n, p) => n + p.sessions.length, 0);
+    const target = B.team.length ? staffWanted(sessions, B.staffFill, B.team.length) : 0;
+    const w = B.want;
+    if (w.value == null || jump || !B.team.length) Object.assign(w, { value: target, pending: null });
+    else if (target === w.value) w.pending = null;
+    else if (w.pending !== target) Object.assign(w, { pending: target, since: now });
+    else if (now - w.since >= STAFF_SETTLE_MS) Object.assign(w, { value: target, pending: null });
+    const { day, weekday, hour } = dayClock(timeZone(), clock());
+    if (B.shifts?.day !== day) B.shifts = shiftsFor(day, weekday);
+    const want = new Set(onDuty(B.shifts, hour, w.value));
+    for (const s of STAFF) {
+      const f = B.figs.get(s.id);
+      const seat = seatOf(s.id);
+      if (want.has(s.id) && seat) {
+        if (!f) {
+          const nf = newFig('staff', s, seat, !jump);
+          Object.assign(nf, { state: 'staff', view: figureView('staff', s) });
+          B.figs.set(s.id, nf);
+        } else if (f.leaving && !f.gone) {
+          // Doch noch gebraucht: zurueck an den Platz.
+          f.leaving = false;
+          go(f, [{ walk: 'seat' }, { sit: true }], now);
+        }
+      } else if (f && !f.leaving && !f.gone) {
+        if (f.wait?.perch) Object.assign(f, feetOf(f.wait.perch.from));
+        if (jump) B.figs.delete(s.id);
+        else leave(f, now, null);
+      }
+    }
+    // Ohne Belegschaft ist im Teamraum das Licht aus.
+    if (want.size) B.asleep.delete(TEAM);
+    else B.asleep.add(TEAM);
+  }
+
+  /* --- Daten uebernehmen -------------------------------------------------------- */
+
+  /** Ein Ereignis einmal zeigen, solange es frisch ist; true, wenn es gezeigt wird. */
+  function flash(f, ev, kind, freshMs, name, ms, now) {
+    if (!ev?.id) return false;
+    const key = `${kind}:${ev.id}`;
+    if (seen.has(key)) return false;
+    seen.set(key, now);
+    if (ev.at == null || Date.now() - ev.at > freshMs) return false;
+    f.emote = { name, until: now + ms };
+    return true;
+  }
+
+  /** Commit oder Push: aufstehen, jubeln, Konfetti. */
+  function celebrate(f, now) {
+    f.cheerUntil = now + CHEER_MS;
+    const at = f.seat ? feetOf(f.seat) : { x: f.x, y: f.y };
+    const bursts = [
+      [-12, -24],
+      [12, -28],
+      [0, -46],
+      [-6, -36],
+    ];
+    bursts.forEach(([dx, dy], i) => effect('confetti', at.x + dx, at.y + dy, now, { delay: i * 200 }));
+  }
+
+  /** Aufstehen und zum Ausgang gehen; beim ersten Bild (oder unsichtbar) sofort weg. */
+  function leave(f, now, finish) {
+    f.leaving = true;
+    f.errand = null;
+    if (finish) f.emote = { name: finish, until: now + 4000 };
+    if (finish === 'done' && f.seat) {
+      const at = feetOf(f.seat);
+      effect('sparkle', at.x, at.y - 30, now, { ms: 1400 });
+    }
+    if (!renderedOnce || still() || !visible()) {
+      f.gone = true;
+      return;
+    }
+    go(f, [{ walk: B.layout.entrance }, { exit: true }], now);
+  }
+
+  /** Drucker im Raum anwerfen - hoechstens alle halbe Minute. */
+  function print(roomKey, now) {
+    if (now - (B.printed.get(roomKey) ?? -Infinity) < PRINT_EVERY_MS) return;
+    const printer = B.layout.items.find((it) => it.kind === 'printer' && roomAt(B.layout, it.col, it.row)?.key === roomKey);
+    if (!printer) return;
+    B.printed.set(roomKey, now);
+    effect('paper', printer.col * TILE + 8, printer.row * TILE - 2, now, { ms: 1200, delay: 500, path: { dx: 0, dy: -6, flip: false } });
+  }
+
+  function take(kind, item, now) {
+    const id = kind === 'session' ? item.sessionId : item.id;
+    const view = figureView(kind, item, { limit: B.limit });
+    if (B.departed.has(id)) {
+      if (view.leaving) return null;
+      B.departed.delete(id); // laeuft wieder (fortgesetzt)
+    }
+    const seat = seatOf(id);
+    let f = B.figs.get(id);
+    if (!f) {
+      // Beim ersten Bild sitzen alle schon; spaeter kommt man durch den Eingang.
+      // Ist das Buero nicht zu sehen, wird nichts nachgeholt.
+      const arriving = renderedOnce && !still() && visible();
+      f = newFig(kind, item, seat, arriving);
+      B.figs.set(id, f);
+      // Neuer Auftrag: ein Papierflieger vom Tisch der Sitzung zum Platz.
+      const owner = kind === 'agent' && seat && seatOf(seat.owner);
+      if (arriving && owner && !view.leaving) plane(owner, seat, now);
+    } else if (f.leaving && !view.leaving && seat) {
+      // Doch noch nicht fertig (fortgesetzt): zurueck an den Platz.
+      f.leaving = false;
+      f.seat = seat;
+      go(f, [{ walk: { col: seat.col, row: seat.row } }, { sit: true }], now);
+    }
+    f.item = item;
+    if (!f.leaving) f.seat = seat;
+    if (view.state !== f.state) {
+      f.state = view.state;
+      f.stateSince = now;
+    }
+    if (view.pose === 'write' && f.view?.pose !== 'write' && seat) print(seat.room, now);
+    f.view = view;
+    flash(f, item.error, 'error', EVENT_FRESH_MS, item.error?.kind === 'rate' ? 'sweat' : 'error', 6000, now);
+    if (kind === 'session') flash(f, item.prompt, 'prompt', EVENT_FRESH_MS, 'alert', 2600, now);
+    if (flash(f, item.celebration, 'celebrate', CELEBRATE_FRESH_MS, item.celebration?.kind === 'push' ? 'heart' : 'done', 3600, now)) {
+      celebrate(f, now);
+    }
+    if (view.leaving && !f.leaving) leave(f, now, view.finish);
+    return id;
+  }
+
+  /* --- Zeichnen --------------------------------------------------------------- */
+
+  /** Stuhl, Figur am Tisch, Tisch, Lampe, Tasse, Requisit und Haende. */
+  function drawDesk(seat, f, now) {
+    const p = feetOf(seat);
+    const M = art.atlas.mountPoints[seat.desk];
+    const dx = seat.desk === 'desk-large' ? p.x - 24 : p.x - 16;
+    const dy = p.y - 16;
+    const fx = p.x - 8;
+    const fy = p.y - 32;
+    const seated = f && f.seated && !f.gone;
+    let pose = seated ? (f.view?.pose ?? 'type') : null;
+    // Ruhepause: mit frischem Kaffee an der Tasse nippen, sonst schlafen.
+    if (pose === 'sleep' && f.coffeeUntil > now && can(f, 'sip')) pose = 'sip';
+    // Commit oder Push: aufstehen und jubeln (steht hinter dem Tisch, ohne Stuhl).
+    const cheering = seated && f.cheerUntil > now && can(f, 'cheer');
+    if (cheering) pose = 'cheer';
+    let figName = null;
+    let anim = null;
+    if (seated) {
+      const t = still() ? 0 : now + f.phase;
+      if (pose === 'sleep' && !can(f, 'sleep')) {
+        figName = `${f.look}-think-0`;
+      } else {
+        anim = art.anim(`${f.look}-${pose}`);
+        figName = anim ? anim.states[frameIndex(anim, t)] : `${f.look}-front`;
+      }
+      if (cheering) art.draw(ctx, 'chair-front', fx, p.y - 24);
+      art.draw(ctx, figName, fx, fy, { outfit: f.outfit });
+    } else {
+      art.draw(ctx, 'chair-front', fx, p.y - 24);
+      // Wer gerade auf dem eigenen Platz steht (auf- oder hinsetzen), steht vor dem Stuhl.
+      if (f && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) drawFigure(f, now);
+    }
+    shadow(dx + 1, dy + 22, art.sprite(seat.desk).width, 3);
+    art.draw(ctx, seat.desk, dx, dy);
+    const lampOn = M.lamp && f?.view?.lamp && f.seated && !B.asleep.has(seat.room);
+    if (M.lamp) art.draw(ctx, lampOn ? 'lamp-on' : 'lamp-off', dx + M.lamp[0], dy + M.lamp[1]);
+    if (lampOn) B.lights.push({ x: dx + M.lamp[0] + 11, y: dy + M.lamp[1] + 6, r: 40, s: 1, glow: '#feae34' });
+    if (seated && pose !== 'sleep' && pose !== 'sip') B.lights.push({ x: dx + M.laptop[0] + 8, y: dy + M.laptop[1] + 4, r: 18, s: 0.7, glow: '#2ce8f5' });
+    // Freier Raum: ein leerer Tisch.
+    if (seat.bare) return;
+    // Die Tasse ist in der Hand, solange genippt wird.
+    if (M.mug && !(seated && anim?.includesMug)) {
+      const steaming = f && f.coffeeUntil > now && !still();
+      art.draw(ctx, steaming ? art.frame('mug-steam', now) : 'mug-idle', dx + M.mug[0], dy + M.mug[1]);
+    }
+    const prop = anim?.prop;
+    if (seated && prop && (prop.animation || prop.sprite)) {
+      let name = prop.sprite;
+      if (prop.animation) {
+        const i = anim.states.indexOf(figName);
+        name = art.anim(prop.animation).states[prop.frameMap?.[i] ?? i];
+      }
+      art.draw(ctx, name, fx + prop.mount[0], fy + prop.mount[1]);
+    } else {
+      // Laptop: offen, solange jemand arbeitet oder nur kurz weg ist.
+      const open = seated ? pose !== 'sleep' && pose !== 'sip' : f && !f.leaving && !f.gone && f.errand;
+      art.draw(ctx, open ? 'laptop-back-open' : 'laptop-closed', dx + M.laptop[0], dy + M.laptop[1]);
+    }
+    if (seated) {
+      const s = art.sprite(figName);
+      if (s?.foregroundImage) art.draw(ctx, figName, fx, fy, { image: s.foregroundImage });
+    }
+  }
+
+  function drawFigure(f, now) {
+    const t = still() ? 0 : now + f.phase;
+    const pose = f.wait?.pose;
+    let name;
+    let flip = false;
+    if (f.walk) {
+      const dir = f.dir === 'left' ? 'right' : f.dir;
+      flip = f.dir === 'left';
+      name = art.frame(`${f.look}-walk-${dir}`, f.walk.t);
+    } else if (pose && can(f, pose)) {
+      // Sofa, Kicker, Trinken, Reden; Kicker-Bilder schauen nach rechts.
+      name = art.frame(`${f.look}-${pose}`, t);
+      flip = f.dir === 'left';
+    } else if (f.dir === 'front') {
+      name = art.frame(`${f.look}-idle`, t);
+    } else {
+      name = `${f.look}-${f.dir === 'left' ? 'right' : f.dir}`;
+      flip = f.dir === 'left';
+    }
+    const x = Math.round(f.x);
+    const y = Math.round(f.y);
+    if (!f.wait?.perch) shadow(x - 5, y - 2, 10, 2);
+    art.draw(ctx, name, x - 8, y - 32, { outfit: f.outfit, flip });
+  }
+
+  /** Harter Pixelschatten: ein Rechteck mit abgeschnittenen Ecken. */
+  function shadow(x, y, w, h) {
+    ctx.fillStyle = SHADE;
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(x + 1, y, w - 2, 1);
+    ctx.fillRect(x, y + 1, w, Math.max(1, h - 1));
+    ctx.globalAlpha = 1;
+  }
+
+  /** Tuer: geht auf, solange jemand davor, darin oder dahinter steht. */
+  function doorFrame(d, now) {
+    let s = B.doors.get(d.key);
+    if (!s) {
+      s = { level: 0, t: 0 };
+      B.doors.set(d.key, s);
+    }
+    const x = d.col * TILE + TILE / 2;
+    const top = d.row * TILE;
+    const near = [...B.figs.values()].some(
+      (f) => !f.gone && !f.seated && Math.abs(f.x - x) < TILE && f.y > top - TILE / 2 && f.y <= top + 3 * TILE + TILE / 2,
+    );
+    const want = near ? 2 : 0;
+    if (s.level !== want && now - s.t > 120) {
+      s.level += Math.sign(want - s.level);
+      s.t = now;
+    }
+    return `door-${d.kind}-${['closed', 'half-open', 'open'][s.level]}`;
+  }
+
+  function drawScene(now) {
+    const L = B.layout;
+    const items = [];
+    for (const d of L.doors) {
+      const name = doorFrame(d, now);
+      items.push({ y: (d.row + WALL_ROWS) * TILE, z: 0, draw: () => art.draw(ctx, name, d.col * TILE, d.row * TILE) });
+    }
+    const k = L.kitchen;
+    const base = (k.counter.row + 1) * TILE;
+    const brewing = now < B.espresso.until;
+    items.push({
+      y: base,
+      z: 0,
+      draw: () => {
+        const cx = k.counter.col * TILE;
+        const cy = base - 24;
+        const m = art.atlas.mountPoints['kitchen-counter'];
+        shadow(cx + 1, base - 2, 80, 3);
+        art.draw(ctx, 'kitchen-counter', cx, cy);
+        art.draw(ctx, brewing ? art.frame('espresso', now - B.espresso.since) : 'espresso-idle', cx + m.espresso[0], cy + m.espresso[1]);
+        art.draw(ctx, 'tray-mugs', cx + m.tray[0], cy + m.tray[1]);
+        art.draw(ctx, 'fridge', k.fridge.col * TILE, base - 32);
+        art.draw(ctx, now < B.cooler.until ? art.frame('cooler-bubble', now) : 'cooler-bubble-1', k.cooler.col * TILE, base - 32);
+      },
+    });
+    const kicking = [...B.figs.values()].some((f) => !f.gone && f.wait?.pose === 'kicker');
+    for (const it of L.items) {
+      const base = (it.row + 1) * TILE;
+      items.push({ y: base, z: 0, draw: () => drawItem(it, it.col * TILE, base, now, kicking) });
+    }
+    const kitchen = L.rooms.find((r) => r.kind === 'kitchen');
+    const inKitchen = [...B.figs.values()].some((f) => {
+      const t = tileAt(f.x, f.y);
+      return !f.gone && roomAt(L, t.col, t.row) === kitchen;
+    });
+    if (inKitchen) {
+      B.lights.push({
+        x: (kitchen.c0 + kitchen.cols / 2) * TILE,
+        y: (kitchen.r0 + kitchen.rows / 2) * TILE,
+        r: Math.max(kitchen.cols, kitchen.rows) * 10,
+        s: 0.95,
+        glow: '#fee761',
+      });
+    }
+    if (brewing) B.lights.push({ x: (k.counter.col + 0.5) * TILE, y: base - 14, r: 14, s: 0.6, glow: '#feae34' });
+    B.lights.push({ x: (k.cooler.col + 0.5) * TILE, y: base - 20, r: 10, s: 0.5, glow: '#0099db' });
+    for (const p of corridorLights(L, 6)) B.lights.push({ x: p.x, y: p.y, r: 22, s: 0.55, glow: null });
+    B.lights.push({ x: (L.entrance.col + 0.5) * TILE, y: WALL_ROWS * TILE, r: 22, s: 0.7, glow: '#2ce8f5' });
+    const atDesk = new Set();
+    for (const seat of L.seats) {
+      const f = B.figs.get(seat.id);
+      const p = feetOf(seat);
+      if (f && !f.seated && !f.gone && Math.abs(f.x - p.x) < 1 && Math.abs(f.y - p.y) < 6) atDesk.add(f);
+      items.push({ y: seat.row * TILE + 24, z: 0, draw: () => drawDesk(seat, f, now) });
+    }
+    for (const f of B.figs.values()) {
+      if (f.gone || f.seated || atDesk.has(f)) continue;
+      // Wer auf dem Sofa sitzt, sitzt davor - nicht dahinter.
+      items.push({ y: f.wait?.perch ? f.y + 3 : f.y, z: 1, draw: () => drawFigure(f, now) });
+    }
+    items.sort((a, b) => a.y - b.y || a.z - b.z);
+    for (const it of items) it.draw();
+  }
+
+  /** Ein Moebel; manche bewegen sich oder leuchten. */
+  function drawItem(it, x, base, now, kicking) {
+    const L = B.layout;
+    const room = roomAt(L, it.col, it.row);
+    const asleep = room ? B.asleep.has(room.key) : false;
+    const dark = B.daylight.a > LAMPS_AT;
+    let name = it.name;
+    if (it.kind === 'vending') {
+      name = still() ? 'vending-0' : art.frame('vending-glow', now);
+      if (dark) B.lights.push({ x: x + 8, y: base - 18, r: 16, s: 0.6, glow: '#fee761' });
+    } else if (it.kind === 'server') {
+      name = asleep || still() ? 'server-0' : art.frame('server-blink', now + it.col * 97);
+      if (!asleep) B.lights.push({ x: x + 8, y: base - 18, r: 9, s: 0.4, glow: '#63c74d' });
+    } else if (it.kind === 'printer') {
+      const at = B.printed.get(room?.key);
+      name = at != null && now - at < 900 && !still() ? art.frame('printer-print', now - at) : 'printer-idle';
+    } else if (it.kind === 'kicker') {
+      name = kicking && !still() ? art.frame('kicker-play', now) : 'kicker-0';
+    } else if (it.kind === 'lamp') {
+      // Abends an - im eigenen Raum nur, solange dort jemand arbeitet.
+      const on = dark && !asleep;
+      name = on ? 'floor-lamp-on' : 'floor-lamp-off';
+      if (on) B.lights.push({ x: x + 8, y: base - 24, r: 44, s: 0.9, glow: '#feae34' });
+    }
+    const s = art.sprite(name);
+    if (!s) return;
+    if (s.height > 16 || it.w > 1) shadow(x + 1, base - 2, s.width - 2, 3);
+    art.draw(ctx, name, x, base - s.height);
+    // Auf Arbeitsflaechen: Mikrowelle auf der Spuele, Obst auf dem Tisch, ein Kaktus auf dem Couchtisch.
+    if (it.kind === 'sink') art.draw(ctx, 'microwave', x + 30, base - 14 - 16);
+    if (it.kind === 'table') art.draw(ctx, 'fruit-bowl', x + 8, base - 10 - 8);
+    if (it.name === 'coffee-table') art.draw(ctx, 'cactus-desk', x + 20, base - 5 - 12);
+  }
+
+  /* --- Wandschmuck --------------------------------------------------------------- */
+
+  /** Text in Grafikpixeln: so gross wie size Pixel der Grafik, scharf gezeichnet. */
+  const artText = (str, x, y, size, color, bold = false) => text(str, x, y, { size: (size * B.k) / dprNow(), color, bold });
+
+  /** Zeiger als Pixellinie vom Mittelpunkt aus. */
+  function hand(cx, cy, deg, len) {
+    const a = ((deg - 90) * Math.PI) / 180;
+    for (let i = 0; i <= len; i++) ctx.fillRect(Math.round(cx + Math.cos(a) * i), Math.round(cy + Math.sin(a) * i), 1, 1);
+  }
+
+  function drawWall() {
+    for (const w of B.layout.wall) {
+      if (w.kind === 'window') {
+        art.draw(ctx, windowSprite(B.clock.h + B.clock.m / 60), w.x, w.y);
+        continue;
+      }
+      art.draw(ctx, w.name, w.x, w.y);
+      const s = art.sprite(w.name);
+      const [cx, cy, cw, ch] = s.contentRect ?? [0, 0, s.width, s.height];
+      if (w.kind === 'clock') {
+        const [hx, hy] = s.handsCenter ?? [8, 8];
+        ctx.fillStyle = INK;
+        hand(w.x + hx - 0.5, w.y + hy - 0.5, ((B.clock.h % 12) + B.clock.m / 60) * 30, 3);
+        hand(w.x + hx - 0.5, w.y + hy - 0.5, B.clock.m * 6, 5);
+      } else if (w.kind === 'calendar') {
+        const face = calendarFace(B.env.week?.end);
+        if (face) artText(face.big, w.x + cx + cw / 2, w.y + cy + ch / 2, 7, '#a22633', true);
+      } else if (w.kind === 'tv') {
+        const fh = B.env.fiveHour;
+        const p = Number.isFinite(fh?.percent) ? Math.round(fh.percent) : null;
+        // Leuchtet und zeigt das 5h-Fenster: Prozent und ein Balken.
+        ctx.fillStyle = '#262b44';
+        ctx.fillRect(w.x + cx, w.y + cy, cw, ch);
+        artText(p == null ? '5h –' : `5h ${p}%`, w.x + cx + cw / 2, w.y + cy + 6, 5, '#c0cbdc', true);
+        ctx.fillStyle = '#3a4466';
+        ctx.fillRect(w.x + cx + 2, w.y + cy + ch - 5, cw - 4, 3);
+        if (p != null) {
+          ctx.fillStyle = fh.level === 'critical' || p >= 100 ? '#e43b44' : fh.level === 'warn' ? '#feae34' : '#63c74d';
+          ctx.fillRect(w.x + cx + 2, w.y + cy + ch - 5, Math.max(1, Math.round(((cw - 4) * Math.min(100, p)) / 100)), 3);
+        }
+        B.lights.push({ x: w.x + w.w / 2, y: w.y + 26, r: 18, s: 0.5, glow: '#2ce8f5' });
+      } else if (w.kind === 'whiteboard') {
+        const lines = B.boards.get(w.room) ?? [];
+        const colors = ['#124e89', '#a22633', '#265c42'];
+        lines.slice(0, 3).forEach((line, i) => {
+          let t = line;
+          while (t.length > 3 && measure(t, (4 * B.k) / dprNow()) > cw - 2) t = `${t.slice(0, -2)}…`;
+          artText(t, w.x + cx + cw / 2, w.y + cy + 3 + i * 5, 4, colors[i % colors.length]);
+        });
+      }
+    }
+  }
+
+  /* --- Schilder, Blasen und Symbole -------------------------------------------- */
+
+  const dprNow = () => window.devicePixelRatio || 1;
+  const font = (css, bold = false) => `${bold ? '600 ' : ''}${Math.round(css * dprNow())}px ${FONT_FAMILY}`;
+
+  /** Text in voller Aufloesung an einer Stelle in Grafikpixeln. */
+  function text(str, x, y, { size = FONT_CSS, color = INK, bold = false } = {}) {
+    const { k } = B;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = font(size, bold);
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(str, (SIDE_PX + x) * k, y * k + 1);
+    ctx.restore();
+  }
+
+  function measure(str, size = FONT_CSS, bold = false) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = font(size, bold);
+    const w = ctx.measureText(str).width / B.k;
+    ctx.restore();
+    return w;
+  }
+
+  /** Messingschild mit dem Projektnamen neben der Tuer; ein freier Raum hat keins, der Teamraum "Team". */
+  function plates() {
+    const out = [];
+    for (const room of B.layout.rooms) {
+      if (room.kind === 'project' ? room.project.free : room.kind !== 'team') continue;
+      const x0 = (room.door.col + 1) * TILE + 3;
+      // Rechts davon haengt Wandschmuck: das Schild bleibt in seinen Spalten.
+      const maxW = Math.min((room.c0 + room.cols) * TILE - 6, (room.door.col + 1 + room.plateCols) * TILE - 3) - x0;
+      if (maxW < 16) continue;
+      let label = room.label;
+      while (label.length > 3 && measure(label, 10, true) + 8 > maxW) label = `${label.slice(0, -2)}…`;
+      const w = Math.min(maxW, Math.ceil(measure(label, 10, true)) + 8);
+      const y = room.face * TILE + 6;
+      art.stretch(ctx, 'plate-brass', x0, y, w, 3);
+      // Unter dem Zeiger leuchtet ein Schild, das per Klick Claude startet.
+      if (hovered === `room:${room.key}` && startable(room.project)) {
+        ctx.fillStyle = '#fee761';
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(x0, y, w, 8);
+        ctx.globalAlpha = 1;
+      }
+      text(label, x0 + w / 2, y + 4, { size: 10, color: '#3e2731', bold: true });
+      out.push({ room, x: x0, y, w, h: 8 });
+    }
+    return out;
+  }
+
+  function speech(str, px, py) {
+    const w = Math.max(12, Math.ceil(measure(str)) + 7);
+    const h = Math.max(12, Math.ceil((FONT_CSS * dprNow() * 1.15) / B.k) + 6);
+    const minX = -SIDE_PX + 1;
+    const maxX = B.layout.cols * TILE + SIDE_PX - 1 - w;
+    const bx = Math.round(clamp(px - w / 2, minX, maxX));
+    const by = Math.max(0, py - 3 - h);
+    nineSlice(art, ctx, 'bubble-speech', bx, by, w, h);
+    const tx = clamp(px - 2, bx + 3, bx + w - 7);
+    art.draw(ctx, 'bubble-speech-tail', tx, by + h - 1);
+    text(str, bx + w / 2, by + h / 2);
+  }
+
+  function thought(px, py, now) {
+    const w = 16;
+    const h = 12;
+    const bx = Math.round(clamp(px - w / 2 + 3, -SIDE_PX + 1, B.layout.cols * TILE + SIDE_PX - 1 - w));
+    const by = Math.max(0, py - 9 - h);
+    nineSlice(art, ctx, 'bubble-thought', bx, by, w, h);
+    art.draw(ctx, 'bubble-thought-puff-large', px - 1, py - 8);
+    art.draw(ctx, 'bubble-thought-puff-small', px - 2, py - 3);
+    // Drei Punkte, die nacheinander erscheinen.
+    const n = still() ? 3 : Math.floor(now / 450) % 4;
+    ctx.fillStyle = INK;
+    for (let i = 0; i < n; i++) ctx.fillRect(bx + 4 + i * 3, by + 5, 2, 2);
+  }
+
+  function drawOverhead(f, now) {
+    if (f.gone) return;
+    const px = Math.round(f.x);
+    const py = Math.round(f.y) - HEAD;
+    const v = f.view ?? {};
+    const emote = f.emote?.name ?? (f.seated || f.wait ? v.emote : null);
+    if (emote) {
+      const bob = still() || !f.emote ? 0 : Math.floor(now / 300) % 2;
+      art.draw(ctx, `emote-${emote}`, px - 6, py - 12 - bob);
+      return;
+    }
+    if (f.leaving || f.walk) return;
+    if (v.speech && f.seated) speech(v.speech, px, py);
+    else if (v.thought) thought(px, py, now);
+    else if (v.sleep && f.seated) art.draw(ctx, art.frame('sleep-z', still() ? 0 : now + f.phase), px + 1, py - 10);
+  }
+
+  /* --- Licht ------------------------------------------------------------------ */
+
+  let lightCv = null;
+  let glowCv = null;
+  let hourAt = -Infinity;
+
+  /** Stunde der Ortszeit, hoechstens einmal je Sekunde berechnet. */
+  function updateDaylight(t) {
+    if (t - hourAt < 1000) return;
+    hourAt = t;
+    // Unbekannte Zeitzone: Ortszeit des Browsers (wie im klassischen Buero).
+    const { h, m } = zonedTime(timeZone(), clock());
+    B.clock = { h, m };
+    B.daylight = daylight(h + m / 60);
+  }
+
+  /** Licht in Stufen: hell innen, zwei Ringe, dann nichts - wie gemalt. */
+  function rings(g, x, y, r, rgb, s) {
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    const c = (a) => `rgba(${rgb}, ${a})`;
+    grad.addColorStop(0, c(s));
+    grad.addColorStop(0.42, c(s));
+    grad.addColorStop(0.43, c(s * 0.62));
+    grad.addColorStop(0.72, c(s * 0.62));
+    grad.addColorStop(0.73, c(s * 0.28));
+    grad.addColorStop(1, c(0));
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
+
+  const canvasOf = (cv) => {
+    const c = cv ?? document.createElement('canvas');
+    if (c.width !== B.W || c.height !== B.H) {
+      c.width = B.W;
+      c.height = B.H;
+    }
+    return c;
+  };
+
+  /**
+   * Dunkelheit nach Tageszeit als Lichtkarte, die das Bild multipliziert -
+   * so bleiben die Farben satt statt grau. Lampen, Bildschirme und
+   * Deckenlichter hellen sie auf; dazu ein farbiger Schein. In Grafikpixeln
+   * berechnet und ohne Glaettung vergroessert, damit auch das Licht pixelig
+   * bleibt.
+   */
+  function lighting() {
+    const { a, rgb } = B.daylight;
+    if (a > 0.01) {
+      lightCv = canvasOf(lightCv);
+      const g = lightCv.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalCompositeOperation = 'source-over';
+      // Weiss laesst das Bild, wie es ist; die Nachtfarbe dunkelt ab.
+      const t = Math.min(0.85, a * 1.3);
+      g.fillStyle = `rgb(${rgb.map((v) => Math.round(255 + (v - 255) * t)).join(', ')})`;
+      g.fillRect(0, 0, B.W, B.H);
+      g.translate(SIDE_PX, 0);
+      for (const l of B.lights) rings(g, l.x, l.y, l.r, '255, 255, 255', l.s);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.drawImage(lightCv, -SIDE_PX, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // Farbiger Schein: tagsueber kaum, nachts deutlich.
+    const glowA = 0.12 + a * 0.45;
+    glowCv = canvasOf(glowCv);
+    const g = glowCv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, B.W, B.H);
+    g.translate(SIDE_PX, 0);
+    for (const l of B.lights) {
+      if (l.glow) rings(g, l.x, l.y, l.r * 0.8, rgb255(l.glow), glowA * l.s);
+    }
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(glowCv, -SIDE_PX, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  let plateRects = [];
+
+  function draw(now) {
+    if (!B.layout || !B.bg) return;
+    const { k, layout: L } = B;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    // Deckend grundieren: die Lichtkarte multipliziert sonst Transparenz zu Hellem.
+    ctx.fillStyle = SHADE;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.drawImage(B.bg, 0, 0);
+    ctx.setTransform(k, 0, 0, k, SIDE_PX * k, 0);
+    B.lights = [];
+    drawWall();
+    drawScene(now);
+    lighting();
+    // Ruhen alle in einem Raum, wird er gedimmt; ist niemand da, ist das Licht
+    // aus (nachts ist es ohnehin dunkel).
+    for (const room of L.rooms) {
+      if (!B.asleep.has(room.key)) continue;
+      // Teamraum: ruht nur, wenn niemand da ist.
+      const dim = !room.project?.sessions.length ? 0.45 : 0.3;
+      ctx.fillStyle = `rgba(24, 20, 37, ${(dim * (1 - B.daylight.a)).toFixed(3)})`;
+      ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
+    }
+    plateRects = plates();
+    // Wer weiter unten steht, dessen Blase liegt oben.
+    const figs = [...B.figs.values()].sort((a, b) => a.y - b.y);
+    for (const f of figs) drawOverhead(f, now);
+    // Konfetti und Papierflieger fliegen ueber allem.
+    drawEffects(now);
+  }
+
+  /* --- Ablauf -------------------------------------------------------------------- */
+
+  // Ohne Boxen ist der Container (oder ein Vorfahr) ausgeblendet.
+  const visible = () => !document.hidden && container.isConnected && container.getClientRects().length > 0;
+
+  function loop(t) {
+    raf = 0;
+    if (!art || !visible() || !B.layout) return;
+    // Hoechstens 30 Bilder je Sekunde - mehr sieht man bei Pixelgrafik nicht.
+    if (lastT && t - lastT < FRAME_MS - 1) {
+      raf = requestAnimationFrame(loop);
+      return;
+    }
+    const dt = lastT ? Math.min(100, t - lastT) : 16;
+    lastT = t;
+    B.directT += dt;
+    if (B.directT >= 1000) {
+      B.directT = 0;
+      direct(t);
+    }
+    updateDaylight(t);
+    for (const f of B.figs.values()) update(f, dt, t);
+    for (const [id, f] of B.figs) {
+      if (!f.gone) continue;
+      B.figs.delete(id);
+      if (f.view?.leaving) B.departed.add(id);
+    }
+    draw(t);
+    raf = requestAnimationFrame(loop);
+  }
+
+  function kick() {
+    if (raf || !art || !visible()) return;
+    // Erst sichtbar weiss das Gebaeude, wie viel Platz es hat.
+    if (B.layout) relayout(performance.now());
+    lastT = 0;
+    raf = requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', kick);
+
+  const refit = () => {
+    if (art && B.layout && visible()) relayout(performance.now());
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(refit).observe(container);
+  window.addEventListener('resize', refit);
+
+  /* --- Tooltip -------------------------------------------------------------------- */
+
+  /** Zeigerposition in Grafikpixeln (wie gezeichnet). */
+  function pointAt(ev) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: ((ev.clientX - rect.left) / rect.width) * B.W - SIDE_PX, y: ((ev.clientY - rect.top) / rect.height) * B.H };
+  }
+
+  const plateAt = ({ x, y }) => plateRects.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) ?? null;
+
+  /** Kann ein Klick auf das Schild Claude im Projektordner starten? */
+  const startable = (p) => Boolean(launch && B.canLaunch && p?.cwd);
+
+  function plateText(p) {
+    const lines = [p.label];
+    const agents = p.sessions.reduce((n, s) => n + s.agents.length, 0);
+    if (p.sessions.length) {
+      lines.push(`${p.sessions.length} ${p.sessions.length === 1 ? 'Sitzung' : 'Sitzungen'}${agents ? ` · ${agents} ${agents === 1 ? 'Subagent' : 'Subagents'}` : ''}`);
+    } else {
+      lines.push(Number.isFinite(p.lastTs) ? `niemand da · zuletzt aktiv ${agoText(Date.now() - p.lastTs)}` : 'niemand da');
+    }
+    if (p.cwd) lines.push(p.cwd);
+    if (startable(p)) lines.push('Klick: Claude hier starten');
+    return lines.join('\n');
+  }
+
+  const onStaff = () => [...B.figs.values()].filter((f) => f.kind === 'staff' && !f.leaving && !f.gone).length;
+
+  function teamText() {
+    const n = onStaff();
+    return [
+      'Team',
+      'Kolleginnen und Kollegen ohne Claude-Sitzung',
+      n ? `${n} da · füllen auf, wenn wenige Sitzungen offen sind` : 'gerade niemand da',
+    ].join('\n');
+  }
+
+  /** Tooltip einer Figur aus der Belegschaft: wer, was, wann im Haus. */
+  function staffText(f) {
+    const s = f.item;
+    const doing = f.leaving
+      ? 'geht'
+      : f.seated
+        ? `am Platz · ${STAFF_POSE_TEXT[f.view?.pose] ?? 'arbeitet'}`
+        : (STAFF_DOING[f.errand] ?? 'auf dem Weg zum Platz');
+    const shift = B.shifts?.shifts.get(s.id);
+    return [
+      `${s.name} · ${s.role}`,
+      'aus dem Team – keine Claude-Sitzung',
+      doing,
+      shift ? `heute ${hourText(shift.arrive)}–${hourText(shift.leave)} Uhr` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  /** Tooltip einer Figur: Sitzung und Subagent beschreibt die Seite, die Belegschaft das Buero. */
+  function figText(f) {
+    if (f.kind === 'staff') return staffText(f);
+    const room = B.layout.rooms.find((r) => r.key === f.seat?.room);
+    return describe(f.kind, { ...f.item, project: room?.label ?? '' });
+  }
+
+  /** Rueckmeldung nach einem Klick: steht eine Weile statt des Schildtexts da. */
+  let note = null;
+
+  function hover(ev) {
+    if (!B.layout) return;
+    const { x, y } = pointAt(ev);
+    let hit = null;
+    for (const f of B.figs.values()) {
+      if (f.gone) continue;
+      if (x >= f.x - 7 && x <= f.x + 7 && y >= f.y - 30 && y <= f.y && (!hit || f.y > hit.y)) hit = f;
+    }
+    let textOut = null;
+    let key = null;
+    if (hit) {
+      textOut = figText(hit);
+      key = hit.id;
+    } else {
+      const plate = plateAt({ x, y });
+      const wall = B.layout.wall.find((w) => w.kind !== 'art' && w.kind !== 'window' && x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
+      if (plate) {
+        key = `room:${plate.room.key}`;
+        textOut =
+          note?.key === key && performance.now() < note.until
+            ? note.text
+            : plate.room.kind === 'team'
+              ? teamText()
+              : plateText(plate.room.project);
+      } else if (wall) {
+        textOut = wallText(wall);
+        key = textOut ? `wall:${wall.kind}:${wall.x},${wall.y}` : null;
+      }
+    }
+    canvas.style.cursor = key ? 'pointer' : '';
+    if (!key) {
+      if (hovered) tooltip.hide();
+      hovered = null;
+      return;
+    }
+    // Immer zeigen: auch wenn ihn ein Seitenwechsel inzwischen versteckt hat.
+    tooltip.show(ev, textOut);
+    hovered = key;
+  }
+  canvas.addEventListener('pointermove', hover);
+  // Antippen (ohne Maus gibt es kein Ueberfahren).
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType !== 'mouse') hover(ev);
+  });
+
+  // Klick aufs Namensschild: PowerShell mit Claude im Projektordner.
+  const starting = new Set();
+  canvas.addEventListener('click', (ev) => {
+    if (!B.layout) return;
+    const plate = plateAt(pointAt(ev));
+    const p = plate?.room.project;
+    if (!startable(p) || starting.has(p.key)) return;
+    starting.add(p.key);
+    const key = `room:${p.key}`;
+    const say = (text, ms) => {
+      note = { key, text: `${p.label}\n${text}`, until: performance.now() + ms };
+      if (hovered === key) tooltip.show(ev, note.text);
+    };
+    say('Claude wird gestartet …', 10_000);
+    launch(p.cwd)
+      .then(
+        () => {
+          say('PowerShell mit Claude ist offen', 4000);
+          effect('sparkle', plate.x + plate.w / 2, plate.y + 10, performance.now(), { ms: 1400 });
+        },
+        (err) => say(`Start fehlgeschlagen: ${err?.message ?? err}`, 8000),
+      )
+      .finally(() => setTimeout(() => starting.delete(p.key), 3000));
+  });
+  /** Dauer "1 h 20 min" bzw. "45 min". */
+  function duration(ms) {
+    const min = Math.max(0, Math.round(ms / 60_000));
+    return min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min` : `${min} min`;
+  }
+
+  /** Was Uhr, Kalender, Fernseher und Whiteboard beim Zeigen verraten. */
+  function wallText(w) {
+    if (w.kind === 'clock') return `${String(B.clock.h).padStart(2, '0')}:${String(B.clock.m).padStart(2, '0')} Uhr`;
+    if (w.kind === 'calendar') {
+      const face = calendarFace(B.env.week?.end);
+      return face ? `Wochenlimit: Reset in ${face.big} ${face.small}` : null;
+    }
+    if (w.kind === 'tv') {
+      const fh = B.env.fiveHour;
+      if (!fh) return null;
+      const p = Number.isFinite(fh.percent) ? `${Math.round(fh.percent)} %` : 'unbekannt';
+      const reset = Number.isFinite(fh.msUntilReset) && !fh.idle ? `\nReset in ${duration(fh.msUntilReset)}` : '';
+      return `5h-Fenster: ${p}${reset}`;
+    }
+    if (w.kind === 'whiteboard') {
+      const lines = B.boards.get(w.room) ?? [];
+      const title = w.room === TEAM ? 'Whiteboard im Team' : 'Aufträge der Subagents';
+      return lines.length ? `${title}:\n${lines.map((l) => `• ${l}`).join('\n')}` : null;
+    }
+    return null;
+  }
+
+  canvas.addEventListener('pointerleave', () => {
+    hovered = null;
+    canvas.style.cursor = '';
+    tooltip.hide();
+  });
+
+  /* --- Schnittstelle ---------------------------------------------------------------- */
+
+  function render(act, env = {}) {
+    last = { act, env };
+    if (!art || failed) return;
+    if (root.parentNode !== container) container.replaceChildren(root);
+    const now = performance.now();
+    // Feste Zahl Raeume: offene Projekte, dann die zuletzt genutzten, sonst frei.
+    B.projects = officeRooms(act?.projects ?? [], env?.recent ?? []);
+    B.env = env ?? {};
+    B.canLaunch = env?.canLaunch === true;
+    B.limit = limitState(env?.fiveHour);
+    // Belegschaft: an, solange config.json sie nicht abschaltet.
+    B.team = env?.staff === false ? [] : STAFF.map((s) => s.id);
+    B.staffFill = Number.isFinite(env?.staffFill) ? env.staffFill : STAFF_FILL;
+    // Ruhende und leere Raeume: Licht aus (den Teamraum regelt syncStaff).
+    B.asleep = new Set(B.projects.filter((p) => !p.sessions.length || roomAsleep(p)).map((p) => p.key));
+    B.boards = new Map([
+      [TEAM, TEAM_BOARD],
+      ...B.projects.map((p) => [
+        p.key,
+        p.sessions.flatMap((s) => s.agents.filter((a) => a.state === 'running').map((a) => a.description || a.type || 'Subagent')),
+      ]),
+    ]);
+    relayout(now);
+    const present = new Set();
+    const listed = new Set();
+    for (const p of B.projects) {
+      for (const s of p.sessions) {
+        listed.add(s.sessionId);
+        present.add(take('session', s, now));
+        for (const a of s.agents) {
+          listed.add(a.id);
+          present.add(take('agent', a, now));
+        }
+      }
+    }
+    for (const f of B.figs.values()) {
+      if (f.kind !== 'staff' && !present.has(f.id) && !f.leaving) leave(f, now, null);
+    }
+    syncStaff(now);
+    // Was nicht mehr in der Liste steht, muss man sich nicht merken.
+    for (const id of B.departed) if (!listed.has(id)) B.departed.delete(id);
+    for (const [key, at] of seen) if (now - at > SEEN_KEEP_MS) seen.delete(key);
+    // Der Tooltip der gezeigten Figur folgt dem neuen Stand; wer geht, verliert ihn.
+    const shown = hovered && B.figs.get(hovered);
+    if (shown && !shown.leaving && !shown.gone) {
+      tooltip.update(figText(shown));
+    } else if (shown) {
+      hovered = null;
+      tooltip.hide();
+    }
+    const sessions = B.projects.reduce((n, p) => n + p.sessions.length, 0);
+    const assigned = B.projects.filter((p) => !p.free).length;
+    empty.hidden = sessions > 0;
+    canvas.setAttribute(
+      'aria-label',
+      `Büro mit ${assigned} ${assigned === 1 ? 'Projektraum' : 'Projekträumen'} und ${sessions} ${sessions === 1 ? 'Sitzung' : 'Sitzungen'}`,
+    );
+    renderedOnce = true;
+    kick();
+  }
+
+  return {
+    render,
+    /** Gezeichnet wird ohnehin laufend; nach dem Einblenden wieder anstossen. */
+    tick: kick,
+    /** Eine Besorgung von Hand anstossen (zum Ausprobieren und fuer Tests). */
+    errand(id, name) {
+      const f = B.figs.get(id);
+      return f?.seated && !f.leaving ? startErrand(f, name, performance.now()) : false;
+    },
+    ready,
+  };
+}

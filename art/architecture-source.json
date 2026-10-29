@@ -1,0 +1,118 @@
+{
+  "generation": "Built-in imagegen; approved style anchor used as reference. Exact prompts are under art/prompts.",
+  "processing": "Area-mode sampling, ENDESGA 32, binary alpha; repeated wall geometry and door-frame anchors normalized as documented.",
+  "walls": {
+    "file": "art/raw/walls.png",
+    "sha256": "ede305de7b2fb9229df7572b0d1235729a9274aff2b09c44deaaea5a37457438",
+    "size": [
+      1254,
+      1254
+    ],
+    "crops": {
+      "plain": [
+        49,
+        207,
+        301,
+        725
+      ],
+      "wainscot": [
+        363,
+        207,
+        600,
+        725
+      ],
+      "end-left": [
+        651,
+        207,
+        891,
+        725
+      ],
+      "end-right": [
+        955,
+        207,
+        1214,
+        724
+      ],
+      "side-cap": [
+        187,
+        865,
+        247,
+        1069
+      ],
+      "outer-corner": [
+        520,
+        864,
+        730,
+        1069
+      ],
+      "inner-corner": [
+        870,
+        865,
+        1077,
+        1069
+      ]
+    }
+  },
+  "doors": {
+    "file": "art/raw/doors.png",
+    "sha256": "e7098272963d1bee1fd24008d1bf2bd154992716d4b18e05e6d74fc8da137d19",
+    "size": [
+      1254,
+      1254
+    ],
+    "crops": {
+      "wood": [
+        [
+          143,
+          118,
+          415,
+          485
+        ],
+        [
+          495,
+          118,
+          759,
+          485
+        ],
+        [
+          839,
+          118,
+          1112,
+          485
+        ]
+      ],
+      "glass": [
+        [
+          143,
+          567,
+          415,
+          932
+        ],
+        [
+          495,
+          567,
+          759,
+          932
+        ],
+        [
+          839,
+          567,
+          1112,
+          932
+        ]
+      ],
+      "plate-door": [
+        326,
+        1039,
+        567,
+        1139
+      ],
+      "plate-brass": [
+        689,
+        1039,
+        930,
+        1139
+      ]
+    }
+  }
+}

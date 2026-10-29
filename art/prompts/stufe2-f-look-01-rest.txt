@@ -1,0 +1,23 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Animation sheet for the attached approved character. Use the attached native character reference as the exact identity: same head silhouette, hair, face, skin, accessories, clothes, colours and proportions. Each frame is 16 wide x 32 tall art pixels, feet on the bottom edge of its own cell, drawn at 8x. Frames left to right, plenty of transparent space between frames; bottom-align each row. Only the described body parts move. Keep head shape and clothing design pixel-identical across frames. Character identity: Frau, dunkle Haut, kurze schwarze Locken, runde Brille, Weste über hellem Hemd.
+
+Output one square transparent PNG, target 1024x1024. Exactly TWO separated rows, five complete character frames total.
+
+ROW 1: sitting on the attached dark office chair, front view, head resting forward on folded arms on an invisible desk edge, asleep. 2 frames: slow breathing, shoulders move by one art pixel. Same chair, head and legs in both frames; eyes closed, no floating sleep symbols.
+ROW 2: sitting on the same dark office chair, front view, lifting a small plain white mug to the mouth. 3 frames: mug at table height, halfway, at the mouth. Arms and mug change together, head and chair remain fixed.
+
+Do not draw a desk or any table surface. Include the same approved dark office chair in every frame. No background objects.
+
+Clothing only in the three key colours #2ce8f5 #0099db #124e89, exactly as in the approved reference. Hair, skin, glasses, beard, trousers, shoes, chair and mug must never use those three colours. Match the vest over a white shirt for look-01, or the short-sleeve T-shirt for look-02, as appropriate to this one character. No text, numbers, logos, symbols or background.
+
+Input image roles: Image 1 is the exact approved character in front, right and two seated work poses at 8x, plus furniture for pose context, REFERENCE ONLY. The top row fixes the character identity. Image 2 is the original office STYLE REFERENCE ONLY; do not copy any person from image 2.

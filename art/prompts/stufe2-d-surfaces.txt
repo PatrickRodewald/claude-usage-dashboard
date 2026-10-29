@@ -1,0 +1,24 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Floor and wall surface tiles, each tile must repeat seamlessly with copies of itself on all four sides. Output: one square transparent PNG, target 1024x1024. Exactly THREE separated rows, each art pixel a solid 8x8 block.
+
+ROW 1, FLOOR TILES, each 16x16, seen from above, seamless: 1. blue office carpet with a subtle fine dot pattern 2. green office carpet, same pattern 3. wine red office carpet, same pattern 4. light stone lobby floor with thin grout lines
+
+ROW 2, A CARPET RUNNER as nine 16x16 parts in a 3x3 block (corners, edges, centre), dark red runner with a thin golden border; edges and centre must repeat seamlessly.
+
+ROW 3, WALL SEGMENTS, each 16 wide x 32 tall, front view, seamless to the left and right, same top trim and baseboard height as the attached wall tiles:
+1. red brick accent wall
+2. glass partition: thin grey-blue frame, light cyan glass with two white diagonal reflection lines
+3. warm wood panelling with vertical boards
+4. sage green painted wall with a wooden wainscot on the lower third
+
+Input image roles: Image 1 is the approved office STYLE REFERENCE ONLY. Image 2 shows the approved native wall sprites enlarged 8x, REFERENCE ONLY. Preserve that wall height, top trim and baseboard height. Floor tiles are viewed from above, wall segments straight from the front. The runner is one contiguous 3x3 block to be cut into nine tiles; do not separate the nine pieces. For walls only, seamless horizontally; their top and bottom are trim, so do not make them vertically seamless. For floor tiles, seamless on all four edges. Genuine transparency outside the assets; the glass panel may use opaque pale cyan pixels and clear pixels, never partial alpha. No floor or room scene behind the requested tiles.

@@ -1,0 +1,92 @@
+{
+  "status": "passed",
+  "package": "B1",
+  "newSprites": 9,
+  "newFloorSprites": 7,
+  "newDeskSprites": 2,
+  "totalSprites": 178,
+  "totalAnimations": 25,
+  "schemaVersion": 2,
+  "image": "decor/decor-a.png",
+  "imageSize": [
+    64,
+    96
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "floorFootprintsAndCollisionFlags": "passed",
+  "againstWallFlags": "passed",
+  "deskPlantsWithoutFloorCollision": "passed",
+  "closedNavyContours": "passed",
+  "bottomAlignment": "passed",
+  "greenFoliagePreserved": "passed",
+  "threeGreenLeafShades": "passed",
+  "cabinetDrawerCount": 3,
+  "bookCompartments": {
+    "bookshelf": 3,
+    "bookshelf-low": 2
+  },
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 22,
+  "normalization": {
+    "plant-tall": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 1
+    },
+    "plant-bush": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 0
+    },
+    "plant-palm": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 1
+    },
+    "plant-desk": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 1
+    },
+    "cactus-desk": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 1
+    },
+    "bookshelf": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 0
+    },
+    "bookshelf-low": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 0
+    },
+    "filing-cabinet": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 0
+    },
+    "coat-rack": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0,
+      "leafShadeCorrections": 0
+    }
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 9,
+  "previewPixelsMatchAtlas": true,
+  "roomNativeSize": [
+    384,
+    192
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "newObjectsMountedInRoom": 9
+}

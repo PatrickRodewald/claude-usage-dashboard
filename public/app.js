@@ -6,6 +6,8 @@
 import { renderColumnChart, renderStackedBar, createTooltip } from './charts.js';
 import { createWorkshop, entrypointLabel } from './agents.js';
 import { createReplay } from './replayView.js';
+import { createPixelOffice } from './pixel/office.js';
+import { createSound } from './sounds.js';
 
 const $ = (id) => document.getElementById(id);
 const tooltip = createTooltip();
@@ -366,6 +368,66 @@ const workshop = createWorkshop($('workshop'), {
   timeZone: () => snapshot?.timezone,
 });
 
+// Klassisches Buero: gezeichnet wird nur, solange es zu sehen ist. Kommt es
+// wieder, zeigt es den aktuellen Stand, ohne alle Wechsel nachzuspielen.
+let officeData = null;
+let classicStale = true;
+const classicVisible = () => officeView === 'classic' && !replay.active && $('app').dataset.view === 'office';
+function renderClassic() {
+  if (!officeData || !classicVisible()) {
+    classicStale = true;
+    return;
+  }
+  workshop.render(officeData.act, officeData.env, { quiet: classicStale });
+  classicStale = false;
+}
+
+// Pixel-Buero: dieselben Daten als Pixelgrafik (Standard).
+const pixelOffice = createPixelOffice($('pixel-office'), {
+  tooltip,
+  describe: describeFigure,
+  timeZone: () => snapshot?.timezone,
+  launch: launchClaude,
+});
+
+/** Klick aufs Namensschild: der Server oeffnet im Projektordner eine PowerShell mit Claude. */
+async function launchClaude(cwd) {
+  const res = await fetch('/api/launch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cwd }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
+}
+const viewBtn = $('view-toggle');
+let officeView = 'pixel';
+try {
+  if (localStorage.getItem('cud-office-view') === 'classic') officeView = 'classic';
+} catch {
+  /* kein Speicher - dann Pixel */
+}
+function applyView() {
+  const pixel = officeView === 'pixel';
+  if (!replay.active) {
+    $('pixel-office').hidden = !pixel;
+    $('workshop').hidden = pixel;
+  }
+  viewBtn.textContent = pixel ? 'Klassisch' : 'Pixel';
+  viewBtn.setAttribute('aria-pressed', String(!pixel));
+  tooltip.hide();
+  if (pixel) pixelOffice.tick();
+  else renderClassic();
+}
+viewBtn.addEventListener('click', () => {
+  officeView = officeView === 'pixel' ? 'classic' : 'pixel';
+  try {
+    localStorage.setItem('cud-office-view', officeView);
+  } catch {
+    /* egal */
+  }
+  applyView();
+});
+
 // Tagesrueckblick: ein eigenes Buero spielt einen Tag im Zeitraffer ab.
 const replay = createReplay({
   tooltip,
@@ -373,13 +435,41 @@ const replay = createReplay({
   describe: describeFigure,
   timeZone: () => snapshot?.timezone,
   onToggle: (on) => {
-    if (on) $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
-    else if (snapshot) renderActivity(snapshot);
+    if (on) {
+      $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
+      $('pixel-office').hidden = true;
+    } else {
+      applyView();
+      if (snapshot) renderActivity(snapshot);
+    }
   },
 });
+applyView();
 
-// Toene im Buero: opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
+// Zwei Seiten: das Buero mit den Kennzahlen als Leiste (Standard) und die
+// Statistik mit Diagrammen und Tabellen. Die Adresse merkt sich die Seite.
+function applyPage() {
+  const page = location.hash === '#statistik' ? 'stats' : 'office';
+  $('app').dataset.view = page;
+  for (const tab of document.querySelectorAll('.view-tab')) {
+    if (tab.dataset.page === page) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  }
+  tooltip.hide();
+  if (page === 'office') {
+    pixelOffice.tick();
+    renderClassic();
+  }
+}
+window.addEventListener('hashchange', () => {
+  applyPage();
+  window.scrollTo(0, 0);
+});
+applyPage();
+
+// Toene im Buero (sounds.js): opt-in, gemerkt im Browser. Der Audio-Kontext entsteht erst
 // bei einem Klick - ohne Nutzergeste laesst der Browser ihn nicht anlaufen.
+const sound = createSound();
 const soundBtn = $('sound-toggle');
 let soundOn = false;
 try {
@@ -393,14 +483,14 @@ const syncSoundButton = () => {
 };
 syncSoundButton();
 if (soundOn) {
-  workshop.setSound(true);
+  sound.setSound(true);
   // Gemerkt "an", aber ohne Klick bleibt der Kontext stumm: beim ersten
   // Klick irgendwo auf der Seite aufwecken.
-  document.addEventListener('pointerdown', () => workshop.setSound(soundOn), { once: true });
+  document.addEventListener('pointerdown', () => sound.setSound(soundOn), { once: true });
 }
 soundBtn.addEventListener('click', () => {
   soundOn = !soundOn;
-  workshop.setSound(soundOn);
+  sound.setSound(soundOn);
   try {
     localStorage.setItem('cud-sound', soundOn ? '1' : '0');
   } catch {
@@ -416,9 +506,11 @@ function renderActivity(s) {
   // der Bereich weg, statt dauerhaft "nichts offen" zu behaupten.
   if (!act?.available) {
     section.hidden = true;
+    $('office-off').hidden = false;
     return;
   }
   section.hidden = false;
+  $('office-off').hidden = true;
   const c = act.counts ?? {};
   const parts = [
     c.busy
@@ -432,7 +524,18 @@ function renderActivity(s) {
   if (act.error) parts.push(`gestört: ${act.error}`);
   if (!replay.active) $('live-sub').textContent = parts.join(' · ');
   // Das Buero reagiert auf das Limit (Warnlampe, Zwangspause, Kalender).
-  workshop.render(act, { fiveHour: s.live.fiveHour, week: s.live.week });
+  const env = { fiveHour: s.live.fiveHour, week: s.live.week };
+  officeData = { act, env };
+  sound.observe(act, env);
+  renderClassic();
+  // Das Pixel-Buero gibt die uebrigen Raeume den zuletzt genutzten Projekten.
+  pixelOffice.render(act, {
+    ...env,
+    recent: s.byProject,
+    canLaunch: s.canLaunch === true,
+    staff: s.office?.staff !== false,
+    staffFill: s.office?.staffFill,
+  });
 }
 
 function costCell(row) {

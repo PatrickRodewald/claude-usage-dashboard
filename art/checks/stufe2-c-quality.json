@@ -1,0 +1,150 @@
+{
+  "status": "passed",
+  "package": "C",
+  "newSprites": 14,
+  "newUniqueObjects": 10,
+  "newFloorSpriteFrames": 12,
+  "newCounterSprites": 2,
+  "newAnimations": 2,
+  "totalSprites": 192,
+  "totalAnimations": 27,
+  "schemaVersion": 2,
+  "image": "decor/lounge.png",
+  "imageSize": [
+    192,
+    96
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "floorFootprintsAndCollisionFlags": "passed",
+  "againstWallFlags": "passed",
+  "counterPropsWithoutFloorCollision": "passed",
+  "closedNavyContours": "passed",
+  "bottomAlignment": "passed",
+  "matchingClothShades": "passed",
+  "sofaSeatCount": 3,
+  "interactionSpotsRelativeToBottomLeft": "passed",
+  "approvedCounterUnchangedOutsideSinkAndTap": "passed",
+  "vendingBodyAndBottlesPixelIdentical": "passed",
+  "vendingGlassPixelsChanged": 57,
+  "kickerBodyAndSilhouettePixelIdentical": "passed",
+  "kickerDistinctFrames": 4,
+  "kickerBallCenters": [
+    [
+      22,
+      8
+    ],
+    [
+      23,
+      10
+    ],
+    [
+      27,
+      12
+    ],
+    [
+      30,
+      8
+    ]
+  ],
+  "kickerRodOffsets": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      -1,
+      1
+    ],
+    [
+      0,
+      1,
+      -1
+    ],
+    [
+      -1,
+      0,
+      0
+    ]
+  ],
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 23,
+  "normalization": {
+    "sofa": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "armchair": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "coffee-table": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "kitchen-table": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "stool": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "counter-sink": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "microwave": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "fruit-bowl": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "vending-0": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "vending-1": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "kicker-0": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "kicker-1": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "kicker-2": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "kicker-3": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    }
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 14,
+  "previewPixelsMatchAtlas": true,
+  "roomNativeSize": [
+    384,
+    224
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "newObjectTypesMountedInRoom": 10,
+  "animationPreviewFrames": 8,
+  "animationPreviewScale": 3,
+  "animationPreviewCycleMs": 1200,
+  "animationPreviewPixelsMatchAtlas": true
+}

@@ -1,0 +1,42 @@
+Use case: stylized-concept
+Asset type: modular office kitchen sprite sheet for the approved cozy pixel office.
+Input image: approved STYLE REFERENCE ONLY. Match the wooden counter, dark espresso machine, pale cabinets and straight top-down 3/4 view. No room, walls, floor or people.
+Output: one landscape transparent PNG asset sheet, target 1536x1024.
+
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Exactly FOUR rows of separated assets, with consistent 8x magnification. Coarse logical game pixels, flat colors. Preserve real alpha outside objects. No labels.
+
+ROW 1:
+One BARE office kitchenette counter, 48 logical pixels wide x 24 tall. Warm wooden worktop visible from above, light grey cabinet front with a few simple recessed door shapes. Entire counter empty: no machine, cups, sink, appliances or objects integrated into the counter. One complete freestanding modular sprite.
+
+ROW 2:
+The SAME compact espresso machine in FOUR animation frames, each 16x24 logical pixels. Same body, base, buttons, spout and baseline in every frame. Machine is standalone, not on a drawn counter. A small cup fits beneath the spout and stays at the same location:
+1. idle: tiny green indicator light
+2. brewing: a short coffee stream dripping into the cup
+3. brewing: steam from the cup, small hard-edged pale pixel curl
+4. finished: full coffee cup beneath the spout
+Change only the indicator, coffee stream/steam and cup fill state between frames. No scenery, no extra mugs beside the machine.
+
+ROW 3:
+Three animation frames of the SAME water cooler, 16x32 logical pixels each. Pale grey rectangular dispenser with translucent blue bottle on top. Only one small bubble moves upward inside the bottle from low to middle to high. Bottle, dispenser, tap and feet are pixel-identical, all feet on the same baseline.
+Then a small standalone fridge, 16x32, closed, pale grey, one dark narrow handle. Same object scale as water cooler.
+
+ROW 4:
+A small tray with two white mugs, one sprite 16x16 logical pixels. Top-down 3/4 view, two simple complete cups, no steam, no text.
+
+The 48-pixel counter is exactly three times the width of a 16-pixel machine, cooler or fridge. Keep every animation frame complete and separate, with generous transparent gutters, aligned in its row. No anti-aliasing, no gradual gradients through glass, no soft steam. No tile frames or outlines around the sprite cells.
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044
+#feae34 #fee761 #63c74d #3e8948 #265c42 #193c3e
+#124e89 #0099db #2ce8f5 #ffffff #c0cbdc #8b9bb4
+#5a6988 #3a4466 #262b44 #181425 #68386c #b55088 #f6757a

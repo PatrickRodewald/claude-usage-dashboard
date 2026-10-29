@@ -8,6 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -50,10 +51,10 @@ async function withServer(fn) {
  * Noetig, weil fetch() Pfade wie '/../x' clientseitig normalisiert - genau die
  * Angriffsform, die hier ankommen soll.
  */
-function rawGet(port, rawPath) {
+function rawGet(port, rawPath, host = '127.0.0.1') {
   return new Promise((resolve, reject) => {
     const sock = net.connect(port, '127.0.0.1', () => {
-      sock.write(`GET ${rawPath} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`);
+      sock.write(`GET ${rawPath} HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`);
     });
     let data = '';
     sock.setEncoding('utf8');
@@ -74,6 +75,19 @@ test('Server bindet nur an 127.0.0.1', async () => {
   await withServer((app) => {
     assert.equal(app.server.address().address, '127.0.0.1');
     assert.ok(app.port > 0, 'Port 0 wird zu einem echten Port aufgeloest');
+  });
+});
+
+test('fremde Hostnamen bekommen nichts (Schutz vor DNS-Rebinding)', async () => {
+  await withServer(async (app) => {
+    for (const host of ['evil.example', `evil.example:${app.port}`, '127.0.0.1.evil.example']) {
+      const res = await rawGet(app.port, '/api/snapshot', host);
+      assert.equal(res.status, 421, host);
+      assert.ok(!res.body.includes('activity'), 'kein Snapshot');
+    }
+    for (const host of [`127.0.0.1:${app.port}`, `localhost:${app.port}`, `[::1]:${app.port}`, 'LOCALHOST']) {
+      assert.equal((await rawGet(app.port, '/api/snapshot', host)).status, 200, host);
+    }
   });
 });
 
@@ -168,6 +182,10 @@ test('statische Dateien kommen mit passendem MIME-Typ', async () => {
 
     const js = await fetch(`${app.url}/app.js`);
     assert.match(js.headers.get('content-type'), /text\/javascript/);
+
+    const png = await fetch(`${app.url}/assets/office/tiles/floor.png`);
+    assert.equal(png.status, 200);
+    assert.equal(png.headers.get('content-type'), 'image/png');
   });
 });
 
@@ -212,6 +230,62 @@ test('kaputte Prozentkodierung wird abgewiesen statt zu werfen', async () => {
     const res = await rawGet(app.port, '/%zz');
     assert.equal(res.status, 400);
   });
+});
+
+/** POST mit frei waehlbaren Kopfzeilen (Origin setzt fetch nicht zuverlaessig). */
+function rawPost(port, urlPath, body, headers) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port, path: urlPath, method: 'POST', headers }, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => (data += c));
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+test('/api/launch: startet Claude nur in bekannten Projektordnern und nur fuer die eigene Seite', async () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'cud-launch-'));
+  const projects = path.join(base, 'projects');
+  const work = path.join(base, 'meinprojekt');
+  fs.mkdirSync(path.join(projects, 'p1'), { recursive: true });
+  fs.mkdirSync(work);
+  const line = {
+    type: 'assistant',
+    timestamp: new Date().toISOString(),
+    sessionId: 's1',
+    requestId: 'r1',
+    uuid: 'u1',
+    cwd: work,
+    message: { id: 'm1', model: 'claude-opus-5', usage: { input_tokens: 1, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+  };
+  fs.writeFileSync(path.join(projects, 'p1', 's1.jsonl'), JSON.stringify(line) + '\n');
+  const started = [];
+  const app = await startServer({
+    config: { ...config, dataDirs: { only: [projects] }, activity: { enabled: false } },
+    pricingTable,
+    port: 0,
+    quiet: true,
+    launcher: (cwd) => started.push(cwd),
+  });
+  try {
+    const snap = await (await fetch(`${app.url}/api/snapshot`)).json();
+    assert.equal(snap.canLaunch, true);
+    assert.equal(snap.byProject[0].cwd, work, 'der Ordner steht im Snapshot');
+    const json = { 'content-type': 'application/json', origin: `http://127.0.0.1:${app.port}` };
+    const body = JSON.stringify({ cwd: work });
+    assert.equal((await rawPost(app.port, '/api/launch', body, { ...json, origin: 'https://evil.example' })).status, 403);
+    assert.equal((await rawPost(app.port, '/api/launch', body, { ...json, 'content-type': 'text/plain' })).status, 415);
+    assert.equal((await rawPost(app.port, '/api/launch', JSON.stringify({ cwd: base }), json)).status, 404);
+    assert.deepEqual(started, [], 'nichts gestartet');
+    assert.equal((await rawPost(app.port, '/api/launch', body, json)).status, 200);
+    assert.deepEqual(started, [work]);
+  } finally {
+    await app.close();
+    fs.rmSync(base, { recursive: true, force: true });
+  }
 });
 
 test('close() beendet den Prozess nicht und laesst sich zweimal aufrufen', async () => {

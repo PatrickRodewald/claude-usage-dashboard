@@ -1,0 +1,30 @@
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+Input image: approved STYLE REFERENCE ONLY (attached style anchor and existing sprites). Match its warm wood, beige walls, dark navy outlines and simple shapes.
+
+Lounge and kitchen furniture sprite sheet, top-down 3/4 view like the attached kitchen counter and desks. Output: one square transparent PNG, target 1024x1024. Exactly FOUR separated rows, each art pixel a solid 8x8 block, bottom-aligned.
+
+ROW 1, LOUNGE:
+1. three-seat sofa 48x32 seen from the front (people would sit facing the viewer): teal fabric, armrests, back cushions, short dark legs, empty
+2. matching armchair 16x24, same teal fabric, front view, empty
+3. low wooden coffee table 32x16 seen from above with one closed magazine on it (no text)
+
+ROW 2, KITCHEN:
+1. small wooden bistro table 32x24, empty top
+2. bar stool 16x16 seen from above, round dark seat
+3. kitchen counter 48x24 with a stainless steel sink and tap in the middle; same wood top, grey cabinets and height as the attached kitchen counter
+4. microwave 16x16, white with a dark door window
+5. fruit bowl 16x8 with an apple, an orange and a banana
+
+ROW 3, TWO VENDING MACHINE FRAMES, each 16x32: dark red drinks vending machine, glass front showing rows of small colourful bottles, a small keypad. Frame 2 identical, the glass front lit slightly brighter.
+
+ROW 4, FOUR FOOSBALL TABLE FRAMES, each 48x24, top-down: green playing field with white lines, wooden frame, three metal rods with tiny red and blue players on each side, a small white ball. The table is pixel-identical in all four frames; only the ball position and the rods shift by one or two pixels, as if a game is running. No people.
+
+Input image roles: Image 1 is the approved style anchor, REFERENCE ONLY. Image 2 shows approved native-scale furniture enlarged 8x, REFERENCE ONLY. Match the existing kitchen counter wood top, grey cabinet fronts, navy contour and native proportions. Do not copy the reference layout. No background or floor behind the assets.

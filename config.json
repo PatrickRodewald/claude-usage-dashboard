@@ -24,6 +24,17 @@
     "recentMs": 900000
   },
 
+  "office": {
+    "_hinweis": "Pixel-Buero. staff: die Belegschaft im Teamraum - Kolleginnen und Kollegen ohne Claude-Sitzung, die werktags zu Buerozeiten (Zeitzone oben) da sind. Sie fuellen auf: Sind weniger als staffFill Sitzungen offen, kommen so viele dazu, dass es staffFill Figuren sind (hoechstens sechs). Sie zaehlen nirgends mit. Auf false setzen, wenn nur echte Sitzungen im Buero sein sollen.",
+    "staff": true,
+    "staffFill": 8
+  },
+
+  "launch": {
+    "_hinweis": "Klick auf ein Namensschild im Pixel-Buero oeffnet ein PowerShell-Fenster im Projektordner und startet darin claude (nur Windows). Erlaubt sind nur Ordner, die das Dashboard als Projekt kennt, und nur Anfragen der eigenen Seite. Auf false setzen, wenn ein Klick nichts starten soll.",
+    "enabled": true
+  },
+
   "history": {
     "_hinweis": "Persistentes Archiv der Tagessummen. Claude Code raeumt seine Transkripte nach einer eigenen Frist auf - ohne dieses Archiv waere die Zeitreihe danach weg. Gespeichert werden nur Summen (Tag x Projekt x Modell), keine Prompts, keine Antworten. Loeschen der Datei setzt die Historie zurueck, mehr passiert nicht.",
     "enabled": true,

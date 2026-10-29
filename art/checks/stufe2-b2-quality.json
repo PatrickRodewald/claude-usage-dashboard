@@ -1,0 +1,141 @@
+{
+  "status": "passed",
+  "package": "B2",
+  "newSprites": 14,
+  "newAnimations": 2,
+  "totalSprites": 206,
+  "totalAnimations": 29,
+  "schemaVersion": 2,
+  "image": "decor/decor-b.png",
+  "imageSize": [
+    64,
+    112
+  ],
+  "palette": "ENDESGA 32",
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "atlasBoundsAndOverlap": "passed",
+  "closedNavyContours": "passed",
+  "bottomAlignment": "passed",
+  "floorFootprintsAndCollisionFlags": "passed",
+  "blockingNewSprites": 13,
+  "walkableDoormat": "passed",
+  "againstWallFlags": "passed",
+  "printerBodyAndSilhouettePixelIdentical": "passed",
+  "printerPaperLengths": [
+    0,
+    2,
+    4,
+    6
+  ],
+  "printedPaperBlank": "passed",
+  "printerSinglePlay": "passed",
+  "serverBodyAndSilhouettePixelIdentical": "passed",
+  "serverUnitCount": 5,
+  "serverSinglePixelStatusLights": 5,
+  "trashBodyIdenticalOutsidePaper": "passed",
+  "lampSilhouetteAndBasePixelIdentical": "passed",
+  "lampOnlyShadeChangesNoHalo": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 24,
+  "normalization": {
+    "printer-idle": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "printer-1": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "printer-2": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "printer-3": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "server-0": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "server-1": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "server-2": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "server-3": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "trash-bin": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "trash-bin-full": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "floor-lamp-off": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "floor-lamp-on": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "beanbag": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    },
+    "doormat": {
+      "isolatedPixelsRemoved": 0,
+      "bottomAlignmentShift": 0
+    }
+  },
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 14,
+  "previewPixelsMatchAtlas": true,
+  "roomNativeSize": [
+    384,
+    224
+  ],
+  "roomMontageScale": 3,
+  "roomPreviewPixelsMatchAtlas": true,
+  "newObjectExamplesMountedInRoom": 8,
+  "animationPreviewFrames": 23,
+  "animationPreviewScale": 3,
+  "animationPreviewCycleMs": 3600,
+  "animationPreviewPixelsMatchAtlas": true,
+  "animationPreviewTimingMs": [
+    180,
+    20,
+    160,
+    40,
+    140,
+    60,
+    120,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180,
+    180
+  ],
+  "printerPreviewBehaviour": "one shot then hold; demonstration GIF retriggers on its next cycle"
+}

@@ -1,0 +1,30 @@
+Use case: identity-preserve
+Asset type: seated desk-work animation sheet for approved LOOK 05.
+Input image 1: approved office style anchor.
+Input image 2: the original identity reference for this person: an androgynous person with DARK warm brown skin, SHORT PURPLE hair and GREY HEADPHONES resting AROUND THE NECK, wearing a plain CYAN T-SHIRT. No glasses. The headphones remain around the neck, not over the ears. Purple hair uses purple/pink palette tones and no blue/cyan. Headphones use navy/grey, never the clothing colors.
+Input image 3: approved compact 16x32 PRODUCTION SPRITES enlarged 8x. Their identity and proportions are authoritative.
+STYLE (apply to everything):
+Pixel art game asset for a cozy modern office simulation, top-down 3/4 view (floors seen from above, front faces of walls, furniture and people visible).
+Strict pixel grid: 1 floor tile = 16x16 art pixels, 1 character = 16x32 art pixels.
+Draw at a clean integer magnification, 8x unless stated otherwise: every art pixel is a perfect, solid square block, all blocks the same size, aligned to one shared grid.
+No anti-aliasing, no blur, no gradients, no noise, no soft shadows. Flat shading with at most 3 tones per material.
+1-pixel outline in deep navy #181425, never pure black. Light comes from the top left; small hard drop shadow (1 art pixel) to the bottom right.
+Use only the ENDESGA 32 palette.
+Transparent background. No text, no letters, no numbers, no logos, no watermark, no frame, no UI, no signature.
+When several items are requested: arrange them in a neat grid with plenty of empty space between them, each item complete and not overlapping, all at the same scale.
+
+Draw exactly FOUR ROWS of THREE frames each, one tall 1024x1536 transparent sprite sheet. Every frame occupies a 16x32 logical-pixel cell containing ONLY the person seated in a dark office chair. Keep the chair, feet, face, defining accessories, hairstyle and scale consistent. No desk. No laptop, book, notepad, pen or other held object: these are separate game props. Hands must perform the specified gestures around the empty position of the future prop.
+The entire plain T-shirt, including short sleeves, uses exactly #2ce8f5 (highlight), #0099db (midtone) and #124e89 (shadow). No vest, jacket or white shirt collar. Dark grey trousers and dark shoes. Chair and trousers use navy/grey, never the clothing keys. Head about one third of the sprite height, the same person as in the references.
+
+ROW 1: seated facing viewer, TYPING gestures, THREE frames. Forearms toward an imaginary keyboard in front of the waist; fingers/left and right hands alternate small up/down movements.
+ROW 2: seated facing viewer, READING gestures, THREE frames. Two hands support the empty space where an open book will be drawn; right hand reaches inward and upward to turn a page, then returns. No drawn book.
+ROW 3: seated facing viewer, WRITING gestures, THREE frames. Left hand steady near the empty notepad position; right hand moves diagonally across it in a small writing stroke. No drawn pen or notepad.
+ROW 4: seated facing viewer, THINKING, THREE frames. First hand on chin; second looking slightly upward with hand lowered; third hand lifted to scratch the side/top of the head.
+
+Keep gestures visibly different within each row, using simple pixel clusters. Body and chair stay seated, feet on one common baseline. Do not stretch the figure, change head size or redesign the outfit between frames. TWELVE complete frames total, clear transparent gutters, no scenery or text.
+Allowed palette only:
+#ead4aa #e8b796 #e4a672 #c28569 #b86f50 #733e39 #3e2731
+#be4a2f #d77643 #a22633 #e43b44 #f77622 #ff0044 #feae34 #fee761
+#63c74d #3e8948 #265c42 #193c3e #124e89 #0099db #2ce8f5
+#ffffff #c0cbdc #8b9bb4 #5a6988 #3a4466 #262b44 #181425
+#68386c #b55088 #f6757a

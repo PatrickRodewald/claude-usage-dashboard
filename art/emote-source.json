@@ -1,0 +1,370 @@
+{
+  "bubble-shells": {
+    "file": "art/raw/bubble-shells.png",
+    "sha256": "2b36632611b2275a17258925da34c6f4b585b89e9131270ea142558d76d52169",
+    "size": [
+      1254,
+      1254
+    ],
+    "crops": {
+      "speech": [
+        118,
+        278,
+        581,
+        726
+      ],
+      "thought": [
+        673,
+        266,
+        1177,
+        736
+      ],
+      "tail": [
+        265,
+        895,
+        418,
+        1010
+      ],
+      "puff-large": [
+        570,
+        880,
+        708,
+        1020
+      ],
+      "puff-small": [
+        901,
+        916,
+        984,
+        1001
+      ]
+    }
+  },
+  "emote-icons": {
+    "file": "art/raw/emote-icons.png",
+    "sha256": "a0adff4d6c1dbd7db8e3df8de7936e9292f0b5c05e5864241286648666095759",
+    "size": [
+      1254,
+      1254
+    ],
+    "symbols": {
+      "alert": {
+        "box": [
+          113,
+          430,
+          166,
+          570
+        ],
+        "size": [
+          3,
+          7
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "e43b44",
+          "a22633"
+        ]
+      },
+      "question": {
+        "box": [
+          339,
+          429,
+          433,
+          570
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "0099db",
+          "124e89"
+        ]
+      },
+      "idea": {
+        "box": [
+          552,
+          420,
+          699,
+          574
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "fee761",
+          "feae34"
+        ],
+        "retouchRows": [
+          "...y....",
+          ".y...y..",
+          "..nnnn..",
+          ".nyyyyn.",
+          ".nyyyyn.",
+          "..nyyn..",
+          "...gg...",
+          "...nn..."
+        ]
+      },
+      "heart": {
+        "box": [
+          800,
+          445,
+          939,
+          561
+        ],
+        "size": [
+          8,
+          6
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "f6757a",
+          "b55088"
+        ]
+      },
+      "sweat": {
+        "box": [
+          1065,
+          432,
+          1155,
+          565
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "2ce8f5",
+          "0099db"
+        ]
+      },
+      "done": {
+        "box": [
+          66,
+          720,
+          208,
+          841
+        ],
+        "size": [
+          8,
+          6
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "63c74d",
+          "3e8948"
+        ]
+      },
+      "error": {
+        "box": [
+          313,
+          715,
+          450,
+          846
+        ],
+        "size": [
+          7,
+          7
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "e43b44",
+          "a22633"
+        ],
+        "retouchRows": [
+          "rr...rr",
+          "rrr.rrr",
+          ".rrrrr.",
+          "..rrr..",
+          ".rrrrr.",
+          "rrr.rrr",
+          "rr...rr"
+        ]
+      },
+      "music": {
+        "box": [
+          563,
+          715,
+          677,
+          843
+        ],
+        "size": [
+          7,
+          7
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "124e89"
+        ]
+      },
+      "coffee": {
+        "box": [
+          806,
+          701,
+          945,
+          845
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "733e39"
+        ]
+      },
+      "waiting": {
+        "box": [
+          1065,
+          705,
+          1167,
+          851
+        ],
+        "size": [
+          5,
+          8
+        ],
+        "palette": [
+          "181425",
+          "ffffff",
+          "c0cbdc",
+          "5a6988",
+          "fee761",
+          "feae34"
+        ],
+        "retouchRows": [
+          "nnnnn",
+          "nyyyn",
+          ".nyn.",
+          "..n..",
+          "..n..",
+          ".nyn.",
+          "nyyyn",
+          "nnnnn"
+        ]
+      }
+    }
+  },
+  "sleep-gear": {
+    "file": "art/raw/sleep-gear.png",
+    "sha256": "beb87a9659c17761af875485b7ff36f8f0cf3a3faadd056d25d53faf409c8cf5",
+    "size": [
+      1254,
+      1254
+    ],
+    "sleep": [
+      {
+        "box": [
+          189,
+          464,
+          275,
+          573
+        ],
+        "size": [
+          3,
+          4
+        ],
+        "offset": [
+          1,
+          8
+        ]
+      },
+      {
+        "box": [
+          558,
+          400,
+          692,
+          557
+        ],
+        "size": [
+          5,
+          6
+        ],
+        "offset": [
+          3,
+          5
+        ]
+      },
+      {
+        "box": [
+          932,
+          330,
+          1104,
+          528
+        ],
+        "size": [
+          7,
+          8
+        ],
+        "offset": [
+          5,
+          1
+        ]
+      }
+    ],
+    "gear": [
+      [
+        62,
+        757,
+        298,
+        993
+      ],
+      [
+        349,
+        757,
+        606,
+        1000
+      ],
+      [
+        659,
+        757,
+        895,
+        993
+      ],
+      [
+        969,
+        759,
+        1203,
+        993
+      ]
+    ],
+    "gearBase": [
+      61,
+      756,
+      301,
+      996
+    ],
+    "normalization": "Four rotation phases from the first source gear, centered at [120,120], 0/11.25/22.5/33.75 degrees, nearest-neighbor rotation, fixed top-left shading after reduction."
+  }
+}

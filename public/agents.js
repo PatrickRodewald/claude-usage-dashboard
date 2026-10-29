@@ -61,7 +61,7 @@ function typeColor(type) {
   return SPARE_COLORS[h % SPARE_COLORS.length];
 }
 
-function clip(text, max) {
+export function clip(text, max) {
   const s = String(text ?? '');
   return s.length > max ? `${s.slice(0, Math.max(1, max - 1))}…` : s;
 }
@@ -97,7 +97,7 @@ export function entrypointLabel(e) {
 
 /* --- Zeit fuer Uhr und Fenster ------------------------------------------------ */
 
-function zonedTime(timeZone, ms = Date.now()) {
+export function zonedTime(timeZone, ms = Date.now()) {
   const now = new Date(ms);
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
@@ -397,7 +397,7 @@ function agentActivity(a, state) {
 /* --- Zustand je Figur -------------------------------------------------------- */
 
 /** Zustand der Hauptfigur einer Sitzung. */
-function sessionState(s) {
+export function sessionState(s) {
   if (s.status === 'idle') return 'idle';
   if (s.status === 'stale') return 'stale';
   if (s.status !== 'busy') return 'other';
@@ -413,7 +413,7 @@ function sessionBubble(s, state) {
   return clip(s.status, 12);
 }
 
-function agentState(a) {
+export function agentState(a) {
   if (a.state !== 'running') return a.state; // completed | failed | stopped
   return a.tool ? 'tool' : 'thinking';
 }
@@ -1085,7 +1085,7 @@ function route(parent, from, to) {
  * Agents einer Sitzung in Anzeigereihenfolge: verschachtelte direkt hinter
  * ihrem Auftraggeber, damit ihr Weg kurz bleibt.
  */
-function orderAgents(agents) {
+export function orderAgents(agents) {
   const byParent = new Map();
   for (const a of agents) {
     const k = a.parentId ?? '';
@@ -1502,7 +1502,6 @@ function applyOffice(st, project, ctx, env = {}) {
     target.route?.sendBack?.();
     glance(st, target.home.x, 4000, id, id);
   }
-  if (finished.length) ctx.sound?.('chime');
 
   if (onBreak) summary.unshift('Limit erreicht, Zwangspause');
   st.svg.setAttribute('aria-label', `Büro ${project.label}: ${summary.join(', ')}`);
@@ -1515,7 +1514,7 @@ function applyOffice(st, project, ctx, env = {}) {
 /**
  * @param container  Element, das die Raeume aufnimmt
  * @param ctx        { tooltip, usd(n), describe(kind, data) -> string, timeZone(), now()?, emptyText? }
- * @returns {{ render(activity, env), tick(), setSound(on), errand(id, kind) }}  env = { fiveHour, week }
+ * @returns {{ render(activity, env, opts?), tick(), errand(id, kind) }}  env = { fiveHour, week }
  *          aus snapshot.live; tick() stellt Uhren, Fenster und Kalender
  */
 export function createWorkshop(
@@ -1591,60 +1590,12 @@ export function createWorkshop(
       tooltip.hide();
     });
   };
-  /*
-   * Toene: standardmaessig aus. Synthetisiert per Web Audio, keine Dateien.
-   * Jeder Ton wird zusaetzlich als Ereignis 'cud-sound' am Container gemeldet
-   * (auch stumm) - zum Nachvollziehen und fuer Tests.
-   */
-  let soundOn = false;
-  let audio = null;
-  let lastSoundAt = 0;
-  const play = (name) => {
-    container.dispatchEvent(new CustomEvent('cud-sound', { detail: { name, on: soundOn } }));
-    if (!soundOn || !audio) return;
-    // Mehrere Ereignisse im selben Moment ergeben einen Ton, keine Kakophonie.
-    const nowMs = performance.now();
-    if (nowMs - lastSoundAt < 800) return;
-    lastSoundAt = nowMs;
-    const t0 = audio.currentTime + 0.01;
-    const notes =
-      name === 'alarm'
-        ? [
-            [660, 0, 'square', 0.04],
-            [660, 0.28, 'square', 0.04],
-          ]
-        : [
-            [880, 0, 'sine', 0.08],
-            [1320, 0.16, 'sine', 0.07],
-          ];
-    for (const [freq, dt, type, vol] of notes) {
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, t0 + dt);
-      gain.gain.exponentialRampToValueAtTime(vol, t0 + dt + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.4);
-      osc.connect(gain).connect(audio.destination);
-      osc.start(t0 + dt);
-      osc.stop(t0 + dt + 0.45);
-    }
-  };
-  /** Toene ein/aus. Der Audio-Kontext entsteht hier - Browser verlangen dafuer einen Klick. */
-  const setSound = (on) => {
-    soundOn = Boolean(on);
-    if (soundOn && !audio) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) audio = new AC();
-    }
-    if (soundOn) audio?.resume?.().catch(() => {});
-  };
-  let prevLimit;
-
   /* --- Kommen und Gehen ---------------------------------------------------- */
 
   /** Beim ersten Laden ist schon jeder da - erst danach wird gekommen und gegangen. */
   let renderedOnce = false;
+  /** Dieser Stand wird ohne Kommen und Gehen gezeigt (das Buero war eine Weile nicht zu sehen). */
+  let quiet = false;
   const WALK_MS = 1900;
 
   const openDoor = (st) => {
@@ -2093,7 +2044,7 @@ export function createWorkshop(
   /** Raum ohne Sitzung: die Letzten gehen hinaus, dann schliesst er. */
   const closeRoom = (st) => {
     stopWalks(st);
-    if (!renderedOnce || document.hidden || !st.figs.size) {
+    if (!renderedOnce || quiet || document.hidden || !st.figs.size) {
       st.root.remove();
       return;
     }
@@ -2103,18 +2054,17 @@ export function createWorkshop(
     setTimeout(() => st.root.remove(), WALK_MS + 100);
   };
 
-  const ctx = { usd, hover, timeZone, now, sound: play };
+  const ctx = { usd, hover, timeZone, now };
 
   let empty = null;
 
-  function render(activity, env = {}) {
+  /**
+   * opts.quiet: ohne Kommen und Gehen - wer da ist, sitzt schon (nach einer
+   * Weile, in der das Buero nicht zu sehen war).
+   */
+  function render(activity, env = {}, opts = {}) {
     const projects = activity?.projects ?? [];
-    // Warnton, wenn das Limit kritisch wird oder erreicht ist - einmal je
-    // Wechsel, nicht beim Laden.
-    const limit = limitState(env.fiveHour);
-    const alarming = (l) => l === 'critical' || l === 'reached';
-    if (prevLimit !== undefined && alarming(limit) && !alarming(prevLimit)) play('alarm');
-    prevLimit = limit;
+    quiet = Boolean(opts.quiet);
     data.clear();
     for (const p of projects) {
       for (const s of p.sessions) {
@@ -2168,7 +2118,7 @@ export function createWorkshop(
           fresh.prevStates = st.prevStates;
           st.root.replaceWith(fresh.root);
         }
-        if (renderedOnce) {
+        if (renderedOnce && !quiet) {
           const { entering, leaving } = arrivals(before, fresh.figs.keys());
           for (const id of entering) enter(fresh, id);
           if (st) leave(st, fresh, leaving);
@@ -2242,5 +2192,5 @@ export function createWorkshop(
     return null;
   }
 
-  return { render, tick, setSound, errand };
+  return { render, tick, errand };
 }

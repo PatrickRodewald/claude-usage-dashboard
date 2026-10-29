@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "package": "A",
+  "newSprites": 13,
+  "totalSprites": 169,
+  "totalAnimations": 25,
+  "schemaVersion": 2,
+  "image": "decor/wall.png",
+  "imageSize": [
+    128,
+    96
+  ],
+  "alphaLevels": [
+    0,
+    255
+  ],
+  "palette": "ENDESGA 32",
+  "atlasBoundsAndOverlap": "passed",
+  "allPreviousAtlasEntries": "unchanged",
+  "previousAssetFilesByteIdentical": 21,
+  "windowFramesPixelIdentical": "passed",
+  "windowViewsDistinct": "passed",
+  "windowSilhouettesIdentical": "passed",
+  "citySilhouettesIdentical": "passed",
+  "nightThreePixelStars": "passed",
+  "blankWhiteboardAndCalendar": "passed",
+  "clockHasNoHands": "passed",
+  "placementWallYContentRectHandsCenter": "passed",
+  "previewScale": 3,
+  "newSpritePreviewCropsChecked": 13,
+  "previewPixelsMatchAtlas": true,
+  "roomMontageScale": 3,
+  "roomNativeSize": [
+    384,
+    160
+  ],
+  "roomPreviewPixelsMatchAtlas": true
+}

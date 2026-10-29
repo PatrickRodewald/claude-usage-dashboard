@@ -343,6 +343,101 @@ export function commandKind(toolName, input) {
   return null;
 }
 
+const TARGET_MAX = 60;
+
+const HIDDEN = '•••';
+
+/** Bekannte Schluesselformen: Anthropic, OpenAI, GitHub, GitLab, Slack, AWS, Google, npm, PyPI, JWT. */
+const TOKEN_RE =
+  /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,}|glpat-[A-Za-z0-9_-]{8,}|xox[abposr]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{12,}|AIza[0-9A-Za-z_-]{20,}|npm_[A-Za-z0-9]{16,}|pypi-[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]+)?)/g;
+/** NAME=wert, wenn der Name nach Geheimnis klingt (API_KEY, GH_TOKEN, DB_PASSWORD ...). */
+const ASSIGN_RE =
+  /\b([A-Za-z_][A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|PASS|AUTH|CREDENTIALS?)[A-Za-z0-9_]*)(\s*[=:]\s*)("[^"]*"?|'[^']*'?|[^\s;&|]+)/gi;
+/** --token wert, --password=wert, -H "Authorization: Bearer wert" ... */
+const FLAG_RE = /(--(?:token|password|passwd|secret|api-?key|auth|access-token)(?:=|\s+))("[^"]*"?|'[^']*'?|\S+)/gi;
+const HEADER_RE = /\b((?:Authorization|Proxy-Authorization|X-Api-Key|Api-Key)\s*:\s*(?:Bearer\s+|Basic\s+|Token\s+)?)[^\s"']+/gi;
+/** Zugangsdaten in Adressen: https://nutzer:passwort@host */
+const URL_AUTH_RE = /(:\/\/[^\s/:@]+:)[^\s/@]+@/g;
+/** Lange Zeichenketten aus Gross- und Kleinbuchstaben und Ziffern: so sehen Schluessel aus (Hashes und Ids nicht). */
+const LONG_RE = /[A-Za-z0-9_+=-]{32,}/g;
+const keyLike = (s) => /[0-9]/.test(s) && /[a-z]/.test(s) && /[A-Z]/.test(s);
+
+/**
+ * Blendet aus, was nach Zugangsdaten aussieht: Befehle stehen im Buero in der
+ * Sprechblase und im Snapshot - ein Schluessel gehoert dort nicht hin.
+ */
+export function hideSecrets(text) {
+  return String(text)
+    .replace(URL_AUTH_RE, `$1${HIDDEN}@`)
+    .replace(HEADER_RE, `$1${HIDDEN}`)
+    .replace(FLAG_RE, `$1${HIDDEN}`)
+    .replace(ASSIGN_RE, `$1$2${HIDDEN}`)
+    .replace(TOKEN_RE, HIDDEN)
+    .replace(LONG_RE, (s) => (keyLike(s) ? HIDDEN : s));
+}
+
+/** Dateiname ohne Pfad - "C:\x\y.js" wie "/x/y.js". */
+function baseName(p) {
+  const parts = String(p).split(/[\\/]+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+/**
+ * Woran ein Werkzeug gerade arbeitet, als kurze Zeile fuers Buero: Dateiname,
+ * Suchmuster, Befehl, Host oder Auftrag. null, wenn es nichts Sinnvolles gibt.
+ */
+export function toolTarget(toolName, input) {
+  if (!input || typeof input !== 'object') return null;
+  let text = null;
+  switch (toolName) {
+    case 'Read':
+    case 'Edit':
+    case 'Write':
+    case 'MultiEdit':
+      text = input.file_path && baseName(input.file_path);
+      break;
+    case 'NotebookRead':
+    case 'NotebookEdit':
+      text = input.notebook_path && baseName(input.notebook_path);
+      break;
+    case 'Grep':
+    case 'Glob':
+      text = input.pattern;
+      break;
+    case 'Bash':
+    case 'PowerShell':
+      text = input.command;
+      break;
+    case 'WebFetch':
+      try {
+        text = new URL(input.url).hostname;
+      } catch {
+        text = null;
+      }
+      break;
+    case 'WebSearch':
+    case 'ToolSearch':
+      text = input.query;
+      break;
+    case 'Agent':
+    case 'Task':
+      text = input.description;
+      break;
+    case 'Skill':
+      text = input.skill;
+      break;
+    default:
+      return null;
+  }
+  if (typeof text !== 'string') return null;
+  // Erste Zeile, Leerraum zusammengezogen - mehrzeilige Befehle passen sonst
+  // nicht. Geheimnisse vor dem Kuerzen ausblenden, damit kein Rest stehen bleibt.
+  const line = text.split(/\r?\n/).find((l) => l.trim()) ?? '';
+  const flat = hideSecrets(line.replace(/\s+/g, ' ').trim());
+  if (!flat) return null;
+  return flat.length > TARGET_MAX ? `${flat.slice(0, TARGET_MAX - 1)}…` : flat;
+}
+
 /**
  * Aus den letzten Zeilen eines Transkripts:
  *  - pending: das zuletzt begonnene, noch offene Werkzeug (mit detail, siehe
@@ -414,7 +509,7 @@ export function tailInfo(lines) {
         if (tools.some((t) => t.id === b.id)) continue;
         const name = String(b.name ?? '?');
         const detail = commandKind(name, b.input);
-        tools.push({ id: b.id, name, detail, ts: timeOf(o), done: false });
+        tools.push({ id: b.id, name, detail, target: toolTarget(name, b.input), ts: timeOf(o), done: false });
         if (detail === 'commit' || detail === 'push') notable.set(b.id, detail);
       }
     } else if (o.type === 'user') {
@@ -434,7 +529,7 @@ export function tailInfo(lines) {
   const open = tools.filter((t) => !t.done);
   const p = open.length ? open[open.length - 1] : null;
   return {
-    pending: p ? { id: p.id, name: p.name, detail: p.detail, ts: p.ts } : null,
+    pending: p ? { id: p.id, name: p.name, detail: p.detail, target: p.target, ts: p.ts } : null,
     celebration,
     // Juengste Nachricht von dir und juengster Fehler - das Buero zeigt sie
     // einmal kurz, solange sie frisch sind.
@@ -762,6 +857,7 @@ export function createActivityTracker({
 
       let tool = null;
       let toolDetail = null;
+      let target = null;
       let celebration = null;
       let error = null;
       if ((a.lastActivity ?? 0) >= since) {
@@ -769,6 +865,7 @@ export function createActivityTracker({
         if (stateName === 'running' && info.pending) {
           tool = info.pending.name;
           toolDetail = info.pending.detail;
+          target = info.pending.target;
         }
         celebration = info.celebration;
         error = info.error;
@@ -787,6 +884,7 @@ export function createActivityTracker({
         finishedAt,
         tool,
         toolDetail,
+        toolTarget: target,
         celebration,
         error,
       });
@@ -840,6 +938,7 @@ export function createActivityTracker({
                   kind: AGENT_TOOLS.has(open.name) ? 'delegating' : 'tool',
                   tool: open.name,
                   detail: open.detail,
+                  target: open.target,
                   since: open.ts,
                 }
               : { kind: 'thinking', tool: null, since: s.statusSince };

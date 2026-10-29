@@ -1,0 +1,19 @@
+{
+  "completed": [
+    "A",
+    "B1",
+    "C",
+    "B2",
+    "D",
+    "F",
+    "G",
+    "E"
+  ],
+  "next": null,
+  "remaining": [],
+  "totalSprites": 390,
+  "totalAnimations": 82,
+  "currentBuildScript": "tools/prepare_stufe2_e.py",
+  "currentReport": "art/checks/stufe2-e-quality.json",
+  "basePackage": "pixel-office-emotes-kit"
+}
