@@ -387,7 +387,18 @@ const pixelOffice = createPixelOffice($('pixel-office'), {
   tooltip,
   describe: describeFigure,
   timeZone: () => snapshot?.timezone,
+  launch: launchClaude,
 });
+
+/** Klick aufs Namensschild: der Server oeffnet im Projektordner eine PowerShell mit Claude. */
+async function launchClaude(cwd) {
+  const res = await fetch('/api/launch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cwd }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
+}
 const viewBtn = $('view-toggle');
 let officeView = 'pixel';
 try {
@@ -517,7 +528,8 @@ function renderActivity(s) {
   officeData = { act, env };
   sound.observe(act, env);
   renderClassic();
-  pixelOffice.render(act, env);
+  // Das Pixel-Buero gibt die uebrigen Raeume den zuletzt genutzten Projekten.
+  pixelOffice.render(act, { ...env, recent: s.byProject, canLaunch: s.canLaunch === true });
 }
 
 function costCell(row) {

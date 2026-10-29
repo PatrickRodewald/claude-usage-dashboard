@@ -1,7 +1,9 @@
 /*
  * Pixel-Buero: das Buero als Pixelgrafik auf Canvas 2D - ein Gebaeude mit
- * gemeinsamer Kueche und einem Raum je Projekt, verbunden durch Flure und
- * Tueren (Grundriss in world.js). Am Tisch arbeiten die Figuren mit Buch, Block oder Laptop - je
+ * gemeinsamer Kueche und zehn Projektraeumen, verbunden durch Flure und
+ * Tueren (Grundriss in world.js). Die Raeume gehoeren den zuletzt genutzten
+ * Projekten; ein Klick aufs Namensschild startet Claude im Projektordner.
+ * Am Tisch arbeiten die Figuren mit Buch, Block oder Laptop - je
  * nach Werkzeug, mit Datei oder Befehl in der Sprechblase. Wer wartet, holt
  * Kaffee oder Wasser, legt sich aufs Sofa oder spielt Kicker; wer lange
  * nachdenkt, geht auf und ab; wer delegiert, schaut bei seinen Subagents
@@ -37,6 +39,8 @@ import {
   corridorLights,
   roomAt,
   windowSprite,
+  officeRooms,
+  agoText,
   KEY_COLORS,
   OUTFITS,
   outfitFor,
@@ -222,7 +226,9 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
 /**
  * @param container  Element, das das Gebaeude aufnimmt
- * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText? }
+ * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText?,
+ *                     launch(cwd) -> Promise (Klick aufs Namensschild) }
+ * @param env        bei render: { fiveHour, week, recent (byProject), canLaunch }
  * @returns {{ render(activity, env), tick(), errand(id, name), ready: Promise }}
  */
 export function createPixelOffice(
@@ -230,10 +236,11 @@ export function createPixelOffice(
   {
     tooltip,
     describe,
+    launch = null,
     timeZone = () => undefined,
     // Tageslicht folgt dieser Uhr (zum Ausprobieren verstellbar).
     now: clock = () => Date.now(),
-    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – das Büro ist leer.',
+    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – niemand im Büro.',
   },
 ) {
   /** Bereits gezeigte Ereignisse - jedes nur einmal. */
@@ -269,6 +276,8 @@ export function createPixelOffice(
     W: 0,
     H: 0,
     projects: [],
+    /** Startet ein Klick aufs Namensschild Claude? (Server unter Windows) */
+    canLaunch: false,
     figs: new Map(),
     /** Beendete Subagents, die schon gegangen sind - nicht wieder hereinholen. */
     departed: new Set(),
@@ -946,6 +955,8 @@ export function createPixelOffice(
     if (M.lamp) art.draw(ctx, lampOn ? 'lamp-on' : 'lamp-off', dx + M.lamp[0], dy + M.lamp[1]);
     if (lampOn) B.lights.push({ x: dx + M.lamp[0] + 11, y: dy + M.lamp[1] + 6, r: 40, s: 1, glow: '#feae34' });
     if (seated && pose !== 'sleep' && pose !== 'sip') B.lights.push({ x: dx + M.laptop[0] + 8, y: dy + M.laptop[1] + 4, r: 18, s: 0.7, glow: '#2ce8f5' });
+    // Freier Raum: ein leerer Tisch.
+    if (seat.bare) return;
     // Die Tasse ist in der Hand, solange genippt wird.
     if (M.mug && !(seated && anim?.includesMug)) {
       const steaming = f && f.coffeeUntil > now && !still();
@@ -1203,11 +1214,11 @@ export function createPixelOffice(
     return w;
   }
 
-  /** Messingschild mit dem Projektnamen neben der Tuer. */
+  /** Messingschild mit dem Projektnamen neben der Tuer; ein freier Raum hat keins. */
   function plates() {
     const out = [];
     for (const room of B.layout.rooms) {
-      if (room.kind !== 'project') continue;
+      if (room.kind !== 'project' || room.project.free) continue;
       const x0 = (room.door.col + 1) * TILE + 3;
       // Rechts davon haengt Wandschmuck: das Schild bleibt in seinen Spalten.
       const maxW = Math.min((room.c0 + room.cols) * TILE - 6, (room.door.col + 1 + room.plateCols) * TILE - 3) - x0;
@@ -1217,6 +1228,13 @@ export function createPixelOffice(
       const w = Math.min(maxW, Math.ceil(measure(label, 10, true)) + 8);
       const y = room.face * TILE + 6;
       art.stretch(ctx, 'plate-brass', x0, y, w, 3);
+      // Unter dem Zeiger leuchtet ein Schild, das per Klick Claude startet.
+      if (hovered === `room:${room.key}` && startable(room.project)) {
+        ctx.fillStyle = '#fee761';
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(x0, y, w, 8);
+        ctx.globalAlpha = 1;
+      }
       text(label, x0 + w / 2, y + 4, { size: 10, color: '#3e2731', bold: true });
       out.push({ room, x: x0, y, w, h: 8 });
     }
@@ -1362,10 +1380,13 @@ export function createPixelOffice(
     drawWall();
     drawScene(now);
     lighting();
-    // Ruhen alle in einem Raum, wird er gedimmt (nachts ist er ohnehin dunkel).
-    ctx.fillStyle = `rgba(24, 20, 37, ${(0.3 * (1 - B.daylight.a)).toFixed(3)})`;
+    // Ruhen alle in einem Raum, wird er gedimmt; ist niemand da, ist das Licht
+    // aus (nachts ist es ohnehin dunkel).
     for (const room of L.rooms) {
-      if (B.asleep.has(room.key)) ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
+      if (!B.asleep.has(room.key)) continue;
+      const dim = room.project && !room.project.sessions.length ? 0.45 : 0.3;
+      ctx.fillStyle = `rgba(24, 20, 37, ${(dim * (1 - B.daylight.a)).toFixed(3)})`;
+      ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
     }
     plateRects = plates();
     // Wer weiter unten steht, dessen Blase liegt oben.
@@ -1423,11 +1444,36 @@ export function createPixelOffice(
 
   /* --- Tooltip -------------------------------------------------------------------- */
 
+  /** Zeigerposition in Grafikpixeln (wie gezeichnet). */
+  function pointAt(ev) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: ((ev.clientX - rect.left) / rect.width) * B.W - SIDE_PX, y: ((ev.clientY - rect.top) / rect.height) * B.H };
+  }
+
+  const plateAt = ({ x, y }) => plateRects.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) ?? null;
+
+  /** Kann ein Klick auf das Schild Claude im Projektordner starten? */
+  const startable = (p) => Boolean(launch && B.canLaunch && p?.cwd);
+
+  function plateText(p) {
+    const lines = [p.label];
+    const agents = p.sessions.reduce((n, s) => n + s.agents.length, 0);
+    if (p.sessions.length) {
+      lines.push(`${p.sessions.length} ${p.sessions.length === 1 ? 'Sitzung' : 'Sitzungen'}${agents ? ` · ${agents} ${agents === 1 ? 'Subagent' : 'Subagents'}` : ''}`);
+    } else {
+      lines.push(Number.isFinite(p.lastTs) ? `niemand da · zuletzt aktiv ${agoText(Date.now() - p.lastTs)}` : 'niemand da');
+    }
+    if (p.cwd) lines.push(p.cwd);
+    if (startable(p)) lines.push('Klick: Claude hier starten');
+    return lines.join('\n');
+  }
+
+  /** Rueckmeldung nach einem Klick: steht eine Weile statt des Schildtexts da. */
+  let note = null;
+
   function hover(ev) {
     if (!B.layout) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = ((ev.clientX - rect.left) / rect.width) * B.W - SIDE_PX;
-    const y = ((ev.clientY - rect.top) / rect.height) * B.H;
+    const { x, y } = pointAt(ev);
     let hit = null;
     for (const f of B.figs.values()) {
       if (f.gone) continue;
@@ -1440,13 +1486,11 @@ export function createPixelOffice(
       textOut = describe(hit.kind, { ...hit.item, project: room?.label ?? '' });
       key = hit.id;
     } else {
-      const plate = plateRects.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h);
+      const plate = plateAt({ x, y });
       const wall = B.layout.wall.find((w) => w.kind !== 'art' && w.kind !== 'window' && x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
       if (plate) {
-        const p = plate.room.project;
-        const agents = p.sessions.reduce((n, s) => n + s.agents.length, 0);
-        textOut = `${p.label}\n${p.sessions.length} ${p.sessions.length === 1 ? 'Sitzung' : 'Sitzungen'}${agents ? ` · ${agents} ${agents === 1 ? 'Subagent' : 'Subagents'}` : ''}\n${p.cwd ?? ''}`.trim();
-        key = `room:${p.key}`;
+        key = `room:${plate.room.key}`;
+        textOut = note?.key === key && performance.now() < note.until ? note.text : plateText(plate.room.project);
       } else if (wall) {
         textOut = wallText(wall);
         key = textOut ? `wall:${wall.kind}:${wall.x},${wall.y}` : null;
@@ -1466,6 +1510,31 @@ export function createPixelOffice(
   // Antippen (ohne Maus gibt es kein Ueberfahren).
   canvas.addEventListener('pointerdown', (ev) => {
     if (ev.pointerType !== 'mouse') hover(ev);
+  });
+
+  // Klick aufs Namensschild: PowerShell mit Claude im Projektordner.
+  const starting = new Set();
+  canvas.addEventListener('click', (ev) => {
+    if (!B.layout) return;
+    const plate = plateAt(pointAt(ev));
+    const p = plate?.room.project;
+    if (!startable(p) || starting.has(p.key)) return;
+    starting.add(p.key);
+    const key = `room:${p.key}`;
+    const say = (text, ms) => {
+      note = { key, text: `${p.label}\n${text}`, until: performance.now() + ms };
+      if (hovered === key) tooltip.show(ev, note.text);
+    };
+    say('Claude wird gestartet …', 10_000);
+    launch(p.cwd)
+      .then(
+        () => {
+          say('PowerShell mit Claude ist offen', 4000);
+          effect('sparkle', plate.x + plate.w / 2, plate.y + 10, performance.now(), { ms: 1400 });
+        },
+        (err) => say(`Start fehlgeschlagen: ${err?.message ?? err}`, 8000),
+      )
+      .finally(() => setTimeout(() => starting.delete(p.key), 3000));
   });
   /** Dauer "1 h 20 min" bzw. "45 min". */
   function duration(ms) {
@@ -1507,10 +1576,13 @@ export function createPixelOffice(
     if (!art || failed) return;
     if (root.parentNode !== container) container.replaceChildren(root);
     const now = performance.now();
-    B.projects = act?.projects ?? [];
+    // Feste Zahl Raeume: offene Projekte, dann die zuletzt genutzten, sonst frei.
+    B.projects = officeRooms(act?.projects ?? [], env?.recent ?? []);
     B.env = env ?? {};
+    B.canLaunch = env?.canLaunch === true;
     B.limit = limitState(env?.fiveHour);
-    B.asleep = new Set(B.projects.filter((p) => roomAsleep(p)).map((p) => p.key));
+    // Ruhende und leere Raeume: Licht aus.
+    B.asleep = new Set(B.projects.filter((p) => !p.sessions.length || roomAsleep(p)).map((p) => p.key));
     B.boards = new Map(
       B.projects.map((p) => [
         p.key,
@@ -1545,11 +1617,12 @@ export function createPixelOffice(
       hovered = null;
       tooltip.hide();
     }
-    empty.hidden = B.projects.length > 0;
     const sessions = B.projects.reduce((n, p) => n + p.sessions.length, 0);
+    const assigned = B.projects.filter((p) => !p.free).length;
+    empty.hidden = sessions > 0;
     canvas.setAttribute(
       'aria-label',
-      `Büro mit ${B.projects.length} ${B.projects.length === 1 ? 'Projektraum' : 'Projekträumen'} und ${sessions} ${sessions === 1 ? 'Sitzung' : 'Sitzungen'}`,
+      `Büro mit ${assigned} ${assigned === 1 ? 'Projektraum' : 'Projekträumen'} und ${sessions} ${sessions === 1 ? 'Sitzung' : 'Sitzungen'}`,
     );
     renderedOnce = true;
     kick();

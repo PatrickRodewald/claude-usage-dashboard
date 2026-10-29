@@ -46,12 +46,46 @@ const MAIN_SLOT = 5;
 
 /* --- Gebaeude ---------------------------------------------------------------- */
 
+/** So viele Projektraeume hat das Gebaeude mindestens. */
+export const ROOM_COUNT = 10;
+
+/** Schluessel eines Projekts wie bei offenen Sitzungen: der Ordner, klein geschrieben. */
+const dirKey = (cwd) => cwd.replace(/[\\/]+$/, '').toLowerCase();
+
 /**
- * Raeume in fester Reihenfolge (nach Name): der Server stellt arbeitende
- * Projekte nach vorn - das Gebaeude soll deshalb nicht umgebaut werden.
+ * Wer einen Raum bekommt: jedes Projekt mit offener Sitzung, dann die zuletzt
+ * genutzten (recent: byProject des Snapshots, { key: Name, cwd, lastTs }), bis
+ * count Raeume belegt sind. Uebrige Raeume bleiben frei ({ free: true }).
+ */
+export function officeRooms(active = [], recent = [], count = ROOM_COUNT) {
+  const rooms = [...active];
+  const keys = new Set(active.map((p) => p.key));
+  const names = new Set(active.map((p) => String(p.label).toLowerCase()));
+  const latest = recent.filter((p) => Number.isFinite(p.lastTs)).sort((a, b) => b.lastTs - a.lastTs);
+  for (const p of latest) {
+    if (rooms.length >= count) break;
+    const label = String(p.key);
+    const key = p.cwd ? dirKey(p.cwd) : `projekt:${label.toLowerCase()}`;
+    if (keys.has(key) || names.has(label.toLowerCase())) continue;
+    keys.add(key);
+    names.add(label.toLowerCase());
+    rooms.push({ key, label, cwd: p.cwd ?? null, lastTs: p.lastTs, sessions: [] });
+  }
+  for (let i = 1; rooms.length < count; i++) rooms.push({ key: `frei-${i}`, label: '', free: true, sessions: [] });
+  return rooms;
+}
+
+/**
+ * Raeume in fester Reihenfolge (nach Name, freie zuletzt): der Server stellt
+ * arbeitende Projekte nach vorn - das Gebaeude soll deshalb nicht umgebaut werden.
  */
 function inOrder(projects) {
-  return [...projects].sort((a, b) => String(a.label ?? '').localeCompare(String(b.label ?? ''), 'de') || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return [...projects].sort(
+    (a, b) =>
+      (a.free ? 1 : 0) - (b.free ? 1 : 0) ||
+      String(a.label ?? '').localeCompare(String(b.label ?? ''), 'de') ||
+      (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
+  );
 }
 
 /** Aendert sich das, wird das Gebaeude neu aufgebaut. */
@@ -77,7 +111,8 @@ function sessionBlocks(project) {
 /** Innenmass eines Projektraums (ohne Rueckwand), so klein wie moeglich. */
 function roomSize(project) {
   const blocks = sessionBlocks(project);
-  const used = blocks.reduce((n, b) => n + b.width, 0);
+  // Ohne Sitzung steht ein leerer Tisch da, wo die erste saesse.
+  const used = blocks.length ? blocks.reduce((n, b) => n + b.width, 0) : MAIN_SLOT;
   const agentRows = Math.max(0, ...blocks.map((b) => b.rows));
   const lastSeat = agentRows ? FIRST_AGENT_ROW + (agentRows - 1) * AGENT_ROW_STEP : MAIN_SEAT_ROW;
   // Tisch belegt Sitzreihe und die naechste, davor ein Laufweg.
@@ -326,6 +361,13 @@ function furnishRoom(L, room, u, block) {
     for (let c = col - 1; c <= col + 1; c++) block(c, row + 1);
   };
   let x = room.c0 + Math.floor((room.cols - u.used) / 2);
+  if (!u.blocks.length) {
+    // Niemand da: Stuhl und Tisch; in einem freien Raum ohne Laptop und Tasse.
+    const col = x + Math.floor(MAIN_SLOT / 2);
+    const row = room.r0 + MAIN_SEAT_ROW;
+    L.seats.push({ id: `leer:${room.key}`, kind: 'vacant', owner: null, room: room.key, col, row, desk: 'desk-large', bare: Boolean(u.project.free) });
+    desk(col, row);
+  }
   let rug = null;
   for (const b of u.blocks) {
     const mainCol = x + Math.floor(b.width / 2);
@@ -471,7 +513,7 @@ function decorate(L) {
   // Auf- und Abgehen, Teppiche, Tueren beidseits, der Eingang.
   for (const s of L.seats) {
     keep(s.col, s.row);
-    const reach = s.kind === 'session' ? 2 : 0;
+    const reach = s.kind === 'agent' ? 0 : 2;
     for (let d = -reach; d <= reach; d++) keep(s.col + d, s.row - 1);
   }
   for (const g of L.rugs) for (let r = g.row; r < g.row + g.h; r++) for (let c = g.col; c < g.col + g.w; c++) keep(c, r);
@@ -757,6 +799,16 @@ export function speechText(tool, target, max = 28) {
   if (activity === 'delegate') return clip(target ? `→ ${target}` : 'delegiert', max);
   const label = toolLabel(tool);
   return clip(target ? `${label} ${target}` : label, max);
+}
+
+/** Wie lange etwas her ist: "vor 5 min", "vor 3 Std.", "vor 4 Tagen". */
+export function agoText(ms) {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 60) return `vor ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'vor einem Tag' : `vor ${d} Tagen`;
 }
 
 const FINISH = { completed: 'done', failed: 'error' };

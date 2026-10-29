@@ -3,7 +3,9 @@
  * und schiebt Aktualisierungen per Server-Sent Events an den Browser.
  *
  * Bindet bewusst nur an 127.0.0.1 - kein Zugriff aus dem Netz, keine
- * Authentifizierung noetig, keine Daten verlassen den Rechner.
+ * Authentifizierung noetig, keine Daten verlassen den Rechner. Der einzige
+ * Endpunkt, der etwas ausloest (/api/launch, siehe launch.js), nimmt nur
+ * Anfragen der eigenen Seite an.
  */
 
 import http from 'node:http';
@@ -13,6 +15,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { createStore, createWatcher } from './store.js';
+import { handleLaunch, launchSupported, openTerminal, projectDirs } from './launch.js';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(rootDir, 'public');
@@ -111,6 +114,8 @@ export async function startServer({
   quiet = false,
   // Nur fuer Tests und Demos: ersetzt den echten Abruf bei Anthropic.
   fetchUsage,
+  // Nur fuer Tests: statt eines PowerShell-Fensters.
+  launcher = openTerminal,
 } = {}) {
   const store = createStore({ config, pricingTable, historyFile, fetchUsage });
   const cfg = store.config;
@@ -166,12 +171,21 @@ export async function startServer({
     );
   }
 
+  // Klick aufs Namensschild startet Claude im Projektordner (launch.js).
+  const launch = {
+    enabled: cfg.launch?.enabled !== false,
+    supported: launcher !== openTerminal || launchSupported(),
+    last: new Map(),
+  };
+  // Die Seite zeigt den Hinweis nur, wenn ein Klick auch etwas tut.
+  const snapshot = () => ({ ...store.snapshot(), canLaunch: launch.enabled && launch.supported });
+
   /** @type {Set<import('node:http').ServerResponse>} */
   const clients = new Set();
-  let cached = store.snapshot();
+  let cached = snapshot();
 
   function broadcast() {
-    cached = store.snapshot();
+    cached = snapshot();
     const payload = `event: snapshot\ndata: ${JSON.stringify(cached)}\n\n`;
     for (const res of clients) {
       try {
@@ -226,6 +240,14 @@ export async function startServer({
     if (url.pathname === '/api/rescan' && req.method === 'POST') {
       rescan({ force: url.searchParams.get('force') === '1' }).then(() =>
         sendJson(res, 200, { ok: true, stats: store.stats }),
+      );
+      return;
+    }
+
+    if (url.pathname === '/api/launch') {
+      handleLaunch(req, { ...launch, port: server.address()?.port, known: projectDirs(cached), launcher }).then(
+        ({ status, body }) => sendJson(res, status, body),
+        (err) => sendJson(res, 500, { error: String(err?.message ?? err) }),
       );
       return;
     }

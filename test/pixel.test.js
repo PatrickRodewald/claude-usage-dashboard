@@ -36,6 +36,8 @@ import {
   windowSprite,
   FURNITURE,
   WALL_ART,
+  officeRooms,
+  agoText,
 } from '../public/pixel/world.js';
 import { ERRAND_IDLE_MS, PACE_AFTER_MS, VISIT_AFTER_MS } from '../public/agents.js';
 
@@ -145,10 +147,11 @@ test('Einrichtung: Moebel versperren keinen Weg, stehen auf dem Boden und nie au
     const projects = Array.from({ length: Math.floor(rnd() * 6) }, (_, p) =>
       named(
         `${rnd() < 0.5 ? 'p' : 'projekt-mit-langem-namen-'}${p}`,
-        ...Array.from({ length: 1 + Math.floor(rnd() * 3) }, (_, s) => session(`p${p}s${s}`, many(Math.floor(rnd() * 9), `p${p}s${s}a`))),
+        // Auch Raeume ohne Sitzung (leerer Tisch) und ganz freie.
+        ...Array.from({ length: Math.floor(rnd() * 4) }, (_, s) => session(`p${p}s${s}`, many(Math.floor(rnd() * 9), `p${p}s${s}a`))),
       ),
     );
-    const L = layoutBuilding(projects, 10 + Math.floor(rnd() * 70));
+    const L = layoutBuilding(officeRooms(projects, [], Math.floor(rnd() * 9)), 10 + Math.floor(rnd() * 70));
     const targets = [...L.seats, L.kitchen.coffee, L.kitchen.water, L.lounge.kicker.left, L.lounge.kicker.right, ...L.lounge.sofa.map((s) => s.from)];
     for (const t of targets) assert.ok(findPath(L, L.entrance, t), `${iter}: ${JSON.stringify(t)} erreichbar`);
     const taken = new Set();
@@ -457,4 +460,62 @@ test('Masse von Moebeln und Wandschmuck stimmen mit dem Atlas', () => {
     assert.equal(s.height, h, `${name}: Hoehe`);
     assert.ok(y + h <= WALL_ROWS * TILE, `${name} passt an die Wand`);
   }
+});
+
+test('zehn Raeume: offene Projekte, dann die zuletzt genutzten, der Rest bleibt frei', () => {
+  const open = [named('Dashboard', session('s1')), { key: 'c:/projekte/web', label: 'web', cwd: 'C:/Projekte/web', sessions: [session('s2')] }];
+  const recent = [
+    { key: 'alt', cwd: 'C:/Projekte/alt', lastTs: 100 },
+    { key: 'web', cwd: 'C:/Projekte/Web/', lastTs: 900 }, // hat schon einen Raum (gleicher Ordner)
+    { key: 'neu', cwd: 'C:/Projekte/neu', lastTs: 500 },
+    { key: 'dashboard', cwd: null, lastTs: 800 }, // gleicher Name wie ein offenes Projekt
+    { key: 'ohne Zeit', cwd: 'C:/x', lastTs: null },
+  ];
+  const rooms = officeRooms(open, recent, 6);
+  assert.equal(rooms.length, 6);
+  assert.deepEqual(
+    rooms.map((r) => [r.label, r.sessions.length, Boolean(r.free)]),
+    [
+      ['Dashboard', 1, false],
+      ['web', 1, false],
+      ['neu', 0, false],
+      ['alt', 0, false],
+      ['', 0, true],
+      ['', 0, true],
+    ],
+  );
+  // Der Schluessel ist der Ordner wie bei offenen Sitzungen: der Raum bleibt derselbe, wenn dort eine startet.
+  assert.equal(rooms[2].key, 'c:/projekte/neu');
+  assert.equal(rooms[2].cwd, 'C:/Projekte/neu');
+  assert.equal(officeRooms(open, recent, 1).length, 2, 'offene Projekte haben immer einen Raum');
+  assert.equal(officeRooms([], [], 10).filter((r) => r.free).length, 10);
+});
+
+test('leere Raeume: ein freier Tisch, wo die erste Sitzung saesse; freie Raeume zuletzt', () => {
+  const rooms = officeRooms([named('mitte', session('s1'))], [{ key: 'alpha', cwd: 'C:/alpha', lastTs: 1 }], 4);
+  const L = layoutBuilding(rooms, 200);
+  assert.deepEqual(
+    L.rooms.filter((r) => r.kind === 'project').map((r) => r.key),
+    ['c:/alpha', 'mitte', 'frei-1', 'frei-2'],
+  );
+  const vacant = L.seats.filter((s) => s.kind === 'vacant');
+  assert.equal(vacant.length, 3);
+  for (const s of vacant) {
+    assert.equal(roomAt(L, s.col, s.row)?.key, s.room);
+    assert.ok(findPath(L, L.entrance, s), `${s.id} erreichbar`);
+    assert.equal(s.bare, s.room.startsWith('frei-'), 'nur im freien Raum ohne Laptop');
+  }
+  // Startet im leeren Raum eine Sitzung, sitzt sie an genau diesem Tisch.
+  const before = L.seats.find((s) => s.room === 'c:/alpha');
+  const after = layoutBuilding(officeRooms([named('mitte', session('s1')), { key: 'c:/alpha', label: 'alpha', sessions: [session('s9')] }], [], 4), 200);
+  const seat = after.seats.find((s) => s.id === 's9');
+  assert.deepEqual([seat.col, seat.row], [before.col, before.row]);
+});
+
+test('wie lange etwas her ist', () => {
+  assert.equal(agoText(30_000), 'vor 1 min');
+  assert.equal(agoText(59 * 60_000), 'vor 59 min');
+  assert.equal(agoText(3 * 3_600_000), 'vor 3 Std.');
+  assert.equal(agoText(26 * 3_600_000), 'vor einem Tag');
+  assert.equal(agoText(5 * 86_400_000), 'vor 5 Tagen');
 });

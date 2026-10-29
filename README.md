@@ -269,18 +269,27 @@ zu breit, lässt es sich seitlich verschieben.
 
 - **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
   (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden
-  Raum: zuerst **Küche und Lounge**, daneben **ein Raum je Projekt** mit Messingschild an der Wand.
+  Raum: zuerst **Küche und Lounge**, daneben **zehn Projekträume** mit Messingschild an der Wand.
+  Sie gehören jedem Projekt mit offener Sitzung und dann den zuletzt genutzten Projekten (nach dem
+  letzten Request); ein Raum, der übrig bleibt, steht frei und hat kein Schild. Haben mehr als
+  zehn Projekte gleichzeitig offene Sitzungen, kommen Räume hinzu.
   Wände trennen die Räume; von Raum zu Raum geht es durch die Türen und über den Flur. Passen
   nicht alle Räume nebeneinander, kommen sie in eine weitere Reihe mit eigenem Flur, und ein
-  Längsflur am linken Rand verbindet alle. Die Räume stehen nach Namen geordnet und behalten ihren
-  Platz, auch wenn gerade ein anderes Projekt arbeitet. Bleibt in einer Reihe viel Platz übrig,
-  wird dort eine Lounge eingerichtet: Regale, Sitzgruppen, Pflanzen, Stehlampen, Bilder.
+  Längsflur am linken Rand verbindet alle. Die Räume stehen nach Namen geordnet (freie zuletzt)
+  und behalten ihren Platz, auch wenn gerade ein anderes Projekt arbeitet. Bleibt in einer Reihe
+  viel Platz übrig, wird dort eine Lounge eingerichtet: Regale, Sitzgruppen, Pflanzen,
+  Stehlampen, Bilder.
 - **Küche und Lounge:** Getränkeautomat, Theke mit Espressomaschine, Kühlschrank, Wasserspender,
   Spüle mit Mikrowelle; davor Kicker, Sofa mit Sessel und Couchtisch, Stehlampe und ein Esstisch
   mit Hockern. Über der Theke zeigt ein **Fernseher das 5h-Fenster** (Prozent und Balken, beim
   Zeigen auch die Zeit bis zum Reset), daneben zählt ein **Kalender bis zum Wochen-Reset**.
 - **Im Projektraum:** Sitzungen arbeiten an großen Tischen, ihre Subagents davor an kleinen
-  Tischen auf einem Teppich. Das Schild nennt beim Zeigen Sitzungen, Subagents und Ordner. Auf dem
+  Tischen auf einem Teppich. Ist niemand da, steht ein leerer Tisch mit zugeklapptem Laptop dort,
+  wo die erste Sitzung sitzen wird. Das Schild nennt beim Zeigen Sitzungen und Subagents (oder
+  wann zuletzt gearbeitet wurde) und den Ordner. **Ein Klick aufs Schild öffnet ein
+  PowerShell-Fenster in diesem Ordner und startet darin `claude`** (nur unter Windows,
+  abschaltbar mit `launch.enabled` in der `config.json`); kurz darauf kommt die neue Sitzung
+  durch den Eingang. Auf dem
   **Whiteboard** neben dem Schild stehen die Aufträge der laufenden Subagents. Jeder Raum hat
   seine eigene Wand (Holz, Grün, Täfelung) und seinen Boden (Dielen oder Teppich) und wird
   eingerichtet: Regale, Aktenschrank, Drucker (er druckt, wenn jemand zu schreiben beginnt),
@@ -313,7 +322,7 @@ zu breit, lässt es sich seitlich verschieben.
   fällt. Kommt ein Projekt hinzu oder fällt weg, baut sich das Gebäude um; wer sitzt, zieht mit
   seinem Tisch um, wer in Küche oder Lounge ist, bleibt dort. Ist das Büro gerade nicht zu sehen,
   wird nichts nachgeholt.
-- **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt.
+- **Ruhe:** Schlafen alle in einem Projektraum, wird er gedimmt; ist niemand da, ist das Licht aus.
 - **Licht:** Das Büro folgt der Ortszeit: Die Fenster zeigen Morgenrot, Tag, Abend oder Nacht, die
   Wanduhr die echte Zeit. Tagsüber ist es hell, ab dem späten Nachmittag wird es violett, nachts
   dunkelblau. Dann leuchten die Schreibtischlampen derer, die arbeiten, Stehlampen gehen an, die
@@ -639,6 +648,14 @@ Groß- und Kleinbuchstaben und Ziffern). Das bleibt auf diesem Gerät: Der Serve
 127.0.0.1 und antwortet nur auf Anfragen an `127.0.0.1` oder `localhost`. So kann keine fremde
 Webseite ihren Namen auf diesen Rechner umbiegen und mitlesen (DNS-Rebinding).
 
+**Claude starten.** Der einzige Endpunkt, der etwas auslöst, ist `POST /api/launch` (Klick aufs
+Namensschild). Er startet nur in Ordnern, die das Dashboard selbst als Projekt kennt (offene
+Sitzungen und Transkripte), nimmt nur JSON und nur Anfragen, deren `Origin` diese Seite ist.
+Eine fremde Webseite kann ihn deshalb nicht auslösen: Ihren Origin schickt der Browser mit, und
+JSON verlangt bei ihr eine Vorabfrage, die der Server nicht beantwortet. Derselbe Ordner startet
+höchstens alle drei Sekunden. Eine unsichtbare PowerShell öffnet per `Start-Process` das Fenster;
+der Ordner geht dabei nur als Arbeitsverzeichnis mit, nie in eine Befehlszeile.
+
 **Tagesrückblick.** Der Server kennt ohnehin jeden Request mit Zeitstempel, Sitzung, Subagent,
 Kosten, Kontext und dem ersten aufgerufenen Werkzeug. `/api/replay` schneidet daraus einen Tag
 als kompakte Zeitleiste mit einem Schritt je Request; für einen vollen Arbeitstag sind das einige
@@ -661,7 +678,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-357 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+367 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -733,6 +750,8 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - `/api/snapshot`, `/api/rescan` und der SSE-Strom antworten wie erwartet
 - kein Ausbrechen aus `public/` — auch nicht prozentkodiert (`%2e%2e`, `..%2f`, …)
 - der Server bindet an `127.0.0.1` und beendet beim Schließen nicht den Prozess
+- `/api/launch` startet nur in bekannten Projektordnern, nur für die eigene Seite (Origin, JSON)
+  und nicht zweimal kurz hintereinander; der Ordner steht nie in einer Befehlszeile
 
 ## Auf ein anderes Gerät mitnehmen
 
@@ -779,6 +798,7 @@ src/
   replay.js         Zeitleiste eines Tages für den Rückblick
   store.js          In-Memory-Index, Datei-Offsets, Archiv-Fortschreibung, File-Watcher
   server.js         HTTP + SSE + statische Auslieferung
+  launch.js         Claude per Klick im Projektordner starten (PowerShell)
 public/             Frontend (kein Build-Schritt)
   agents.js         Büro mit Figuren für „Gerade aktiv" (klassisch, SVG)
   sounds.js         Töne des Büros: wann sie fällig sind, Web Audio
