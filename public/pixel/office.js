@@ -10,6 +10,9 @@
  * vorbei. Gegangen wird per Wegfindung, gekommen und gegangen durch den
  * Eingang.
  *
+ * Im Teamraum arbeitet die Belegschaft (staff.js): Kolleginnen und Kollegen
+ * ohne Claude-Sitzung, die auffuellen, wenn wenige Sitzungen offen sind.
+ *
  * An den Waenden: Fenster nach Tageszeit, eine Uhr mit der echten Zeit, im
  * Fernseher der Kueche das 5h-Fenster, am Kalender die Tage bis zum
  * Wochen-Reset, auf den Whiteboards die Auftraege der Subagents.
@@ -45,7 +48,9 @@ import {
   OUTFITS,
   outfitFor,
   lookFor,
+  TEAM,
 } from './world.js';
+import { STAFF, STAFF_FILL, STAFF_POSES, STAFF_ERRANDS, dayClock, shiftsFor, onDuty, staffWanted, hourText } from './staff.js';
 
 const ASSETS = new URL('../assets/office/', import.meta.url);
 
@@ -78,6 +83,24 @@ const PRINT_EVERY_MS = 30_000;
 const LAMPS_AT = 0.08;
 /** Besorgungen in Kueche und Lounge: die stehen fest, ein Umbau unterbricht sie nicht. */
 const LOUNGE_ERRANDS = new Set(['coffee', 'water', 'sofa', 'kicker']);
+/** Aus der Belegschaft sind hoechstens so viele zugleich unterwegs. */
+const STAFF_AWAY = 2;
+/** Erst wenn sich die Zahl der Sitzungen so lange gehalten hat, kommt oder geht jemand. */
+const STAFF_SETTLE_MS = 90_000;
+/** Was die Belegschaft vorhat (Whiteboard im Teamraum). */
+const TEAM_BOARD = ['Quartalszahlen', 'Messe planen', 'Kaffee kaufen!'];
+/** Was jemand aus der Belegschaft gerade tut (Tooltip). */
+const STAFF_DOING = {
+  coffee: 'holt Kaffee',
+  water: 'holt Wasser',
+  print: 'holt Ausdrucke',
+  chat: 'bespricht etwas',
+  board: 'am Whiteboard',
+  stroll: 'vertritt sich die Beine',
+  sofa: 'macht Pause auf dem Sofa',
+  kicker: 'spielt Kicker',
+};
+const STAFF_POSE_TEXT = { type: 'tippt', read: 'liest', write: 'schreibt', think: 'grübelt' };
 
 /* --- Grafiken -------------------------------------------------------------- */
 
@@ -228,7 +251,8 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
  * @param container  Element, das das Gebaeude aufnimmt
  * @param opts       { tooltip, describe(kind, item) -> string, timeZone()?, now()?, emptyText?,
  *                     launch(cwd) -> Promise (Klick aufs Namensschild) }
- * @param env        bei render: { fiveHour, week, recent (byProject), canLaunch }
+ * @param env        bei render: { fiveHour, week, recent (byProject), canLaunch,
+ *                     staff (Belegschaft an, Vorgabe ja), staffFill }
  * @returns {{ render(activity, env), tick(), errand(id, name), ready: Promise }}
  */
 export function createPixelOffice(
@@ -240,7 +264,7 @@ export function createPixelOffice(
     timeZone = () => undefined,
     // Tageslicht folgt dieser Uhr (zum Ausprobieren verstellbar).
     now: clock = () => Date.now(),
-    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen – niemand im Büro.',
+    emptyText = 'Gerade ist keine Claude-Code-Sitzung offen.',
   },
 ) {
   /** Bereits gezeigte Ereignisse - jedes nur einmal. */
@@ -300,6 +324,14 @@ export function createPixelOffice(
     printed: new Map(),
     /** Whiteboard je Raum: Auftraege der laufenden Subagents. */
     boards: new Map(),
+    /** Belegschaft: wer einen Tisch im Teamraum hat (leer: abgeschaltet). */
+    team: [],
+    staffFill: STAFF_FILL,
+    /** Wie viele aus der Belegschaft gebraucht werden - geaendert erst, wenn es sich haelt. */
+    want: { value: null, pending: null, since: 0 },
+    /** Dienstplan des Tages (staff.js) und wann zuletzt danach geschaut wurde. */
+    shifts: null,
+    staffAt: -Infinity,
   };
 
   const ready = loadAssets()
@@ -328,7 +360,7 @@ export function createPixelOffice(
     let L = plans.get(key);
     if (!L) {
       if (plans.size > 12) plans.clear();
-      L = layoutBuilding(B.projects, maxCols);
+      L = layoutBuilding(B.projects, maxCols, B.team);
       plans.set(key, L);
     }
     return L;
@@ -340,7 +372,7 @@ export function createPixelOffice(
   function plan() {
     const availW = availWidth();
     const availH = Math.max(360, window.innerHeight - 220);
-    const sig = buildingSignature(B.projects);
+    const sig = `${buildingSignature(B.projects)}|${B.team.length}`;
     let pick = null;
     for (const css of [4, 3, 2]) {
       const maxCols = Math.max(1, Math.floor((availW / css - 2 * SIDE_PX) / TILE));
@@ -710,11 +742,36 @@ export function createPixelOffice(
   /** Kueche: an jeder Stelle steht nur einer. */
   const taken = (name, f) => [...B.figs.values()].some((o) => o !== f && o.errand === name && !o.gone);
 
-  /** Wer gerade frei ist und mitspielen koennte (Kicker). */
+  /** Wer aus der Belegschaft am Platz sitzt und nichts vorhat. */
+  const freeStaff = (f) => [...B.figs.values()].filter((o) => o !== f && o.kind === 'staff' && o.seated && !o.errand && !o.leaving && !o.gone);
+
+  /** Wer gerade frei ist und mitspielen koennte (Kicker): eine ruhende Sitzung, sonst die Belegschaft. */
   function partnerFor(f) {
-    return [...B.figs.values()].find(
+    const idle = [...B.figs.values()].find(
       (o) => o !== f && o.kind === 'session' && o.state === 'idle' && o.seated && !o.errand && !o.leaving && !o.gone,
     );
+    return (f.kind === 'staff' ? null : idle) ?? freeStaff(f)[0] ?? null;
+  }
+
+  /** Sitzungen haben Vorrang: wer aus der Belegschaft dort ist, geht zurueck an den Platz. */
+  function makeRoom(name, now) {
+    for (const o of B.figs.values()) {
+      if (o.kind !== 'staff' || o.errand !== name || o.leaving || o.gone) continue;
+      // Vom Sofa erst herunter.
+      if (o.wait?.perch) Object.assign(o, feetOf(o.wait.perch.from));
+      o.errand = null;
+      go(o, [{ walk: 'seat' }, { sit: true }], now);
+    }
+  }
+
+  /** Freie Kachel neben einem Moebel (unten, rechts, links) und die Blickrichtung dorthin. */
+  function besideItem(it, from) {
+    const L = B.layout;
+    for (const [dc, dr, face] of [[0, 1, 'back'], [it.w, 0, 'left'], [-1, 0, 'right']]) {
+      const t = { col: it.col + dc, row: it.row + dr };
+      if (walkable(L, t.col, t.row) && findPath(L, from, t)) return { tile: t, face };
+    }
+    return null;
   }
 
   function startErrand(f, name, now) {
@@ -722,9 +779,14 @@ export function createPixelOffice(
     const home = { col: f.seat.col, row: f.seat.row };
     const back = [{ walk: 'seat' }, { sit: true }];
     let plan = null;
+    if (name === 'kicker' && f.kind !== 'staff') makeRoom('kicker', now);
     if (name === 'sofa' && can(f, 'sofa')) {
-      const busy = new Set([...B.figs.values()].filter((o) => o !== f && o.errand === 'sofa').map((o) => o.sofaSeat));
-      const seat = L.lounge.sofa.find((s) => !busy.has(s));
+      const free = () => {
+        const busy = new Set([...B.figs.values()].filter((o) => o !== f && o.errand === 'sofa').map((o) => o.sofaSeat));
+        return L.lounge.sofa.find((s) => !busy.has(s));
+      };
+      if (!free() && f.kind !== 'staff') makeRoom('sofa', now);
+      const seat = free();
       if (seat) {
         f.sofaSeat = seat;
         plan = [{ walk: seat.from }, { perch: seat, ms: rand(9000, 16000), pose: 'sofa' }, ...back];
@@ -764,6 +826,44 @@ export function createPixelOffice(
     } else if (name === 'stroll') {
       const spot = strollSpot(f);
       if (spot) plan = [{ walk: spot }, { wait: rand(2000, 4000), face: 'front' }, ...back];
+    } else if (name === 'print' && !taken('print', f)) {
+      // Zum Drucker im eigenen Raum, der druckt, dann zurueck.
+      const printer = L.items.find((it) => it.kind === 'printer' && roomAt(L, it.col, it.row)?.key === f.seat.room);
+      const spot = printer && besideItem(printer, home);
+      if (spot) {
+        plan = [
+          { walk: spot.tile },
+          { run: (t) => print(f.seat.room, t) },
+          { wait: rand(2500, 3500), face: spot.face },
+          ...back,
+        ];
+      }
+    } else if (name === 'board' && !taken('board', f)) {
+      // Vor das Whiteboard des Raums, dort eine Weile ueberlegen.
+      const board = L.wall.find((w) => w.kind === 'whiteboard' && w.room === f.seat.room);
+      const room = L.rooms.find((r) => r.key === f.seat.room);
+      const spot = board && { col: Math.floor(board.x / TILE) + 1, row: room.r0 };
+      if (spot && walkable(L, spot.col, spot.row) && findPath(L, home, spot)) {
+        plan = [{ walk: spot }, { wait: rand(4000, 6500), face: 'back', pose: 'talk' }, ...back];
+      }
+    } else if (name === 'chat') {
+      // Zu jemandem aus dem Team an den Tisch, kurz reden.
+      const mates = freeStaff(f);
+      const target = mates[Math.floor(Math.random() * mates.length)]?.seat;
+      const side = target && [1, -1].find((d) => walkable(L, target.col + d, target.row - 1) && findPath(L, home, { col: target.col + d, row: target.row - 1 }));
+      if (side) {
+        plan = [
+          { walk: { col: target.col + side, row: target.row - 1 } },
+          {
+            run: (t) => {
+              const other = B.figs.get(target.id);
+              if (other) other.emote = { name: 'idea', until: t + 2600 };
+            },
+          },
+          { wait: rand(4000, 7000), face: side > 0 ? 'left' : 'right', pose: 'talk' },
+          ...back,
+        ];
+      }
     } else if (name === 'pace') {
       // Hinter dem eigenen Tisch auf und ab.
       const row = home.row - 1;
@@ -801,16 +901,23 @@ export function createPixelOffice(
     return true;
   }
 
-  /** Einmal je Sekunde: wer steht auf, wer muss zurueck? */
+  /** Einmal je Sekunde: wer kommt, wer geht, wer steht auf, wer muss zurueck? */
   function direct(now) {
+    syncStaff(now);
     const figs = [...B.figs.values()].filter((f) => !f.leaving && !f.gone && f.seat);
     for (const f of figs) {
-      if (f.errand && !errandStillFits(f.errand, f.kind, f.state)) {
+      if (f.kind !== 'staff' && f.errand && !errandStillFits(f.errand, f.kind, f.state)) {
         f.errand = null;
         go(f, [{ walk: 'seat', speed: HURRY_SPEED }, { sit: true }], now);
       }
     }
-    if (still() || B.limit === 'reached') return;
+    if (still()) return;
+    if (B.limit !== 'reached') crewErrands(figs.filter((f) => f.kind !== 'staff'), now);
+    staffErrands(figs.filter((f) => f.kind === 'staff'), now);
+  }
+
+  /** Sitzungen und Subagents: Pause, auf und ab, Besuch - je nachdem, was sie tun. */
+  function crewErrands(figs, now) {
     const away = figs.filter((f) => f.errand).length;
     const cap = Math.min(AWAY_MAX, Math.max(1, Math.floor(figs.length * AWAY_SHARE)));
     if (away >= cap) return;
@@ -821,6 +928,61 @@ export function createPixelOffice(
       if (!opts || Math.random() >= opts.rate) continue;
       if (startErrand(f, pickWeighted(opts.options), now)) return;
     }
+  }
+
+  /** Belegschaft: am Platz wechselt die Haltung, ab und zu geht jemand los. */
+  function staffErrands(team, now) {
+    for (const f of team) {
+      if (f.seated && !f.errand && Math.random() < 1 / 25) f.view = { ...f.view, pose: pickWeighted(STAFF_POSES) };
+    }
+    if (team.filter((f) => f.errand).length >= STAFF_AWAY) return;
+    for (const f of team) {
+      if (!f.seated || f.errand || Math.random() >= STAFF_ERRANDS.rate) continue;
+      if (startErrand(f, pickWeighted(STAFF_ERRANDS.options), now)) return;
+    }
+  }
+
+  /**
+   * Belegschaft nach Dienstplan und Bedarf: gebraucht wird, wer bis zur
+   * Wunschzahl an Figuren fehlt. Wer gebraucht wird und laut Plan im Haus ist,
+   * kommt durch den Eingang; wer nicht mehr gebraucht wird, geht. War das Buero
+   * eine Weile nicht zu sehen, sitzen alle gleich richtig.
+   */
+  function syncStaff(now) {
+    const jump = !renderedOnce || still() || !visible() || now - B.staffAt > 5000;
+    B.staffAt = now;
+    const sessions = B.projects.reduce((n, p) => n + p.sessions.length, 0);
+    const target = B.team.length ? staffWanted(sessions, B.staffFill, B.team.length) : 0;
+    const w = B.want;
+    if (w.value == null || jump || !B.team.length) Object.assign(w, { value: target, pending: null });
+    else if (target === w.value) w.pending = null;
+    else if (w.pending !== target) Object.assign(w, { pending: target, since: now });
+    else if (now - w.since >= STAFF_SETTLE_MS) Object.assign(w, { value: target, pending: null });
+    const { day, weekday, hour } = dayClock(timeZone(), clock());
+    if (B.shifts?.day !== day) B.shifts = shiftsFor(day, weekday);
+    const want = new Set(onDuty(B.shifts, hour, w.value));
+    for (const s of STAFF) {
+      const f = B.figs.get(s.id);
+      const seat = seatOf(s.id);
+      if (want.has(s.id) && seat) {
+        if (!f) {
+          const nf = newFig('staff', s, seat, !jump);
+          Object.assign(nf, { state: 'staff', view: figureView('staff', s) });
+          B.figs.set(s.id, nf);
+        } else if (f.leaving && !f.gone) {
+          // Doch noch gebraucht: zurueck an den Platz.
+          f.leaving = false;
+          go(f, [{ walk: 'seat' }, { sit: true }], now);
+        }
+      } else if (f && !f.leaving && !f.gone) {
+        if (f.wait?.perch) Object.assign(f, feetOf(f.wait.perch.from));
+        if (jump) B.figs.delete(s.id);
+        else leave(f, now, null);
+      }
+    }
+    // Ohne Belegschaft ist im Teamraum das Licht aus.
+    if (want.size) B.asleep.delete(TEAM);
+    else B.asleep.add(TEAM);
   }
 
   /* --- Daten uebernehmen -------------------------------------------------------- */
@@ -1214,11 +1376,11 @@ export function createPixelOffice(
     return w;
   }
 
-  /** Messingschild mit dem Projektnamen neben der Tuer; ein freier Raum hat keins. */
+  /** Messingschild mit dem Projektnamen neben der Tuer; ein freier Raum hat keins, der Teamraum "Team". */
   function plates() {
     const out = [];
     for (const room of B.layout.rooms) {
-      if (room.kind !== 'project' || room.project.free) continue;
+      if (room.kind === 'project' ? room.project.free : room.kind !== 'team') continue;
       const x0 = (room.door.col + 1) * TILE + 3;
       // Rechts davon haengt Wandschmuck: das Schild bleibt in seinen Spalten.
       const maxW = Math.min((room.c0 + room.cols) * TILE - 6, (room.door.col + 1 + room.plateCols) * TILE - 3) - x0;
@@ -1384,7 +1546,8 @@ export function createPixelOffice(
     // aus (nachts ist es ohnehin dunkel).
     for (const room of L.rooms) {
       if (!B.asleep.has(room.key)) continue;
-      const dim = room.project && !room.project.sessions.length ? 0.45 : 0.3;
+      // Teamraum: ruht nur, wenn niemand da ist.
+      const dim = !room.project?.sessions.length ? 0.45 : 0.3;
       ctx.fillStyle = `rgba(24, 20, 37, ${(dim * (1 - B.daylight.a)).toFixed(3)})`;
       ctx.fillRect(room.c0 * TILE, room.face * TILE, room.cols * TILE, (room.rows + WALL_ROWS) * TILE);
     }
@@ -1468,6 +1631,43 @@ export function createPixelOffice(
     return lines.join('\n');
   }
 
+  const onStaff = () => [...B.figs.values()].filter((f) => f.kind === 'staff' && !f.leaving && !f.gone).length;
+
+  function teamText() {
+    const n = onStaff();
+    return [
+      'Team',
+      'Kolleginnen und Kollegen ohne Claude-Sitzung',
+      n ? `${n} da · füllen auf, wenn wenige Sitzungen offen sind` : 'gerade niemand da',
+    ].join('\n');
+  }
+
+  /** Tooltip einer Figur aus der Belegschaft: wer, was, wann im Haus. */
+  function staffText(f) {
+    const s = f.item;
+    const doing = f.leaving
+      ? 'geht'
+      : f.seated
+        ? `am Platz · ${STAFF_POSE_TEXT[f.view?.pose] ?? 'arbeitet'}`
+        : (STAFF_DOING[f.errand] ?? 'auf dem Weg zum Platz');
+    const shift = B.shifts?.shifts.get(s.id);
+    return [
+      `${s.name} · ${s.role}`,
+      'aus dem Team – keine Claude-Sitzung',
+      doing,
+      shift ? `heute ${hourText(shift.arrive)}–${hourText(shift.leave)} Uhr` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  /** Tooltip einer Figur: Sitzung und Subagent beschreibt die Seite, die Belegschaft das Buero. */
+  function figText(f) {
+    if (f.kind === 'staff') return staffText(f);
+    const room = B.layout.rooms.find((r) => r.key === f.seat?.room);
+    return describe(f.kind, { ...f.item, project: room?.label ?? '' });
+  }
+
   /** Rueckmeldung nach einem Klick: steht eine Weile statt des Schildtexts da. */
   let note = null;
 
@@ -1482,15 +1682,19 @@ export function createPixelOffice(
     let textOut = null;
     let key = null;
     if (hit) {
-      const room = B.layout.rooms.find((r) => r.key === hit.seat?.room);
-      textOut = describe(hit.kind, { ...hit.item, project: room?.label ?? '' });
+      textOut = figText(hit);
       key = hit.id;
     } else {
       const plate = plateAt({ x, y });
       const wall = B.layout.wall.find((w) => w.kind !== 'art' && w.kind !== 'window' && x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
       if (plate) {
         key = `room:${plate.room.key}`;
-        textOut = note?.key === key && performance.now() < note.until ? note.text : plateText(plate.room.project);
+        textOut =
+          note?.key === key && performance.now() < note.until
+            ? note.text
+            : plate.room.kind === 'team'
+              ? teamText()
+              : plateText(plate.room.project);
       } else if (wall) {
         textOut = wallText(wall);
         key = textOut ? `wall:${wall.kind}:${wall.x},${wall.y}` : null;
@@ -1558,7 +1762,8 @@ export function createPixelOffice(
     }
     if (w.kind === 'whiteboard') {
       const lines = B.boards.get(w.room) ?? [];
-      return lines.length ? `Aufträge der Subagents:\n${lines.map((l) => `• ${l}`).join('\n')}` : null;
+      const title = w.room === TEAM ? 'Whiteboard im Team' : 'Aufträge der Subagents';
+      return lines.length ? `${title}:\n${lines.map((l) => `• ${l}`).join('\n')}` : null;
     }
     return null;
   }
@@ -1581,14 +1786,18 @@ export function createPixelOffice(
     B.env = env ?? {};
     B.canLaunch = env?.canLaunch === true;
     B.limit = limitState(env?.fiveHour);
-    // Ruhende und leere Raeume: Licht aus.
+    // Belegschaft: an, solange config.json sie nicht abschaltet.
+    B.team = env?.staff === false ? [] : STAFF.map((s) => s.id);
+    B.staffFill = Number.isFinite(env?.staffFill) ? env.staffFill : STAFF_FILL;
+    // Ruhende und leere Raeume: Licht aus (den Teamraum regelt syncStaff).
     B.asleep = new Set(B.projects.filter((p) => !p.sessions.length || roomAsleep(p)).map((p) => p.key));
-    B.boards = new Map(
-      B.projects.map((p) => [
+    B.boards = new Map([
+      [TEAM, TEAM_BOARD],
+      ...B.projects.map((p) => [
         p.key,
         p.sessions.flatMap((s) => s.agents.filter((a) => a.state === 'running').map((a) => a.description || a.type || 'Subagent')),
       ]),
-    );
+    ]);
     relayout(now);
     const present = new Set();
     const listed = new Set();
@@ -1603,16 +1812,16 @@ export function createPixelOffice(
       }
     }
     for (const f of B.figs.values()) {
-      if (!present.has(f.id) && !f.leaving) leave(f, now, null);
+      if (f.kind !== 'staff' && !present.has(f.id) && !f.leaving) leave(f, now, null);
     }
+    syncStaff(now);
     // Was nicht mehr in der Liste steht, muss man sich nicht merken.
     for (const id of B.departed) if (!listed.has(id)) B.departed.delete(id);
     for (const [key, at] of seen) if (now - at > SEEN_KEEP_MS) seen.delete(key);
     // Der Tooltip der gezeigten Figur folgt dem neuen Stand; wer geht, verliert ihn.
     const shown = hovered && B.figs.get(hovered);
     if (shown && !shown.leaving && !shown.gone) {
-      const room = B.layout.rooms.find((r) => r.key === shown.seat?.room);
-      tooltip.update(describe(shown.kind, { ...shown.item, project: room?.label ?? '' }));
+      tooltip.update(figText(shown));
     } else if (shown) {
       hovered = null;
       tooltip.hide();

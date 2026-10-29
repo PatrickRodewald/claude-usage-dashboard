@@ -529,7 +529,13 @@ function renderActivity(s) {
   sound.observe(act, env);
   renderClassic();
   // Das Pixel-Buero gibt die uebrigen Raeume den zuletzt genutzten Projekten.
-  pixelOffice.render(act, { ...env, recent: s.byProject, canLaunch: s.canLaunch === true });
+  pixelOffice.render(act, {
+    ...env,
+    recent: s.byProject,
+    canLaunch: s.canLaunch === true,
+    staff: s.office?.staff !== false,
+    staffFill: s.office?.staffFill,
+  });
 }
 
 function costCell(row) {

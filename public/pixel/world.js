@@ -6,7 +6,8 @@
  *
  * Grundriss: oben die Aussenwand mit dem Eingang, darunter ein Flur. Vom Flur
  * fuehrt in jeden Raum eine Tuer in dessen Rueckwand: zuerst die gemeinsame
- * Kueche mit Lounge, dann je Projekt ein Raum, getrennt durch Waende. Passen
+ * Kueche mit Lounge, dann der Teamraum der Belegschaft (staff.js), dann je
+ * Projekt ein Raum, getrennt durch Waende. Passen
  * nicht alle Raeume nebeneinander, folgt darunter die naechste Reihe mit
  * eigenem Flur; ein Laengsflur am linken Rand verbindet die Flure.
  *
@@ -43,6 +44,10 @@ const AGENTS_PER_ROW = 4;
 /** Kacheln je Subagent-Platz (Tisch 2 breit, dazwischen Luft). */
 const AGENT_SLOT = 3;
 const MAIN_SLOT = 5;
+export const TEAM = 'team';
+/** Teamraum: grosse Tische zu dritt in einer Reihe, dazwischen ein Durchgang. */
+const TEAM_PER_ROW = 3;
+const TEAM_SLOT = 4;
 
 /* --- Gebaeude ---------------------------------------------------------------- */
 
@@ -119,9 +124,17 @@ function roomSize(project) {
   return { blocks, used, cols: Math.max(MIN_ROOM_COLS, used + 2), rows: lastSeat + 3 };
 }
 
+/** Innenmass des Teamraums: je Reihe Laufweg, Platz, Tisch; die letzte Tischreihe steht an der Wand. */
+function teamSize(desks) {
+  const used = Math.min(TEAM_PER_ROW, desks.length) * TEAM_SLOT;
+  const rows = Math.ceil(desks.length / TEAM_PER_ROW);
+  return { desks, used, cols: Math.max(MIN_ROOM_COLS, used + 2), rows: Math.max(MAIN_SEAT_ROW + 3, rows * AGENT_ROW_STEP) };
+}
+
 /**
  * Das ganze Gebaeude. maxCols begrenzt die Breite (in Kacheln); breitere
- * Raeume bekommen trotzdem ihre Reihe.
+ * Raeume bekommen trotzdem ihre Reihe. team: Ids der Belegschaft, je eine
+ * einen Tisch im Teamraum (leer: kein Teamraum).
  *
  * Ergebnis (Kacheln, wenn nicht anders gesagt):
  *   cols, rows, entrance {col,row} (Tuer in der Aussenwand), entry (Flur davor),
@@ -135,9 +148,10 @@ function roomSize(project) {
  *   lounge { sofa: [{ x, y, from }], kicker: { left, right } },
  *   blocked, wallE, wallS (Uint8Array je Kachel), floor [Name je Kachel oder null]
  */
-export function layoutBuilding(projects, maxCols = Infinity) {
+export function layoutBuilding(projects, maxCols = Infinity, team = []) {
   const units = [
     { kind: 'kitchen', key: KITCHEN, cols: KITCHEN_COLS, rows: KITCHEN_ROWS },
+    ...(team.length ? [{ kind: 'team', key: TEAM, ...teamSize(team) }] : []),
     ...inOrder(projects).map((p) => ({ kind: 'project', key: p.key, project: p, ...roomSize(p) })),
   ];
   const cap = Math.max(maxCols - SPINE, ...units.map((u) => u.cols));
@@ -236,11 +250,13 @@ export function layoutBuilding(projects, maxCols = Infinity) {
           ? { wall: 'plain', floor: 'kitchen' }
           : u.kind === 'lounge'
             ? { wall: 'brick', floor: 'carpet-wine' }
-            : ROOM_STYLES[hash(u.key) % ROOM_STYLES.length];
+            : u.kind === 'team'
+              ? { wall: 'plain', floor: 'carpet-blue' }
+              : ROOM_STYLES[hash(u.key) % ROOM_STYLES.length];
       const room = {
         key: u.key,
         kind: u.kind,
-        label: u.project?.label ?? (u.kind === 'kitchen' ? 'Küche' : 'Lounge'),
+        label: u.project?.label ?? { kitchen: 'Küche', team: 'Team' }[u.kind] ?? 'Lounge',
         project: u.project ?? null,
         c0: x,
         r0: b.top,
@@ -264,6 +280,7 @@ export function layoutBuilding(projects, maxCols = Infinity) {
         }
       }
       if (u.kind === 'kitchen') furnishKitchen(L, room, block);
+      else if (u.kind === 'team') furnishTeam(L, room, u, block);
       else if (u.kind === 'project') furnishRoom(L, room, u, block);
       x += u.cols;
     }
@@ -354,12 +371,7 @@ function furnishKitchen(L, room, block) {
  * an kleinen Tischen auf einem Teppich.
  */
 function furnishRoom(L, room, u, block) {
-  // Ein Tisch sperrt die Kacheln neben dem Sitz und die ganze Reihe davor.
-  const desk = (col, row) => {
-    block(col - 1, row);
-    block(col + 1, row);
-    for (let c = col - 1; c <= col + 1; c++) block(c, row + 1);
-  };
+  const desk = (col, row) => deskAt(block, col, row);
   let x = room.c0 + Math.floor((room.cols - u.used) / 2);
   if (!u.blocks.length) {
     // Niemand da: Stuhl und Tisch; in einem freien Raum ohne Laptop und Tasse.
@@ -396,6 +408,27 @@ function furnishRoom(L, room, u, block) {
   }
   // Das Namensschild neben der Tuer: so breit, wie der Name es braucht.
   room.plateCols = Math.min(PLATE_COLS, Math.max(2, Math.ceil((room.label.length * 3 + 11) / TILE)));
+}
+
+/** Ein Tisch sperrt die Kacheln neben dem Sitz und die ganze Reihe davor. */
+function deskAt(block, col, row) {
+  block(col - 1, row);
+  block(col + 1, row);
+  for (let c = col - 1; c <= col + 1; c++) block(c, row + 1);
+}
+
+/** Teamraum: je Kollegin oder Kollege ein grosser Tisch, zu dritt in Reihen. */
+function furnishTeam(L, room, u, block) {
+  const x = room.c0 + Math.floor((room.cols - u.used) / 2);
+  u.desks.forEach((id, i) => {
+    const r = Math.floor(i / TEAM_PER_ROW);
+    const inRow = Math.min(TEAM_PER_ROW, u.desks.length - r * TEAM_PER_ROW);
+    const col = x + Math.floor((u.used - inRow * TEAM_SLOT) / 2) + Math.floor(TEAM_SLOT / 2) + (i % TEAM_PER_ROW) * TEAM_SLOT;
+    const row = room.r0 + MAIN_SEAT_ROW + r * AGENT_ROW_STEP;
+    L.seats.push({ id, kind: 'staff', owner: null, room: room.key, col, row, desk: 'desk-large' });
+    deskAt(block, col, row);
+  });
+  room.plateCols = 2;
 }
 
 /* --- Einrichtung ---------------------------------------------------------------- */
@@ -451,7 +484,7 @@ export function windowSprite(hour) {
 }
 
 /** Zufall mit festem Startwert: derselbe Raum wird immer gleich eingerichtet. */
-function seeded(text) {
+export function seeded(text) {
   let s = hash(text) || 1;
   return () => {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
@@ -459,7 +492,7 @@ function seeded(text) {
   };
 }
 
-function shuffled(list, rnd) {
+export function shuffled(list, rnd) {
   const a = list.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
@@ -513,7 +546,8 @@ function decorate(L) {
   // Auf- und Abgehen, Teppiche, Tueren beidseits, der Eingang.
   for (const s of L.seats) {
     keep(s.col, s.row);
-    const reach = s.kind === 'agent' ? 0 : 2;
+    // Nur wer eine Sitzung ist, geht hinter dem Tisch auf und ab.
+    const reach = s.kind === 'session' || s.kind === 'vacant' ? 2 : 0;
     for (let d = -reach; d <= reach; d++) keep(s.col + d, s.row - 1);
   }
   for (const g of L.rugs) for (let r = g.row; r < g.row + g.h; r++) for (let c = g.col; c < g.col + g.w; c++) keep(c, r);
@@ -672,7 +706,8 @@ function decorate(L) {
     }
     wish(plants, ['corner'], 2);
     wish(['bookshelf', 'bookshelf-low'], ['wall'], room.cols >= 12 ? 2 : 1);
-    if (rnd() < 0.7) wish(['printer-idle'], ['wall'], 1, 'printer');
+    // Der Teamraum hat immer einen Drucker: dort holt die Belegschaft Ausdrucke.
+    if (rnd() < 0.7 || room.kind === 'team') wish(['printer-idle'], room.kind === 'team' ? ['wall', 'side', 'corner'] : ['wall'], 1, 'printer');
     if (rnd() < 0.5) wish(['server-0'], ['wall'], 1, 'server');
     wish(['filing-cabinet', 'coat-rack'], ['wall', 'side'], 1);
     wish(['floor-lamp-off'], ['corner', 'side'], 1, 'lamp');
@@ -820,6 +855,8 @@ const FINISH = { completed: 'done', failed: 'error' };
  */
 export function figureView(kind, item, { limit } = {}) {
   const v = { state: 'other', pose: 'type', speech: null, thought: false, emote: null, sleep: false, lamp: true, leaving: false, finish: null };
+  // Belegschaft: arbeitet still am Platz - keine Blasen, und das Limit betrifft sie nicht.
+  if (kind === 'staff') return { ...v, state: 'staff', pose: item.pose ?? 'type' };
   if (kind === 'session') {
     v.state = sessionState(item);
     if (v.state === 'idle') Object.assign(v, { pose: 'sleep', sleep: true, lamp: false });
@@ -941,6 +978,12 @@ export const OUTFITS = {
   grey: ['#c0cbdc', '#8b9bb4', '#5a6988'],
   brown: ['#e4a672', '#b86f50', '#733e39'],
   yellow: ['#fee761', '#feae34', '#be4a2f'],
+  // Gedeckt, nur fuer die Belegschaft: so sieht man, wer keine Sitzung ist.
+  anthrazit: ['#5a6988', '#3a4466', '#262b44'],
+  hemd: ['#ffffff', '#c0cbdc', '#8b9bb4'],
+  sand: ['#ead4aa', '#e8b796', '#c28569'],
+  tanne: ['#265c42', '#193c3e', '#262b44'],
+  bordeaux: ['#a22633', '#733e39', '#3e2731'],
 };
 
 /** Farbe je Subagent-Typ; Unbekannte stabil aus den uebrigen. */
@@ -955,6 +998,7 @@ function hash(text) {
 }
 
 export function outfitFor(kind, item) {
+  if (kind === 'staff') return item.outfit;
   if (kind === 'agent') return TYPE_OUTFIT[item.type] ?? SPARE_OUTFITS[hash(item.type) % SPARE_OUTFITS.length];
   return SESSION_OUTFITS[hash(item.sessionId) % SESSION_OUTFITS.length];
 }
@@ -964,6 +1008,7 @@ const SESSION_LOOKS = ['look-01', 'look-03', 'look-04'];
 const AGENT_LOOKS = ['look-02', 'look-05', 'look-06'];
 
 export function lookFor(kind, item) {
+  if (kind === 'staff') return item.look;
   const list = kind === 'agent' ? AGENT_LOOKS : SESSION_LOOKS;
   return list[hash(`look:${kind === 'agent' ? item.id : item.sessionId}`) % list.length];
 }

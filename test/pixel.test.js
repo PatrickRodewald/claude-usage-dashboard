@@ -40,6 +40,7 @@ import {
   agoText,
 } from '../public/pixel/world.js';
 import { ERRAND_IDLE_MS, PACE_AFTER_MS, VISIT_AFTER_MS } from '../public/agents.js';
+import { STAFF } from '../public/pixel/staff.js';
 
 const atlas = JSON.parse(fs.readFileSync(new URL('../public/assets/office/atlas.json', import.meta.url), 'utf8'));
 
@@ -151,7 +152,9 @@ test('Einrichtung: Moebel versperren keinen Weg, stehen auf dem Boden und nie au
         ...Array.from({ length: Math.floor(rnd() * 4) }, (_, s) => session(`p${p}s${s}`, many(Math.floor(rnd() * 9), `p${p}s${s}a`))),
       ),
     );
-    const L = layoutBuilding(officeRooms(projects, [], Math.floor(rnd() * 9)), 10 + Math.floor(rnd() * 70));
+    // Mit und ohne Teamraum der Belegschaft.
+    const team = rnd() < 0.5 ? STAFF.map((s) => s.id) : [];
+    const L = layoutBuilding(officeRooms(projects, [], Math.floor(rnd() * 9)), 10 + Math.floor(rnd() * 70), team);
     const targets = [...L.seats, L.kitchen.coffee, L.kitchen.water, L.lounge.kicker.left, L.lounge.kicker.right, ...L.lounge.sofa.map((s) => s.from)];
     for (const t of targets) assert.ok(findPath(L, L.entrance, t), `${iter}: ${JSON.stringify(t)} erreichbar`);
     const taken = new Set();

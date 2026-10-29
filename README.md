@@ -269,7 +269,8 @@ zu breit, lässt es sich seitlich verschieben.
 
 - **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
   (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden
-  Raum: zuerst **Küche und Lounge**, daneben **zehn Projekträume** mit Messingschild an der Wand.
+  Raum: zuerst **Küche und Lounge**, dann der **Teamraum** der Belegschaft (siehe unten), daneben
+  **zehn Projekträume** mit Messingschild an der Wand.
   Sie gehören jedem Projekt mit offener Sitzung und dann den zuletzt genutzten Projekten (nach dem
   letzten Request); ein Raum, der übrig bleibt, steht frei und hat kein Schild. Haben mehr als
   zehn Projekte gleichzeitig offene Sitzungen, kommen Räume hinzu.
@@ -296,6 +297,22 @@ zu breit, lässt es sich seitlich verschieben.
   Serverschrank (blinkt, solange im Raum gearbeitet wird), Pflanzen, Stehlampe, Papierkorb,
   Bilder und Pinnwand. Eingerichtet wird nur so, dass jeder Platz erreichbar bleibt, und ein
   Raum sieht immer gleich aus.
+- **Belegschaft:** Im Teamraum arbeiten Kolleginnen und Kollegen, die nicht an deinen Projekten
+  arbeiten - sechs Leute mit Namen und Abteilung (Kim aus der Buchhaltung, Alex vom IT-Support …).
+  Sie **füllen auf**: Sind weniger als acht Sitzungen offen, kommen so viele dazu, dass es acht
+  Figuren sind (höchstens alle sechs). Ändert sich die Zahl der Sitzungen, kommt oder geht erst
+  jemand, wenn es sich anderthalb Minuten gehalten hat. Dabei gilt ein **Dienstplan** nach
+  der Ortszeit, je Tag ausgewürfelt und nach dem Neuladen derselbe: werktags kommen sie zwischen
+  halb acht und halb zehn durch den Eingang, gehen mittags essen und am späten Nachmittag nach
+  Hause (manche bleiben länger), mal hat jemand frei; am Wochenende schaut selten jemand vorbei,
+  nachts ist der Teamraum leer und dunkel. Am Platz tippen, lesen, schreiben und grübeln sie;
+  zwischendurch holen sie Kaffee oder Wasser, drucken, besprechen sich am Tisch, stehen am
+  Whiteboard, legen sich aufs Sofa oder spielen Kicker. Sitzungen haben Vorrang: Will eine
+  wartende Sitzung aufs Sofa oder an den Kicker, macht die Belegschaft Platz. Zu erkennen sind
+  sie an gedeckter Kleidung (Anthrazit, Hemd, Sand, Tanne, Bordeaux) und daran, dass sie keine
+  Blasen zeigen; beim Zeigen nennen sie Name, Abteilung, was sie gerade tun und wann sie heute
+  im Haus sind. Sie zählen nirgends mit. Abschalten mit `office.staff`, die Wunschzahl mit
+  `office.staffFill` in der `config.json`.
 - **Figuren:** Sechs Gesichter, drei für Sitzungen und drei für Subagents, fest je Figur; die
   Kleidung färbt sich wie bisher nach Sitzung bzw. Subagent-Typ.
 - **Am Tisch:** Lesen und Suchen (`Read`, `Grep`, Web) mit einem Buch, dessen Seiten umblättern;
@@ -522,6 +539,9 @@ eigenem Dateinamen — dieselbe Datei von zwei Geräten beschreiben zu lassen, g
 | `limits.autoMinSamples` | Ab wie vielen abgeschlossenen Fenstern `auto` greift |
 | `activity.enabled` | Bereich „Gerade aktiv“ mit laufenden Sitzungen und Subagents. `false` = Bereich aus, `~/.claude/sessions` wird nicht gelesen |
 | `activity.recentMs` | So lange bleiben beendete Subagents sichtbar (Standard 15 min) |
+| `office.staff` | Belegschaft im Teamraum des Pixel-Büros. `false` = nur echte Sitzungen, kein Teamraum |
+| `office.staffFill` | Bis zu so vielen Figuren füllt die Belegschaft auf (Standard 8, höchstens sechs Leute) |
+| `launch.enabled` | Klick aufs Namensschild startet Claude im Projektordner (nur Windows). `false` = Klick tut nichts |
 | `history.enabled` | Tagessummen dauerhaft festhalten. `false` = Historie endet mit der Aufräumfrist von Claude Code |
 | `history.file` | Ablageort des Archivs (Standard `data/history.json`) |
 | `history.detailDays` | Ab welchem Alter vollständig archivierte Dateien beim Start übersprungen werden (Standard 45) |
@@ -678,7 +698,7 @@ sichtbar). `<synthetic>`-Einträge sind API-Fehler-Platzhalter und werden ausges
 npm test
 ```
 
-367 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
+376 Tests über Parsing, Deduplizierung, Kostenberechnung, Fensterlogik, Live-Abruf, Archiv,
 Kalibrierung und die HTTP-Schicht, u. a.:
 
 **Live-Abruf**
@@ -738,6 +758,10 @@ Kalibrierung und die HTTP-Schicht, u. a.:
 - Abbruch per Esc und die Zusammenfassung nach `/compact` sind keine Nachricht von dir
 - Kosten je Sitzung und je Subagent laufen über die normale Kostenberechnung; ein 1M-Fenster wird
   am größten Kontext erkannt
+- Belegschaft: derselbe Tag ergibt denselben Dienstplan; werktags morgens kommen, mittags essen,
+  abends gehen, am Wochenende selten, nachts niemand; aufgefüllt wird bis zur Wunschzahl in fester
+  Reihenfolge; der Teamraum liegt nach der Küche, jeder Tisch ist erreichbar, mit Drucker und
+  Whiteboard
 
 **Tagesrückblick**
 - der Tag wird in der Anzeigezone geschnitten; ungültige oder künftige Tage fallen auf heute,
@@ -804,6 +828,7 @@ public/             Frontend (kein Build-Schritt)
   sounds.js         Töne des Büros: wann sie fällig sind, Web Audio
   pixel/world.js    Pixel-Büro ohne DOM: Grundriss, Wegfindung, was jede Figur zeigt
   pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
+  pixel/staff.js    Belegschaft des Pixel-Büros: Personal, Dienstplan, wie viele auffüllen
   assets/office/    Grafiken des Pixel-Büros mit atlas.json
 art/                Herkunft der Pixelgrafiken: Prompts, Rohbilder, Aufbereitung (Python)
   replay.js         Zustand des Büros zu jedem Zeitpunkt eines Tages (Rückblick)

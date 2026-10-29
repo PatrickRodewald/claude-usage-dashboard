@@ -177,8 +177,13 @@ export async function startServer({
     supported: launcher !== openTerminal || launchSupported(),
     last: new Map(),
   };
+  // Belegschaft im Pixel-Buero (public/pixel/staff.js): an oder aus, bis wie viele Figuren sie auffuellt.
+  const office = {
+    staff: cfg.office?.staff !== false,
+    ...(Number.isFinite(cfg.office?.staffFill) ? { staffFill: cfg.office.staffFill } : {}),
+  };
   // Die Seite zeigt den Hinweis nur, wenn ein Klick auch etwas tut.
-  const snapshot = () => ({ ...store.snapshot(), canLaunch: launch.enabled && launch.supported });
+  const snapshot = () => ({ ...store.snapshot(), canLaunch: launch.enabled && launch.supported, office });
 
   /** @type {Set<import('node:http').ServerResponse>} */
   const clients = new Set();
