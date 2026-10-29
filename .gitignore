@@ -16,3 +16,7 @@ data/
 Thumbs.db
 .idea/
 .vscode/
+
+# Rohbilder der Pixelgrafiken (rund 30 MB): Quelle der Aufbereitung in art/tools,
+# bleiben auf dem eigenen Rechner. Pruefsummen und Groessen stehen in art/*-source.json.
+art/raw/

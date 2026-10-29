@@ -5,7 +5,9 @@
 > `art/checks/`, Anleitungen der einzelnen Pakete in `art/docs/`, der Auftrag für
 > Stufe 2 in `art/auftrag-stufe-2.md`. Die Skripte in `art/tools/` rechnen ab der
 > Wurzel des Repositorys und schreiben direkt nach `public/assets/office/`, z. B.
-> `python3 art/tools/prepare_stufe2_e.py`.
+> `python3 art/tools/prepare_stufe2_e.py`. Die Rohbilder unter `art/raw/` (rund 30 MB) sind
+> nicht eingecheckt: Wer die Aufbereitung neu laufen lässt, braucht sie lokal; Prüfsummen
+> und Größen stehen in den `art/*-source.json`.
 
 Kumulatives Grafikpaket mit **390 Sprites, 82 Animationen und sechs Looks**.
 Enthalten sind A, B1, C, B2, D, F, G und E in der vereinbarten Reihenfolge.
@@ -93,7 +95,8 @@ Kontur. Hals und Kragen gehören nicht in diese Ebene.
 
 Zwölf neue Rohbilder wurden mit der integrierten Bildgenerierung erzeugt,
 je Look genau ein Grundblatt, ein Gehblatt und ein Arbeitsblatt. Die Rohbilder
-liegen unverändert unter `art/raw/stufe2-e-look-0x*.png`. Die exakten Prompts
+liegen unverändert unter `art/raw/stufe2-e-look-0x*.png` (nur lokal, nicht im
+Repository). Die exakten Prompts
 stehen unter `art/prompts/look-0x*.txt`; sie folgen den vorhandenen drei
 Promptvorlagen und ersetzen die Beschreibung der jeweiligen Person.
 

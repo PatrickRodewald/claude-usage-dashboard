@@ -830,7 +830,7 @@ public/             Frontend (kein Build-Schritt)
   pixel/office.js   Pixel-Büro auf Canvas: Figuren, Besorgungen, Blasen
   pixel/staff.js    Belegschaft des Pixel-Büros: Personal, Dienstplan, wie viele auffüllen
   assets/office/    Grafiken des Pixel-Büros mit atlas.json
-art/                Herkunft der Pixelgrafiken: Prompts, Rohbilder, Aufbereitung (Python)
+art/                Herkunft der Pixelgrafiken: Prompts, Prüfsummen der Rohbilder (nur lokal), Aufbereitung (Python)
   replay.js         Zustand des Büros zu jedem Zeitpunkt eines Tages (Rückblick)
   replayView.js     Leiste und Abspielen des Rückblicks
 test/               Unit- und Integrationstests (node:test)
