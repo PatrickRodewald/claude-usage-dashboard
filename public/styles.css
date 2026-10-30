@@ -217,6 +217,10 @@ main {
   max-width: 1500px;
   margin: 0 auto;
 }
+/* Das Buero nutzt die ganze Breite: mehr Platz heisst groessere Pixel. */
+main[data-view='office'] {
+  max-width: none;
+}
 
 .boot {
   padding: 40px 18px;

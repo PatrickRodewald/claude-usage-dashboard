@@ -263,9 +263,11 @@ Dasselbe Büro als Pixelgrafik in Draufsicht, gezeichnet auf Canvas: ein einzige
 alle Projekte nebeneinander arbeiten. Die Grafiken sind mit ChatGPT erzeugt und auf
 16-Pixel-Kacheln und die Palette ENDESGA 32 bereinigt; Herkunft, Prompts und Aufbereitung stehen
 in `art/README.md`, der Auftrag für Stufe 2 (Einrichtung, Lounge, weitere Figuren) in
-`art/auftrag-stufe-2.md`. Angezeigt wird ganzzahlig vergrößert, damit jedes Pixel gleich groß bleibt:
-so groß, wie das Gebäude ins Fenster passt (bis vierfach), sonst zweifach - und ist es dann noch
-zu breit, lässt es sich seitlich verschieben.
+`art/auftrag-stufe-2.md`. Die Büroseite nutzt die ganze Fensterbreite. Angezeigt wird ganzzahlig
+vergrößert, damit jedes Pixel gleich groß bleibt: so groß, wie das Gebäude ins Fenster passt (bis
+vierfach), sonst zweifach - und ist es dann noch zu breit, lässt es sich seitlich verschieben.
+**„Größe“** im Kopf des Bereichs stellt fest auf 2×, 3× oder 4×: Das Gebäude ordnet seine Räume
+dann nach der Breite, und nach unten wird gescrollt. Der Browser merkt sich die Wahl.
 
 - **Das Gebäude:** Oben die Ziegel-Außenwand mit Fenstern, Wanduhr und der gläsernen Eingangstür
   (davor Fußmatte und Garderobe), darunter ein Flur mit Pflanzen. Vom Flur führt eine Tür in jeden

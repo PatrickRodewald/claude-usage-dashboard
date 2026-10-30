@@ -332,6 +332,8 @@ export function createPixelOffice(
     /** Dienstplan des Tages (staff.js) und wann zuletzt danach geschaut wurde. */
     shifts: null,
     staffAt: -Infinity,
+    /** Fest eingestellte Groesse (CSS-Pixel je Grafikpixel); null: passend zum Fenster. */
+    zoom: null,
   };
 
   const ready = loadAssets()
@@ -352,6 +354,8 @@ export function createPixelOffice(
   /**
    * Grundriss passend zum Platz: moeglichst gross (4-, 3-, 2-fach), solange das
    * Gebaeude in Breite und Hoehe ins Fenster passt; sonst 2-fach und scrollen.
+   * Fest eingestellt (B.zoom): genau so gross - das Gebaeude ordnet sich nach
+   * der Breite, nach unten wird gescrollt.
    */
   /** Grundrisse nach Belegung und Breite - beim Ziehen am Fenster nicht dauernd neu. */
   const plans = new Map();
@@ -374,7 +378,7 @@ export function createPixelOffice(
     const availH = Math.max(360, window.innerHeight - 220);
     const sig = `${buildingSignature(B.projects)}|${B.team.length}`;
     let pick = null;
-    for (const css of [4, 3, 2]) {
+    for (const css of B.zoom ? [B.zoom] : [4, 3, 2]) {
       const maxCols = Math.max(1, Math.floor((availW / css - 2 * SIDE_PX) / TILE));
       const L = layoutFor(sig, maxCols);
       pick = { L, sig, css, maxCols, w: L.cols * TILE + 2 * SIDE_PX, h: L.rows * TILE + SIDE_PX };
@@ -390,7 +394,7 @@ export function createPixelOffice(
     const dpr = window.devicePixelRatio || 1;
     // Passt es nicht einmal zweifach in die Breite, bleibt es zweifach und
     // laesst sich seitlich schieben - kleiner wird es nicht lesbarer.
-    const k = p.fitsW ? pixelScale(p.w, availWidth(), dpr, p.css) : Math.max(1, Math.round(2 * dpr));
+    const k = p.fitsW ? pixelScale(p.w, availWidth(), dpr, p.css) : Math.max(1, Math.round(p.css * dpr));
     // Nur anders skaliert (anderer Bildschirm, etwas schmaler): neu zeichnen, nicht umziehen.
     if (sig === B.sig) {
       if (k !== B.k || dpr !== B.dpr) resize(k, dpr);
@@ -1841,6 +1845,11 @@ export function createPixelOffice(
     render,
     /** Gezeichnet wird ohnehin laufend; nach dem Einblenden wieder anstossen. */
     tick: kick,
+    /** Groesse festlegen: 2, 3 oder 4 (CSS-Pixel je Grafikpixel), sonst passend zum Fenster. */
+    zoom(z) {
+      B.zoom = [2, 3, 4].includes(z) ? z : null;
+      refit();
+    },
     /** Eine Besorgung von Hand anstossen (zum Ausprobieren und fuer Tests). */
     errand(id, name) {
       const f = B.figs.get(id);

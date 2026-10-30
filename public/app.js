@@ -399,6 +399,24 @@ async function launchClaude(cwd) {
   });
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
 }
+// Groesse des Pixel-Bueros: passend zum Fenster oder fest 2-, 3-, 4-fach, gemerkt im Browser.
+const zoomSel = $('pixel-zoom');
+try {
+  zoomSel.value = localStorage.getItem('cud-pixel-zoom') ?? 'auto';
+} catch {
+  /* kein Speicher - dann passend */
+}
+if (!zoomSel.value) zoomSel.value = 'auto';
+pixelOffice.zoom(Number(zoomSel.value));
+zoomSel.addEventListener('change', () => {
+  pixelOffice.zoom(Number(zoomSel.value));
+  try {
+    localStorage.setItem('cud-pixel-zoom', zoomSel.value);
+  } catch {
+    /* egal */
+  }
+});
+
 const viewBtn = $('view-toggle');
 let officeView = 'pixel';
 try {
@@ -412,6 +430,7 @@ function applyView() {
     $('pixel-office').hidden = !pixel;
     $('workshop').hidden = pixel;
   }
+  zoomSel.hidden = !pixel || replay.active;
   viewBtn.textContent = pixel ? 'Klassisch' : 'Pixel';
   viewBtn.setAttribute('aria-pressed', String(!pixel));
   tooltip.hide();
@@ -438,6 +457,7 @@ const replay = createReplay({
     if (on) {
       $('live-sub').textContent = 'Tagesrückblick im Zeitraffer';
       $('pixel-office').hidden = true;
+      zoomSel.hidden = true;
     } else {
       applyView();
       if (snapshot) renderActivity(snapshot);
